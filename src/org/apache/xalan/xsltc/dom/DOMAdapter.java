@@ -299,7 +299,7 @@ public final class DOMAdapter implements DOM {
     
     public int getExpandedTypeID(final int node) {
         if (_saxImpl != null) {
-            return getMapping()[_saxImpl.getExpandedTypeID(node)];
+            return getMapping()[_saxImpl.getExpandedTypeID2(node)];
         }
         else
             return getMapping()[_dom.getExpandedTypeID(node)];

@@ -2002,9 +2002,9 @@ public class SAX2DTM2 extends SAX2DTM
   }
   
   /**
-   * Return the expanded type id from the node handle
+   * The optimized version of DTMDefaultBase.getExpandedTypeID(int).
    */
-  public final int getExpandedTypeID(int nodeHandle)
+  public final int getExpandedTypeID2(int nodeHandle)
   {
     int nodeID = makeNodeIdentity(nodeHandle);
     
