@@ -500,22 +500,21 @@ public interface DTM
   public boolean isSupported(String feature, 
                              String version);
   
-  /** Return the base URI of the specified node's Document node. If it
-   * is not known (because the document was parsed from a socket
-   * connection or from standard input, for example), the value of
-   * this property is null.  If you need the document's base URI, you
-   * can retrieve the Document node and then ask it this question.
+  /**
+   * Return the base URI of the document entity. If it is not known
+   * (because the document was parsed from a socket connection or from
+   * standard input, for example), the value of this property is unknown.
    *
-   * %REVIEW% Should this the base URI at the specified node instead?
-   * (The Document's base URI may not match that of other nodes,
-   * due to External Parsed Entities and <xml:base/>. Supporting that
-   * would require tagging nodes with their base URI, or reintroducing
-   * EntityReference boundary points.
-   *
-   * @param nodeHandle The node id, which can be any valid node handle.
    * @return the document base URI String object or null if unknown.
-   * */
-  public String getDocumentBaseURI(int nodeHandle);
+   */
+  public String getDocumentBaseURI();
+  
+  /**
+   * Set the base URI of the document entity.
+   *
+   * @param baseURI the document base URI String object or null if unknown.
+   */
+  public void setDocumentBaseURI(String baseURI);
 
   /**
    * Return the system identifier of the document entity. If

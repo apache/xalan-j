@@ -806,55 +806,6 @@ public abstract class DTMDefaultBase implements DTM
   }
 
   /**
-   * Given a node handle, advance to its next descendant.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
-   *
-   * @param subtreeRootNodeHandle
-   *
-   * NEEDSDOC @param subtreeRootHandle
-   * @param nodeHandle int Handle of the node.
-   * @return handle of next descendant,
-   * or DTM.NULL to indicate none exists.
-   */
-  public int getNextDescendant(int subtreeRootHandle, int nodeHandle)
-  {
-
-    // %TBD%
-    return 0;
-  }
-
-  /**
-   * Given a node handle, advance to the next node on the following axis.
-   *
-   * @param axisContextHandle the start of the axis that is being traversed.
-   * @param nodeHandle
-   * @return handle of next sibling,
-   * or DTM.NULL to indicate none exists.
-   */
-  public int getNextFollowing(int axisContextHandle, int nodeHandle)
-  {
-
-    // %TBD%
-    return 0;
-  }
-
-  /**
-   * Given a node handle, advance to the next node on the preceding axis.
-   *
-   * @param axisContextHandle the start of the axis that is being traversed.
-   * @param nodeHandle the id of the node.
-   * @return int Node-number of preceding sibling,
-   * or DTM.NULL to indicate none exists.
-   */
-  public int getNextPreceding(int axisContextHandle, int nodeHandle)
-  {
-
-    // %TBD%
-    return 0;
-  }
-
-  /**
    * Given a node handle, find its parent node.
    *
    * @param nodeHandle the id of the node.
@@ -1172,15 +1123,25 @@ public abstract class DTMDefaultBase implements DTM
    * (because the document was parsed from a socket connection or from
    * standard input, for example), the value of this property is unknown.
    *
-   * @param nodeHandle The node id, which can be any valid node handle.
    * @return the document base URI String object or null if unknown.
    */
-  public String getDocumentBaseURI(int nodeHandle)
+  public String getDocumentBaseURI()
   {
 
-    // %REVIEW%  OK? -sb
     return m_documentBaseURI;
   }
+  
+  /**
+   * Set the base URI of the document entity.
+   *
+   * @param baseURI the document base URI String object or null if unknown.
+   */
+  public void setDocumentBaseURI(String baseURI)
+  {
+
+    m_documentBaseURI = baseURI;
+  }
+
 
   /**
    * Return the system identifier of the document entity. If

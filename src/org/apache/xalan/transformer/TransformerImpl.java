@@ -429,7 +429,7 @@ public class TransformerImpl extends Transformer
       m_xmlSource = null;
       m_doc = DTM.NULL;
       m_isTransformDone = false;
-      m_inputContentHandler = null;
+      // m_inputContentHandler = null;
       
       // For now, reset the document cache each time.
       getXPathContext().getSourceTreeManager().reset();
@@ -1169,6 +1169,8 @@ public class TransformerImpl extends Transformer
 
     if (null == m_inputContentHandler)
     {
+      //      if(null == m_urlOfSource && null != m_stylesheetRoot)
+      //        m_urlOfSource = m_stylesheetRoot.getBaseIdentifier();
       m_inputContentHandler = new TransformerHandlerImpl(this, doDocFrag, m_urlOfSource);
     }
 
@@ -2858,10 +2860,15 @@ public class TransformerImpl extends Transformer
       {
         m_isTransformDone = true;
 
-        synchronized (this)
+        if(m_inputContentHandler instanceof TransformerHandlerImpl)
         {
-          notifyAll();
+          ((TransformerHandlerImpl)m_inputContentHandler).clearCoRoutine();
         }
+
+//        synchronized (this)
+//        {
+//          notifyAll();
+//        }
       }
     }
     catch (Exception e)

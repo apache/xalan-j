@@ -126,6 +126,9 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         boolean m_isError = false;
 
         private final boolean DEBUG = false;
+        
+        /** The document base URI. */
+        protected String m_documentBaseURI;
 
   /** If we're building the model incrementally on demand, we need to
    * be able to tell the source when to send us more data.
@@ -1795,19 +1798,32 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * @return Returns <code>true</code> if the specified feature is
          *   supported on this node, <code>false</code> otherwise.
          */
-        public boolean isSupported(String feature,
-                                                                                                                 String version) {return false;}
+        public boolean isSupported(String feature, String version) {return false;}
 
         /**
          * Return the base URI of the document entity. If it is not known
          * (because the document was parsed from a socket connection or from
          * standard input, for example), the value of this property is unknown.
          *
-         * @param nodeHandle The node id, which can be any valid node handle.
          * @return the document base URI String object or null if unknown.
          */
-        public String getDocumentBaseURI(int nodeHandle) {return null;}
-
+        public String getDocumentBaseURI()
+        {
+      
+          return m_documentBaseURI;
+        }
+        
+        /**
+         * Set the base URI of the document entity.
+         *
+         * @param baseURI the document base URI String object or null if unknown.
+         */
+        public void setDocumentBaseURI(String baseURI)
+        {
+      
+          m_documentBaseURI = baseURI;
+        }
+        
         /**
          * Return the system identifier of the document entity. If
          * it is not known, the value of this property is unknown.

@@ -150,7 +150,7 @@ public class FuncDocument extends Function2Args
           warn(xctxt, XSLTErrorResources.WG_EMPTY_SECOND_ARG, null);
         
         DTM baseDTM = xctxt.getDTM(baseNode);
-        base = baseDTM.getDocumentBaseURI(baseNode);
+        base = baseDTM.getDocumentBaseURI();
 
 //        int baseDoc = baseDTM.getDocument();
 //

@@ -269,9 +269,18 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void clearCoRoutine()
   {
+    clearCoRoutine(true);
+  }
+  
+  /**
+   * Ask the CoRoutine parser to doTerminate and clear the reference.
+   */
+  public void clearCoRoutine(boolean callDoTerminate)
+  {
     if(null != m_coroutineParser)
     {
-      m_coroutineParser.doTerminate(m_appCoroutineID);
+      if(callDoTerminate)
+        m_coroutineParser.doTerminate(m_appCoroutineID);
       m_coroutineParser = null;
     }
   }
@@ -1418,8 +1427,7 @@ public class SAX2DTM extends DTMDefaultBase
 
     try
     {
-      systemId = SystemIDResolver.getAbsoluteURI(systemId,
-                                                 getDocumentBaseURI(0));
+      systemId = SystemIDResolver.getAbsoluteURI(systemId, getDocumentBaseURI());
     }
     catch (Exception e)
     {

@@ -217,23 +217,23 @@ public class CoroutineManager
   {
     if(coroutineID>=0)
       {
-	if(coroutineID>=m_unreasonableId || m_activeIDs.get(coroutineID))
-	  return -1;
+        if(coroutineID>=m_unreasonableId || m_activeIDs.get(coroutineID))
+          return -1;
       }
     else
       {
-	// What I want is "Find first clear bit". That doesn't exist.
-	// JDK1.2 added "find last set bit", but that doesn't help now.
-	coroutineID=0;
-	while(coroutineID<m_unreasonableId)
-	  {
-	    if(m_activeIDs.get(coroutineID))
-	      ++coroutineID;
-	    else
-	      break;
-	  }
-	if(coroutineID>=m_unreasonableId)
-	  return -1;
+        // What I want is "Find first clear bit". That doesn't exist.
+        // JDK1.2 added "find last set bit", but that doesn't help now.
+        coroutineID=0;
+        while(coroutineID<m_unreasonableId)
+          {
+            if(m_activeIDs.get(coroutineID))
+              ++coroutineID;
+            else
+              break;
+          }
+        if(coroutineID>=m_unreasonableId)
+          return -1;
       }
 
     m_activeIDs.set(coroutineID);
@@ -262,15 +262,15 @@ public class CoroutineManager
 
     while(m_nextCoroutine != thisCoroutine)
       {
-	try 
-	  {
-	    wait();
-	  }
-	catch(java.lang.InterruptedException e)
-	  {
-	    // %TBD% -- Declare? Encapsulate? Ignore? Or
-	    // dance widdershins about the instruction cache?
-	  }
+        try 
+          {
+            wait();
+          }
+        catch(java.lang.InterruptedException e)
+          {
+            // %TBD% -- Declare? Encapsulate? Ignore? Or
+            // dance widdershins about the instruction cache?
+          }
       }
     
     return m_yield;
@@ -303,24 +303,25 @@ public class CoroutineManager
     notify();
     while(m_nextCoroutine != thisCoroutine || m_nextCoroutine==ANYBODY || m_nextCoroutine==NOBODY)
       {
-	try 
-	  {
-	    wait();
-	  }
-	catch(java.lang.InterruptedException e)
-	  {
-	    // %TBD% -- Declare? Encapsulate? Ignore? Or
-	    // dance deasil about the program counter?
-	  }
+        try 
+          {
+            // System.out.println("waiting...");
+            wait();
+          }
+        catch(java.lang.InterruptedException e)
+          {
+            // %TBD% -- Declare? Encapsulate? Ignore? Or
+            // dance deasil about the program counter?
+          }
       }
 
     if(m_nextCoroutine==NOBODY)
       {
-	// Pass it along
-	co_exit(thisCoroutine);
-	// And inform this coroutine that its partners are Going Away
-	// %REVIEW% Should this throw/return something more useful?
-	throw new java.lang.NoSuchMethodException("CoroutineManager recieved co_exit() request");
+        // Pass it along
+        co_exit(thisCoroutine);
+        // And inform this coroutine that its partners are Going Away
+        // %REVIEW% Should this throw/return something more useful?
+        throw new java.lang.NoSuchMethodException("CoroutineManager recieved co_exit() request");
       }
     
     return m_yield;

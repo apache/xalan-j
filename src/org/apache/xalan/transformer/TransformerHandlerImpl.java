@@ -67,6 +67,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.DTDHandler;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.ErrorHandler;
+import org.xml.sax.ext.DeclHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.SAXNotSupportedException;
@@ -79,9 +80,12 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.Result;
 
 import org.apache.xpath.XPathContext;
-
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMManager;
+
+import org.apache.xml.dtm.CoroutineManager;
+import org.apache.xml.dtm.CoroutineSAXParser;
+import org.apache.xml.dtm.sax2dtm.SAX2DTM;
 
 /**
  * A TransformerHandler
@@ -90,8 +94,10 @@ import org.apache.xml.dtm.DTMManager;
  */
 public class TransformerHandlerImpl
         implements EntityResolver, DTDHandler, ContentHandler, ErrorHandler,
-                   LexicalHandler, TransformerHandler
+                   LexicalHandler, TransformerHandler, DeclHandler
 {
+  
+  private boolean m_insideParse = false;
 
   ////////////////////////////////////////////////////////////////////
   // Constructors.
@@ -112,15 +118,49 @@ public class TransformerHandlerImpl
 
     m_transformer = transformer;
     m_baseSystemID = baseSystemID;
-    
+
     XPathContext xctxt = transformer.getXPathContext();
     DTM dtm = xctxt.getDTM(null, true, transformer, true);
     
+    m_dtm = dtm;
+    dtm.setDocumentBaseURI(baseSystemID);
+
     m_contentHandler = dtm.getContentHandler();
     m_dtdHandler = dtm.getDTDHandler();
     m_entityResolver = dtm.getEntityResolver();
     m_errorHandler = dtm.getErrorHandler();
     m_lexicalHandler = dtm.getLexicalHandler();
+  }
+  
+  /** 
+   * Do what needs to be done to shut down the CoRoutine management.
+   */
+  protected void clearCoRoutine()
+  {
+    
+    if(m_dtm instanceof SAX2DTM)
+    {
+      if(DEBUG)
+        System.out.println("In clearCoRoutine...");
+      SAX2DTM sax2dtm = ((SAX2DTM)m_dtm);
+      if(null != m_contentHandler 
+         && m_contentHandler instanceof CoroutineSAXParser)
+      {
+        CoroutineSAXParser sp = (CoroutineSAXParser)m_contentHandler;
+
+        if(m_insideParse)
+            sp.doMore(false, sax2dtm.getAppCoroutineID());      
+      }
+      
+      sax2dtm.clearCoRoutine(true);
+      m_contentHandler = null;
+      m_dtdHandler = null;
+      m_entityResolver = null;
+      m_errorHandler = null;
+      m_lexicalHandler = null;
+      if(DEBUG)
+        System.out.println("...exiting clearCoRoutine");
+    }
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -138,14 +178,17 @@ public class TransformerHandlerImpl
   public void setResult(Result result) throws IllegalArgumentException
   {
 
-    if(null == result)
+    if (null == result)
       throw new IllegalArgumentException("result should not be null");
+
     try
     {
-      ContentHandler handler = m_transformer.createResultContentHandler(result);
-      m_transformer.setContentHandler(handler); 
+      ContentHandler handler =
+        m_transformer.createResultContentHandler(result);
+
+      m_transformer.setContentHandler(handler);
     }
-    catch(javax.xml.transform.TransformerException te)
+    catch (javax.xml.transform.TransformerException te)
     {
       throw new IllegalArgumentException("result could not be set");
     }
@@ -161,6 +204,7 @@ public class TransformerHandlerImpl
   public void setSystemId(String systemID)
   {
     m_baseSystemID = systemID;
+    m_dtm.setDocumentBaseURI(systemID);
   }
 
   /**
@@ -276,7 +320,16 @@ public class TransformerHandlerImpl
   public void setDocumentLocator(Locator locator)
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#setDocumentLocator: "
+                         + locator.getSystemId());
+
     this.m_locator = locator;
+    
+    if(null == m_baseSystemID)
+    {
+      setSystemId(locator.getSystemId());
+    }
 
     if (m_contentHandler != null)
     {
@@ -294,7 +347,13 @@ public class TransformerHandlerImpl
   public void startDocument() throws SAXException
   {
 
-    Thread listener=new Thread(m_transformer);
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startDocument");
+      
+    m_insideParse = true;
+
+    Thread listener = new Thread(m_transformer);
+
     m_transformer.setTransformThread(listener);
     listener.setDaemon(false);
     listener.start();
@@ -315,6 +374,11 @@ public class TransformerHandlerImpl
   public void endDocument() throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endDocument");
+
+    m_insideParse = false;
+    
     if (m_contentHandler != null)
     {
       m_contentHandler.endDocument();
@@ -329,17 +393,19 @@ public class TransformerHandlerImpl
 
         // This should wait until the transformThread is considered not alive.
         transformThread.join();
-        if(!m_transformer.hasTransformThreadErrorCatcher())
+
+        if (!m_transformer.hasTransformThreadErrorCatcher())
         {
           Exception e = m_transformer.getExceptionThrown();
-          if(null != e)
+
+          if (null != e)
             throw new org.xml.sax.SAXException(e);
         }
+
         m_transformer.setTransformThread(null);
       }
       catch (InterruptedException ie){}
     }
-
   }
 
   /**
@@ -354,6 +420,10 @@ public class TransformerHandlerImpl
   public void startPrefixMapping(String prefix, String uri)
           throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startPrefixMapping: "
+                         + prefix + ", " + uri);
 
     if (m_contentHandler != null)
     {
@@ -371,6 +441,10 @@ public class TransformerHandlerImpl
    */
   public void endPrefixMapping(String prefix) throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endPrefixMapping: "
+                         + prefix);
 
     if (m_contentHandler != null)
     {
@@ -395,6 +469,9 @@ public class TransformerHandlerImpl
             throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startElement: " + qName);
+
     if (m_contentHandler != null)
     {
       m_contentHandler.startElement(uri, localName, qName, atts);
@@ -416,6 +493,9 @@ public class TransformerHandlerImpl
           throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endElement: " + qName);
+
     if (m_contentHandler != null)
     {
       m_contentHandler.endElement(uri, localName, qName);
@@ -434,6 +514,10 @@ public class TransformerHandlerImpl
    */
   public void characters(char ch[], int start, int length) throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#characters: " + start + ", "
+                         + length);
 
     if (m_contentHandler != null)
     {
@@ -455,6 +539,10 @@ public class TransformerHandlerImpl
           throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#ignorableWhitespace: "
+                         + start + ", " + length);
+
     if (m_contentHandler != null)
     {
       m_contentHandler.ignorableWhitespace(ch, start, length);
@@ -474,6 +562,10 @@ public class TransformerHandlerImpl
           throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#processingInstruction: "
+                         + target + ", " + data);
+
     if (m_contentHandler != null)
     {
       m_contentHandler.processingInstruction(target, data);
@@ -490,6 +582,9 @@ public class TransformerHandlerImpl
    */
   public void skippedEntity(String name) throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#skippedEntity: " + name);
 
     if (m_contentHandler != null)
     {
@@ -512,6 +607,9 @@ public class TransformerHandlerImpl
   public void warning(SAXParseException e) throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#warning: " + e);
+
     if (m_errorHandler != null)
     {
       m_errorHandler.warning(e);
@@ -529,6 +627,9 @@ public class TransformerHandlerImpl
   public void error(SAXParseException e) throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#error: " + e);
+
     if (m_errorHandler != null)
     {
       m_errorHandler.error(e);
@@ -545,6 +646,9 @@ public class TransformerHandlerImpl
    */
   public void fatalError(SAXParseException e) throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#fatalError: " + e);
 
     if (m_errorHandler != null)
     {
@@ -581,6 +685,10 @@ public class TransformerHandlerImpl
           throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startDTD: " + name + ", "
+                         + publicId + ", " + systemId);
+
     if (null != m_lexicalHandler)
     {
       m_lexicalHandler.startDTD(name, publicId, systemId);
@@ -595,6 +703,9 @@ public class TransformerHandlerImpl
    */
   public void endDTD() throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endDTD");
 
     if (null != m_lexicalHandler)
     {
@@ -627,6 +738,9 @@ public class TransformerHandlerImpl
   public void startEntity(String name) throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startEntity: " + name);
+
     if (null != m_lexicalHandler)
     {
       m_lexicalHandler.startEntity(name);
@@ -642,6 +756,9 @@ public class TransformerHandlerImpl
    */
   public void endEntity(String name) throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endEntity: " + name);
 
     if (null != m_lexicalHandler)
     {
@@ -662,6 +779,9 @@ public class TransformerHandlerImpl
   public void startCDATA() throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#startCDATA");
+
     if (null != m_lexicalHandler)
     {
       m_lexicalHandler.startCDATA();
@@ -676,6 +796,9 @@ public class TransformerHandlerImpl
    */
   public void endCDATA() throws SAXException
   {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#endCDATA");
 
     if (null != m_lexicalHandler)
     {
@@ -698,6 +821,10 @@ public class TransformerHandlerImpl
   public void comment(char ch[], int start, int length) throws SAXException
   {
 
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#comment: " + start + ", "
+                         + length);
+
     if (null != m_lexicalHandler)
     {
       m_lexicalHandler.comment(ch, start, length);
@@ -705,8 +832,131 @@ public class TransformerHandlerImpl
   }
 
   ////////////////////////////////////////////////////////////////////
+  // Implementation of org.xml.sax.ext.DeclHandler.
+  ////////////////////////////////////////////////////////////////////
+
+  /**
+   * Report an element type declaration.
+   *
+   * <p>The content model will consist of the string "EMPTY", the
+   * string "ANY", or a parenthesised group, optionally followed
+   * by an occurrence indicator.  The model will be normalized so
+   * that all whitespace is removed,and will include the enclosing
+   * parentheses.</p>
+   *
+   * @param name The element type name.
+   * @param model The content model as a normalized string.
+   * @throws SAXException The application may raise an exception.
+   */
+  public void elementDecl(String name, String model) throws SAXException
+  {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#elementDecl: " + name + ", "
+                         + model);
+
+    if (null != m_declHandler)
+    {
+      m_declHandler.elementDecl(name, model);
+    }
+  }
+
+  /**
+   * Report an attribute type declaration.
+   *
+   * <p>Only the effective (first) declaration for an attribute will
+   * be reported.  The type will be one of the strings "CDATA",
+   * "ID", "IDREF", "IDREFS", "NMTOKEN", "NMTOKENS", "ENTITY",
+   * "ENTITIES", or "NOTATION", or a parenthesized token group with
+   * the separator "|" and all whitespace removed.</p>
+   *
+   * @param eName The name of the associated element.
+   * @param aName The name of the attribute.
+   * @param type A string representing the attribute type.
+   * @param valueDefault A string representing the attribute default
+   *        ("#IMPLIED", "#REQUIRED", or "#FIXED") or null if
+   *        none of these applies.
+   * @param value A string representing the attribute's default value,
+   *        or null if there is none.
+   * @throws SAXException The application may raise an exception.
+   */
+  public void attributeDecl(
+          String eName, String aName, String type, String valueDefault, String value)
+            throws SAXException
+  {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#attributeDecl: " + eName
+                         + ", " + aName + ", etc...");
+
+    if (null != m_declHandler)
+    {
+      m_declHandler.attributeDecl(eName, aName, type, valueDefault, value);
+    }
+  }
+
+  /**
+   * Report an internal entity declaration.
+   *
+   * <p>Only the effective (first) declaration for each entity
+   * will be reported.</p>
+   *
+   * @param name The name of the entity.  If it is a parameter
+   *        entity, the name will begin with '%'.
+   * @param value The replacement text of the entity.
+   * @throws SAXException The application may raise an exception.
+   * @see #externalEntityDecl
+   * @see org.xml.sax.DTDHandler#unparsedEntityDecl
+   */
+  public void internalEntityDecl(String name, String value)
+          throws SAXException
+  {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#internalEntityDecl: " + name
+                         + ", " + value);
+
+    if (null != m_declHandler)
+    {
+      m_declHandler.internalEntityDecl(name, value);
+    }
+  }
+
+  /**
+   * Report a parsed external entity declaration.
+   *
+   * <p>Only the effective (first) declaration for each entity
+   * will be reported.</p>
+   *
+   * @param name The name of the entity.  If it is a parameter
+   *        entity, the name will begin with '%'.
+   * @param publicId The declared public identifier of the entity, or
+   *        null if none was declared.
+   * @param systemId The declared system identifier of the entity.
+   * @throws SAXException The application may raise an exception.
+   * @see #internalEntityDecl
+   * @see org.xml.sax.DTDHandler#unparsedEntityDecl
+   */
+  public void externalEntityDecl(
+          String name, String publicId, String systemId) throws SAXException
+  {
+
+    if (DEBUG)
+      System.out.println("TransformerHandlerImpl#externalEntityDecl: " + name
+                         + ", " + publicId + ", " + systemId);
+
+    if (null != m_declHandler)
+    {
+      m_declHandler.externalEntityDecl(name, publicId, systemId);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////
   // Internal state.
   ////////////////////////////////////////////////////////////////////
+
+  /** Set to true for diagnostics output.         */
+  private static boolean DEBUG = false;
 
   /**
    * The transformer this will use to transform a
@@ -737,4 +987,10 @@ public class TransformerHandlerImpl
 
   /** The lexical handler to aggregate to. */
   private LexicalHandler m_lexicalHandler = null;
+
+  /** The decl handler to aggregate to. */
+  private DeclHandler m_declHandler = null;
+  
+  /** The Document Table Instance we are transforming. */
+  DTM m_dtm;
 }
