@@ -1232,7 +1232,7 @@ public abstract class DTMDefaultBase implements DTM
         result = node;
         node = _nextsib(node);
       }
-      return result;
+      return makeNodeHandle(result);
     }
   }
 
