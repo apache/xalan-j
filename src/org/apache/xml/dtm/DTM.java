@@ -56,33 +56,38 @@
  */
 package org.apache.xml.dtm;
 
-/**
- * <code>DTM</code> is an XML document model expressed as a table rather than
- * an object tree. It attempts to provide an interface to a parse tree that 
- * has very little object creation, and to (invisibly) support incremental
- * construction of the model.
+/** <code>DTM</code> is an XML document model expressed as a table
+ * rather than an object tree. It attempts to provide an interface to
+ * a parse tree that has very little object creation. (DTM
+ * implementations may also support incremental construction of the
+ * model, but that's hidden from the DTM API.)
  * 
  * <p>Nodes in the DTM are identified by integer "handles".  A handle must 
  * be unique within a process, and carries both node identification and 
  * document identification.  It must be possible to compare two handles 
  * (and thus their nodes) for identity with "==".</p>
  * 
- * <p>Namespace URLs, local-names, and expanded-names can all be represented 
- * by integer ID values which index into string pools stored outside the
- * main tree structure.  An expanded name is made of a combination of the URL 
- * ID, and the local-name ID.</p>
- * 
- * <p>The model of the tree, as well as the general navigation model, is 
- * that of XPath 1.0, for the moment.  The model will eventually be adapted to 
- * match the XPath 2.0 data model, XML Schema, and InfoSet.</p>
+ * <p>Namespace URLs, local-names, and expanded-names can all be
+ * represented by and tested as integer ID values.  An expanded name
+ * represents (and may or may not directly contain) a combination of
+ * the URL ID, and the local-name ID.  Note that the namespace URL id
+ * can be 0, which should have the meaning that the namespace is null.
+ * For consistancy, zero should not be used for a local-name index. </p>
+ *
+ * <p>Text content of a node is represented by an index and length,
+ * permitting efficient storage such as a shared FastStringBuffer.</p>
+ *
+ * <p>The model of the tree, as well as the general navigation model,
+ * is that of XPath 1.0, for the moment.  The model will eventually be
+ * adapted to match the XPath 2.0 data model, XML Schema, and
+ * InfoSet.</p>
  * 
  * <p>DTM does _not_ directly support the W3C's Document Object
  * Model. However, it attempts to come close enough that an
  * implementation of DTM can be created that wraps a DOM and vice
  * versa.</p>
  * 
- * <p>State: In progress!!</p>
- */
+ * <p>State: In progress!!</p> */
 public interface DTM
 {
   /**
@@ -92,6 +97,10 @@ public interface DTM
 
   // These nodeType mnemonics and values are deliberately the same as those
   // used by the DOM, for convenient mapping
+  //
+  // %REVIEW% Should we actually define these as initialized to,
+  // eg. org.w3c.dom.Document.ELEMENT_NODE?
+
   /**
    * The node is an <code>Element</code>.
    */
@@ -141,10 +150,9 @@ public interface DTM
    */
   public static final short NOTATION_NODE             = 12;
 
-  // Node type(s) not shared with the DOM:
-  /**
-   * The node is a <code>namespace node</code>.
-   */
+  /** The node is a <code>namespace node</code>. Note that this is not
+   * currently a node type defined by the DOM API.
+   * */
   public static final short NAMESPACE_NODE             = 113;
   
   // ========= DTM Implementation Control Functions. ==============
@@ -201,13 +209,37 @@ public interface DTM
   public int getLastChild(int nodeHandle);
 
   /**
+   * Retrieves an attribute node by qualified name. 
+   * <br>To retrieve an attribute node by local name and namespace URI, 
+   * use the <code>getAttributeNodeNS</code> method.
+   *
+   * %REVIEW% I don't think XPath model needs it... but DOM support might.
+   *
+   * @param name The qualified name of the attribute to 
+   *   retrieve.
+   * @return The attribute node handle with the specified name (
+   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
+   *   attribute.
+   */
+  public int getAttributeNode(String name);
+
+  /**
+   * Retrieves an attribute node by local name and namespace URI
+   *
+   * @param name The namespace URI of the attribute to 
+   *   retrieve, or null.
+   * @param name The local name of the attribute to 
+   *   retrieve.
+   * @return The attribute node handle with the specified name (
+   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
+   *   attribute.
+   */
+  public int getAttributeNode(String namespaceURI, String name);
+
+  /**
    * Retrieves an attribute node by name.
    * <br>To retrieve an attribute node by qualified name and namespace URI, 
    * use the <code>getAttributeNodeNS</code> method.
-   *
-   * <p> %REVIEW% The API described here actually _is_
-   * <code>getAttributeNodeNS</code>, since it takes a
-   * namespaceURI. Fix the function name, or fix the parameters?</p>
    *
    * @param name The namespace URI of the attribute to 
    *   retrieve, or null.
@@ -252,7 +284,7 @@ public interface DTM
   /**
    * Given a node handle, find its preceeding sibling.
    * WARNING: DTM implementations may be asymmetric; in some,
-   * this operation is resolved by search, and is relatively expensive.
+   * this operation has been resolved by search, and is relatively expensive.
    *
    * @param nodeHandle the id of the node.
    * @return int Node-number of the previous sib,
@@ -290,7 +322,7 @@ public interface DTM
    * <p>
    * One application would be as a subroutine for DTMIterators.
    * <p>
-   * TODO: Joe would like to rename this to walkNextDescendent
+   * %REVIEW% Joe would like to rename this to walkNextDescendent
    * to distinguish it more strongly from getFirstChild
    *
    * @param subtreeRootHandle int Handle of the root of the subtree
@@ -810,8 +842,9 @@ public interface DTM
       throws org.xml.sax.SAXException;
       
   // ==== Construction methods (may not be supported by some implementations!) =====
-      // TODO: What response occurs if not supported?
-      // TODO: I suspect we need element and attribute factories, maybe others.
+      // %REVIEW% What response occurs if not supported?
+      // Should it be a separate interface to make that distinction explicit?
+      // I suspect we need element and attribute factories, maybe others.
   
   /**
    * Append a child to the end of the document. Please note that the node 
