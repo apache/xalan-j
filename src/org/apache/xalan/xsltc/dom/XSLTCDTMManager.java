@@ -73,6 +73,7 @@ import org.apache.xml.res.XMLErrorResources;
 import org.apache.xml.res.XMLMessages;
 import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.utils.XMLStringFactory;
+import org.apache.xml.utils.XMLStringFactoryDefault;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXNotRecognizedException;
@@ -112,7 +113,9 @@ public class XSLTCDTMManager extends DTMManagerDefault
    */
   public static DTMManager newInstance()
   {
-    return new XSLTCDTMManager();
+    DTMManager factoryImpl = new XSLTCDTMManager();
+    factoryImpl.setXMLStringFactory(new XMLStringFactoryDefault());
+    return factoryImpl;
     
     /*
     String classname =  defaultClassName;
@@ -247,7 +250,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
 			 " source: "+source.getSystemId()
 			 );
 
-    // XMLStringFactory xstringFactory = m_xsf;
+    XMLStringFactory xstringFactory = m_xsf;
     int dtmPos = getFirstFreeDTMID();
     int documentID = dtmPos << IDENT_DTM_NODE_BITS;
 
@@ -257,10 +260,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
 
       if (size <= 0) {
         dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, null, doIndexing);
+                          whiteSpaceFilter, xstringFactory, doIndexing);
       } else {
         dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, null, doIndexing, size);
+                          whiteSpaceFilter, xstringFactory, doIndexing, size);
       }
 
       addDTM(dtm, dtmPos);
@@ -320,10 +323,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
         SAXImpl dtm;
         if (size <= 0) {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            null, doIndexing);
+                            xstringFactory, doIndexing);
         } else {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            null, doIndexing, size);
+                            xstringFactory, doIndexing, size);
         }
 
         // Go ahead and add the DTM to the lookup table.  This needs to be

@@ -58,6 +58,7 @@ package org.apache.xml.dtm.ref.sax2dtm;
 
 import org.apache.xml.dtm.*;
 import org.apache.xml.dtm.ref.*;
+import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.XMLStringFactory;
 import org.apache.xml.res.XMLMessages;
 import org.apache.xml.res.XMLErrorResources;
@@ -2056,6 +2057,25 @@ public class SAX2DTM2 extends SAX2DTM
 
       return m_valuesOrPrefixes.indexToString(qnameIndex);
     }
+  }
+
+  /**
+   * Override SAX2DTM.getStringValue(int)
+   *
+   * This implementation just calls getStringValueX(int) and creates
+   * a XMLString wrapper from the returned String.
+   *
+   * Get the string-value of a node as a String object
+   * (see http://www.w3.org/TR/xpath#data-model
+   * for the definition of a node's string-value).
+   *
+   * @param nodeHandle The node ID.
+   *
+   * @return A string object that represents the string-value of the given node.
+   */
+  public XMLString getStringValue(int nodeHandle)
+  {
+    return m_xstrf.newstr(getStringValueX(nodeHandle));
   }
   
   /**
