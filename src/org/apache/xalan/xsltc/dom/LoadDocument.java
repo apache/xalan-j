@@ -148,14 +148,22 @@ public final class LoadDocument {
             // Parse the input document and construct DOM object
             // Create a SAX parser and get the XMLReader object it uses
             final SAXParserFactory factory = SAXParserFactory.newInstance();
+            /*
             try {
                 factory.setFeature(NAMESPACE_FEATURE,true);
             }
             catch (Exception e) {
                 factory.setNamespaceAware(true);
             }
+            */
             final SAXParser parser = factory.newSAXParser();
             final XMLReader reader = parser.getXMLReader();
+            try {
+                reader.setFeature(NAMESPACE_FEATURE,true);
+            }
+            catch (Exception e) {
+                throw new TransletException(e);
+            }
 
             // Set the DOM's DOM builder as the XMLReader's SAX2 content handler
             XSLTCDTMManager dtmManager = (XSLTCDTMManager)
