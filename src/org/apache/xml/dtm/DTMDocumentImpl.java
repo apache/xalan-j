@@ -2314,6 +2314,19 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
   }
   
   /**
+   * This returns a stateless "traverser", that can navigate over an 
+   * XPath axis, though not in document order.
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisTraverser getAxisTraverser(final int axis)
+  {
+    return null;
+  }
+  
+  /**
    * This is a shortcut to the iterators that implement the
    * supported XPath axes (only namespace::) is not supported.
    * Returns a bare-bones iterator that must be initialized

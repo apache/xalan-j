@@ -189,8 +189,18 @@ public interface DTM
   // ========= Document Navigation Functions =========
   
   /**
-   * This is a shortcut to the iterators that implement the
-   * supported XPath axes (only namespace::) is not supported.
+   * This returns a stateless "traverser", that can navigate over an 
+   * XPath axis, though not in document order.
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisTraverser getAxisTraverser(final int axis);
+  
+  /**
+   * This is a shortcut to the iterators that implement 
+   * XPath axes.
    * Returns a bare-bones iterator that must be initialized
    * with a start node (using iterator.setStartNode()).
    *

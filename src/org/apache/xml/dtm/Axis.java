@@ -69,20 +69,20 @@ public interface Axis
    * The ancestor axis contains the ancestors of the context node;
    *  the ancestors of the context node consist of the parent of context
    *  node and the parent's parent and so on; thus, the ancestor axis will
-   *  always include the root node, unless the context node is the root node. 
+   *  always include the root node, unless the context node is the root node.
    */
   public static final int ANCESTOR = 0;
 
   /**
    * the ancestor-or-self axis contains the context node and the ancestors of
    *  the context node; thus, the ancestor axis will always include the
-   *  root node. 
+   *  root node.
    */
   public static final int ANCESTORORSELF = 1;
 
   /**
    * the attribute axis contains the attributes of the context node; the axis
-   *  will be empty unless the context node is an element.  
+   *  will be empty unless the context node is an element.
    */
   public static final int ATTRIBUTE = 2;
 
@@ -92,64 +92,88 @@ public interface Axis
   /**
    * The descendant axis contains the descendants of the context node;
    *  a descendant is a child or a child of a child and so on; thus the
-   *  descendant axis never contains attribute or namespace nodes.         
+   *  descendant axis never contains attribute or namespace nodes.
    */
   public static final int DESCENDANT = 4;
 
   /**
    * The descendant-or-self axis contains the context node and the
-   *  descendants of the context node.  
+   *  descendants of the context node.
    */
   public static final int DESCENDANTORSELF = 5;
 
   /**
    * the following axis contains all nodes in the same document as the
    *  context node that are after the context node in document order, excluding
-   *  any descendants and excluding attribute nodes and namespace nodes. 
+   *  any descendants and excluding attribute nodes and namespace nodes.
    */
   public static final int FOLLOWING = 6;
 
   /**
    * The following-sibling axis contains all the following siblings of the
    *  context node; if the context node is an attribute node or namespace node,
-   *  the following-sibling axis is empty. 
+   *  the following-sibling axis is empty.
    */
   public static final int FOLLOWINGSIBLING = 7;
 
   /**
    * The namespace axis contains the namespace nodes of the context node; the
-   *  axis will be empty unless the context node is an element.  
+   *  axis will be empty unless the context node is an element.
    */
-  public static final int NAMESPACE = 8;
+  public static final int NAMESPACEDECLS = 8;
+
+  /**
+   * The namespace axis contains the namespace nodes of the context node; the
+   *  axis will be empty unless the context node is an element.
+   */
+  public static final int NAMESPACE = 9;
 
   /**
    * The parent axis contains the parent of the context node,
-   *  if there is one.  
+   *  if there is one.
    */
-  public static final int PARENT = 9;
+  public static final int PARENT = 10;
 
   /**
    * The preceding axis contains all nodes in the same document as the context
    *  node that are before the context node in document order, excluding any
-   *  ancestors and excluding attribute nodes and namespace nodes 
+   *  ancestors and excluding attribute nodes and namespace nodes
    */
-  public static final int PRECEDING = 10;
+  public static final int PRECEDING = 11;
 
   /**
    * The preceding-sibling axis contains all the preceding siblings of the
    *  context node; if the context node is an attribute node or namespace node,
-   *  the preceding-sibling axis is empty.  
+   *  the preceding-sibling axis is empty.
    */
-  public static final int PRECEDINGSIBLING = 11;
+  public static final int PRECEDINGSIBLING = 12;
 
   /** The self axis contains just the context node itself. */
-  public static final int SELF = 12;
+  public static final int SELF = 13;
+
+  /**
+   * A non-xpath axis, traversing the subtree including the subtree
+   *  root, descendants, attributes, and namespace node decls.
+   */
+  public static final int SUBTREE = 14;
 
   /** The names of the axes for diagnostic purposes. */
-  public static final String[] names = { "ancestor", "ancestor-or-self",
-                                         "attribute", "child", "descendant",
-                                         "descendant-or-self", "following",
-                                         "following-sibling", "namespace",
-                                         "parent", "preceding",
-                                         "preceding-sibling", "self" };
+  public static final String[] names =
+  {
+    "ancestor",  // 0
+    "ancestor-or-self",  // 1
+    "attribute",  // 2
+    "child",  // 3
+    "descendant",  // 4
+    "descendant-or-self",  // 5
+    "following",  // 6
+    "following-sibling",  // 7
+    "namespace-decls",  // 8
+    "namespace",  // 9
+    "parent",  // 10
+    "preceding",  // 11
+    "preceding-sibling",  // 12
+    "self",  // 13
+    "subtree"  // 14
+  };
 }
