@@ -263,7 +263,7 @@ public interface DTM
   // TODO: Joe would like to rename this to walkNextDescendent
   // to distinguish it more strongly from getFirstChild
 
-  /** Lightweight subtree-walker. Given a node handle, find the next
+  /** Lightweight tree-walker. Given a node handle, find the next
    * node in document order. The walk stops (returning DTM.NULL) when
    * it would otherwise run off the end of the document.
    * <p>
@@ -281,7 +281,7 @@ public interface DTM
   // (or perhaps just walkFollowing?)
   // to distinguish it more strongly from getNextSibling.
   
-  /** Lightweight subtree-walker. Given a node handle, find the next
+  /** Lightweight tree-walker. Given a node handle, find the next
    * node in reverse document order. (Postorder right-to-left traversal).  The
    * walk stops (returning DTM.NULL) when it would otherwise run off the
    * beginning of the document.
