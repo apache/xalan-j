@@ -101,13 +101,16 @@ public class DTMStringPool
       m_intToString=new Vector();
       m_hashChain=new IntVector();
       removeAllElements();
+      
+      // -sb Add this to force empty strings to be index 0.
+      stringToIndex("");
     }
   
   public void removeAllElements()
     {
       m_intToString.removeAllElements();
       for(int i=0;i<HASHPRIME;++i)
-	m_hashStart[i]=NULL;
+        m_hashStart[i]=NULL;
       m_hashChain.removeAllElements();
     }
 
@@ -134,13 +137,13 @@ public class DTMStringPool
       int hashlast=m_hashStart[hashslot];
       int hashcandidate=hashlast;
       while(hashcandidate!=NULL)
-	{
-	  if(m_intToString.elementAt(hashcandidate).equals(s))
-	    return hashcandidate;
+        {
+          if(m_intToString.elementAt(hashcandidate).equals(s))
+            return hashcandidate;
 
-	  hashlast=hashcandidate;
-	  hashcandidate=m_hashChain.elementAt(hashcandidate);
-	}
+          hashlast=hashcandidate;
+          hashcandidate=m_hashChain.elementAt(hashcandidate);
+        }
       
       // New value. Add to tables.
       int newIndex=m_intToString.size();
@@ -148,9 +151,9 @@ public class DTMStringPool
 
       m_hashChain.addElement(NULL);	// Initialize to no-following-same-hash
       if(hashlast==NULL)  // First for this hash
-	m_hashStart[hashslot]=newIndex;
+        m_hashStart[hashslot]=newIndex;
       else // Link from previous with same hash
-	m_hashChain.setElementAt(newIndex,hashlast);
+        m_hashChain.setElementAt(newIndex,hashlast);
 
       return newIndex;
     }
@@ -178,35 +181,35 @@ public class DTMStringPool
 
     for(int pass=0;pass<=1;++pass)
       {
-	int i;
+        int i;
 
-	for(i=0;i<word.length;++i)
-	  {
-	    int j=pool.stringToIndex(word[i]);
-	    if(j!=i)
-	      System.out.println("\tMismatch populating pool: assigned "+
-				 j+" for create "+i);
-	  }
+        for(i=0;i<word.length;++i)
+          {
+            int j=pool.stringToIndex(word[i]);
+            if(j!=i)
+              System.out.println("\tMismatch populating pool: assigned "+
+                                 j+" for create "+i);
+          }
 
-	for(i=0;i<word.length;++i)
-	  {
-	    int j=pool.stringToIndex(word[i]);
-	    if(j!=i)
-	      System.out.println("\tMismatch in stringToIndex: returned "+
-				 j+" for lookup "+i);
-	  }
+        for(i=0;i<word.length;++i)
+          {
+            int j=pool.stringToIndex(word[i]);
+            if(j!=i)
+              System.out.println("\tMismatch in stringToIndex: returned "+
+                                 j+" for lookup "+i);
+          }
 
-	for(i=0;i<word.length;++i)
-	  {
-	    String w=pool.indexToString(i);
-	    if(!word[i].equals(w))
-	      System.out.println("\tMismatch in indexToString: returned"+
-				 w+" for lookup "+i);
-	  }
-	
-	pool.removeAllElements();
-	
-	System.out.println("\nPass "+pass+" complete\n");
+        for(i=0;i<word.length;++i)
+          {
+            String w=pool.indexToString(i);
+            if(!word[i].equals(w))
+              System.out.println("\tMismatch in indexToString: returned"+
+                                 w+" for lookup "+i);
+          }
+        
+        pool.removeAllElements();
+        
+        System.out.println("\nPass "+pass+" complete\n");
       } // end pass loop
   }
 }
