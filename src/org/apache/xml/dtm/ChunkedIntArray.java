@@ -164,6 +164,12 @@ final class ChunkedIntArray
     }
   }
   
+  // Check that the node at index "position" is not an ancestor
+  // of the node at index "startPos". IF IT IS, DO NOT ACCEPT IT AND
+  // RETURN -1. If position is NOT an ancestor, return position.
+  // Special case: The Document node (position==0) is acceptable.
+  //
+  // This test supports DTM.getNextPreceding.
   int specialFind(int startPos, int position)
   {
 	  // We have to look all the way up the ancestor chain
@@ -171,13 +177,17 @@ final class ChunkedIntArray
 	  int ancestor = startPos;
 	  while(ancestor > 0)
 	  {
+	        // Get the node whose index == ancestor
 		ancestor*=slotsize;
 		int chunkpos = ancestor >> lowbits;
 		int slotpos = ancestor & lowmask;
 		int[] chunk = chunks.elementAt(chunkpos);
 							
+		// Get that node's parent (Note that this assumes w[1]
+		// is the parent node index. That's really a DTM feature
+		// rather than a ChunkedIntArray feature.)
 		ancestor = chunk[slotpos + 1];
-		  
+
 		if(ancestor == position)
 			 break;
 	  }

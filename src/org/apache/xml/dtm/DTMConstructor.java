@@ -138,7 +138,7 @@ public class DTMConstructor extends DTMManager
       // allocate a unique DTM instance and insert at the first available slot
       // or add to the end of the DTM allocation table
       if (unique || dtmReuseList.isEmpty()){
-          dtmImpl = new DTMDocumentImpl();
+          dtmImpl = new DTMDocumentImpl(0);
           if (!dtmIndexReuseList.isEmpty()){
               iobj = (Integer)dtmIndexReuseList.lastElement();
               dtmIndexReuseList.removeElementAt(dtmIndexReuseList.size());

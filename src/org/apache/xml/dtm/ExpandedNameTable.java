@@ -61,10 +61,14 @@ package org.apache.xml.dtm;
  * expanded names to expandedNameIDs.
  *
  * %REVIEW% Note that this is not really a separate table, or a
- * separate pool. Instead, it's an access method build on top of three
- * pieces of information: the index numbers for a node's namespaceURI,
- * localName, and node type, which are combined to yield a composite
- * index number.
+ * separate pool. Instead, it's an access method build on top of the
+ * existing pools, using three pieces of information: the index
+ * numbers for a node's namespaceURI, localName, and node type, which
+ * are combined to yield a composite index number.
+ *
+ * %TBD% startup sequence -- how this gets access to the appropriate
+ * string pools in the DTMDocument/stylesheet.
+ *
  * */
 public class ExpandedNameTable
 {

@@ -26,8 +26,7 @@ public class ComposeDTM {
 		cdtm.constructDoc();
 
 		cdtm.newDoc.setNsNameTable(cdtm.symbolTable);
-		cdtm.newDoc.setElementNameTable(cdtm.symbolTable);
-		cdtm.newDoc.setAttributeNameTable(cdtm.symbolTable);
+		cdtm.newDoc.setLocalNameTable(cdtm.symbolTable);
 		cdtm.newDoc.setPrefixNameTable(cdtm.symbolTable);
 		cdtm.composeDoc();
 
@@ -67,7 +66,7 @@ public class ComposeDTM {
 	// instantiate a DTM document
 	public void constructDoc() {
 
-		newDoc = new DTMDocumentImpl();
+		newDoc = new DTMDocumentImpl(0);
 
 	}
 

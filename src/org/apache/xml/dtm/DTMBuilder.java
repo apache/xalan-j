@@ -123,13 +123,11 @@ implements ContentHandler, LexicalHandler
 
   // Scott suggests sharing pools between DTMs. Note that this will require
   // threadsafety at the pool level.
-  private static DTMStringPool commonLocalElementNames=new DTMSafeStringPool();
-  private static DTMStringPool commonLocalAttributeNames=new DTMSafeStringPool();
+  private static DTMStringPool commonLocalNames=new DTMSafeStringPool();
   private static DTMStringPool commonNamespaceNames=new DTMSafeStringPool();
   private static DTMStringPool commonPrefixes=new DTMSafeStringPool();
 
-  private DTMStringPool localElementNames; // For this DTM, may be common
-  private DTMStringPool localAttributeNames; // For this DTM, may be common
+  private DTMStringPool localNames; // For this DTM, may be common
   private DTMStringPool namespaceNames; // For this DTM, may be common
   private DTMStringPool prefixes; 
   private FastStringBuffer content; // Unique per DTM
@@ -158,13 +156,9 @@ implements ContentHandler, LexicalHandler
     
     // Start with persistant shared pools unless the DTM expresses
     // other preferences
-    localElementNames=m_dtm.getElementNameTable();
-    if(localElementNames==null)
-      m_dtm.setElementNameTable(localElementNames=commonLocalElementNames);
-
-    localAttributeNames=m_dtm.getAttributeNameTable();
-    if(localAttributeNames==null)
-      m_dtm.setAttributeNameTable(localAttributeNames=commonLocalAttributeNames);
+    localNames=m_dtm.getLocalNameTable();
+    if(localNames==null)
+      m_dtm.setLocalNameTable(localNames=commonLocalNames);
 
     namespaceNames=m_dtm.getNsNameTable();
     if(namespaceNames==null)
@@ -301,7 +295,7 @@ implements ContentHandler, LexicalHandler
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
     m_dtm.startElement(namespaceNames.stringToIndex(namespaceURI),
-		     localElementNames.stringToIndex(localName),
+		     localNames.stringToIndex(localName),
 		     prefixes.stringToIndex(prefix)); /////// %TBD%
 
     // %TBD% I'm assuming that DTM will require resequencing of
@@ -360,7 +354,7 @@ implements ContentHandler, LexicalHandler
 	    
 	    if(!("xmlns".equals(prefix) || "xmlns".equals(qName)))
 	      m_dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
-				  localAttributeNames.stringToIndex(localName),
+				  localNames.stringToIndex(localName),
 				  prefixes.stringToIndex(prefix),
 				  atts.getType(i).equalsIgnoreCase("ID"),
 				  contentStart, contentEnd-contentStart);

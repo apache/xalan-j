@@ -130,36 +130,31 @@ public class DTMDocumentImpl implements DTM {
 	// each of which is addressed by the absolute offset and length in the buffer
 	private FastStringBuffer m_char = new FastStringBuffer();
 
-	// node name table, name space table, attribute name table, and prefix name table
-	// are can be defined as DTMStringPool(s).  But may be substituted with better data
-	// structure that can support the DTMStringPool interface in the future.
-
-	private DTMStringPool m_elementNames = new DTMStringPool();
+        // %TBD% INITIALIZATION/STARTUP ISSUES
+	// -- Should we really be creating these, or should they be
+        // passed in from outside? Scott want to be able to share
+	// pools across multiple documents, so setting them here is
+	// probably not the right default.
+        // %TBD% If we use an ExpandedNameTable mapper, it needs to be bound
+        // to the NS and local name pools. Which means it needs to attach
+	// to them AFTER we've resolved their startup. Or it needs to attach
+        // to this document and retieve them each time...?
+	private DTMStringPool m_localNames = new DTMStringPool();
 	private DTMStringPool m_nsNames = new DTMStringPool();
-	private DTMStringPool m_attributeNames = new DTMStringPool();
 	private DTMStringPool m_prefixNames = new DTMStringPool();
-
-	// ###jjk m_expandedNames is not needed, as far as I can tell,
-	// since expanded name indices are currently defined as L bits
-	// of localname index, N bits of namespace index, and
-	// (possibly) T bits of node type (current proposal is L=14
-	// N=14 T=4).  In that setup, it's probably best to index into
-	// the localname and namespace pools and reconstruct the
-	// string form if and only if it is actually called for --
-	// which will be _extremely_ rare -- rather than storing it in
-	// Yet Another String Pool.
-	   // private DTMStringPool m_expandedNames = new DTMStringPool(); //###zaj
 
 	/**
 	 * Construct a DTM.
 	 *
-	 * %REVIEW% Do we really want to support a no-arguments constructor
-	 * defaulting to document number 0? Or do we want to insist the
-	 * document ID number always be supplied, and let the caller pass 0
-	 * if that's really what they intend? The latter seems safer.
+	 * @param documentNumber the ID number assigned to this document.
+	 * It will be shifted up into the high bits and returned as part of
+	 * all node ID numbers, so those IDs indicate which document they
+	 * came from as well as a location within the document. It is the
+	 * DTMManager's responsibility to assign a unique number to each
+	 * document.
 	 */
-	public DTMDocumentImpl(){
-		initDocument(0);		 // clear nodes and document handle
+	public DTMDocumentImpl(int documentNumber){
+		initDocument(documentNumber);	 // clear nodes and document handle
 	}
 
 	/**
@@ -176,8 +171,7 @@ public class DTMDocumentImpl implements DTM {
 	 */
 	private final int appendNode(int w0, int w1, int w2, int w3)
 	{
-		// A decent compiler will probably inline this.
-	        // %REVIEW% jjk Do we want to rely on "a decent JIT compiler"?
+		// A decent compiler may inline this.
 		int slotnumber = nodes.appendSlot(w0, w1, w2, w3);
 
 		if (DEBUG) System.out.println(slotnumber+": "+w0+" "+w1+" "+w2+" "+w3);
@@ -216,8 +210,8 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
-	public void setElementNameTable(DTMStringPool poolRef) {
-		m_elementNames = poolRef;
+	public void setLocalNameTable(DTMStringPool poolRef) {
+		m_localNames = poolRef;
 	}
 
         /**
@@ -225,8 +219,8 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @return DTMStringPool reference to an instance of table.
 	 */
-        public DTMStringPool getElementNameTable() {
-                 return m_elementNames;
+        public DTMStringPool getLocalNameTable() {
+                 return m_localNames;
          }
 
 	/**
@@ -250,26 +244,6 @@ public class DTMDocumentImpl implements DTM {
          }
 
 	/**
-	 * Set a reference pointer to the attribute name symbol table.
-	 * %REVIEW% Should this really be Public? Changing it while
-	 * DTM is in use would be a disaster.
-	 *
-	 * @param poolRef DTMStringPool reference to an instance of table.
-	 */
-	public void setAttributeNameTable(DTMStringPool poolRef) {
-		m_attributeNames = poolRef;
-	}
-
-        /**
-	 * Get a reference pointer to the attribute name symbol table.
-	 *
-	 * @return DTMStringPool reference to an instance of table.
-	 */
-        public DTMStringPool getAttributeNameTable() {
-                 return m_attributeNames;
-         }
-
-	/**
 	 * Set a reference pointer to the prefix name symbol table.
 	 * %REVIEW% Should this really be Public? Changing it while
 	 * DTM is in use would be a disaster.
@@ -288,18 +262,6 @@ public class DTMDocumentImpl implements DTM {
 	public DTMStringPool getPrefixNameTable() {
 		return m_prefixNames;
 	}
-
-	/**
-	 * Set a reference pointer to the expanded name symbol table.
-	 *
-	 * @param poolRef DTMStringPool reference to an instance of table.
-	 */
-	//###zaj
-	//### jjk see earlier discussion; this appears superfluous.
-	  //   	public void setExpandedNameTable(DTMStringPool poolRef) {
-	  //		m_expandedNames = poolRef;
-	  //	}
-
 
          /**
           * Set a reference pointer to the content-text repository
@@ -333,18 +295,13 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * The DTMManager will invoke this method when the dtm is created.
 	 *
-	 * %REVIEW% Given the way getDocument() is currently coded,
-	 * the docHandle parameter is apparently supposed to be the
-	 * document number pre-shifted up into the high bits. Do we
-	 * really want to require that, or should we accept the
-	 * document number instead and shift it for them?
-	 *
 	 * @param docHandle int the handle for the DTM document.
 	 */
-	final void initDocument(int docHandle)
+	final void initDocument(int documentNumber)
 	{
 		// save masked DTM document handle
-		m_docHandle = docHandle;
+		m_docHandle = documentNumber<<DOCHANDLE_SHIFT;
+
 		// Initialize the doc -- no parent, no next-sib
 		nodes.writeSlot(0,DOCUMENT_NODE,-1,-1,0);
 		// wait for the first startElement to create the doc root node
@@ -456,7 +413,7 @@ public class DTMDocumentImpl implements DTM {
 		// onverted to index values modified to match a
 		// method.
 		int nsIndex = NULL;
-		int nameIndex = m_elementNames.stringToIndex(name);
+		int nameIndex = m_localNames.stringToIndex(name);
 		// note - there should be no prefix separator in the name because it is not associated
 		// with a name space
 
@@ -492,7 +449,7 @@ public class DTMDocumentImpl implements DTM {
 		// onverted to index values modified to match a
 		// method.
 		int nsIndex = m_nsNames.stringToIndex(ns);
-		int nameIndex = m_elementNames.stringToIndex(name);
+		int nameIndex = m_localNames.stringToIndex(name);
 		// The prefixIndex is not needed by the indexed interface of the createElement method
 		int prefixSep = name.indexOf(":");
 		int prefixIndex = m_prefixNames.stringToIndex(name.substring(0, prefixSep));
@@ -573,7 +530,7 @@ public class DTMDocumentImpl implements DTM {
 		// W2:  Next (not yet resolved)
 		int w2 = 0;
 		// W3:  Tag name
-		int w3 = m_attributeNames.stringToIndex(attName);
+		int w3 = m_localNames.stringToIndex(attName);
 		// Add node
 		int ourslot = appendNode(w0, w1, w2, w3);
 		previousSibling = ourslot;	// Should attributes be previous siblings
@@ -794,7 +751,7 @@ public class DTMDocumentImpl implements DTM {
 	 */
 	public int getAttributeNode(int nodeHandle, String namespaceURI, String name) {
 		int nsIndex = m_nsNames.stringToIndex(namespaceURI),
-									nameIndex = m_attributeNames.stringToIndex(name);
+									nameIndex = m_localNames.stringToIndex(name);
 		nodeHandle &= NODEHANDLE_MASK;
 		nodes.readSlot(nodeHandle, gotslot);
 		short type = (short) (gotslot[0] & 0xFFFF);
@@ -1028,6 +985,15 @@ public class DTMDocumentImpl implements DTM {
 			nodeHandle--;
 			if (ATTRIBUTE_NODE == (nodes.readEntry(nodeHandle, 0) & 0xFFFF))
 				continue;
+
+			// if nodeHandle is _not_ an ancestor of
+			// axisContextHandle, specialFind will return it.
+			// If it _is_ an ancestor, specialFind will return -1
+
+			// %REVIEW% unconditional return defeats the
+			// purpose of the while loop -- does this
+			// logic make any sense?
+
 			return (m_docHandle | nodes.specialFind(axisContextHandle, nodeHandle));
 		}
 		return NULL;
@@ -1186,8 +1152,9 @@ public class DTMDocumentImpl implements DTM {
 	public int getExpandedNameID(int nodeHandle) {
 	   nodes.readSlot(nodeHandle, gotslot);
 
-           String qName = m_elementNames.indexToString(gotslot[3]); 
-           // Remove prefix from localName
+           String qName = m_localNames.indexToString(gotslot[3]); 
+           // Remove prefix from qName
+	   // %TBD% jjk This is assuming the elementName is the qName.
 	   int colonpos = qName.indexOf(":");
 	   String localName = qName.substring(colonpos+1);
 	   // Get NS
@@ -1213,7 +1180,7 @@ public class DTMDocumentImpl implements DTM {
         public int getExpandedNameID(String namespace, String localName, int type) {
 	   // Create expanded name
 	  // %TBD% jjk Expanded name is bitfield-encoded as
-	  // typeID[4]nsuriID[14]localID[14]. Switch to that form, and to
+	  // typeID[6]nsuriID[10]localID[16]. Switch to that form, and to
 	  // accessing the ns/local via their tables rather than confusing
 	  // nsnames and expandednames.
 	   String expandedName = namespace + ":" + localName;
@@ -1233,7 +1200,7 @@ public class DTMDocumentImpl implements DTM {
 	public String getLocalNameFromExpandedNameID(int ExpandedNameID) {
 
 	   // Get expanded name
-	   String expandedName = m_elementNames.indexToString(ExpandedNameID); 
+	   String expandedName = m_localNames.indexToString(ExpandedNameID); 
 	   // Remove prefix from expanded name
 	   int colonpos = expandedName.indexOf(":");
 	   String localName = expandedName.substring(colonpos+1);
@@ -1251,7 +1218,7 @@ public class DTMDocumentImpl implements DTM {
 	*/
 	public String getNamespaceFromExpandedNameID(int ExpandedNameID) {
 
-	   String expandedName = m_elementNames.indexToString(ExpandedNameID); 
+	   String expandedName = m_localNames.indexToString(ExpandedNameID); 
 	   // Remove local name from expanded name
 	   int colonpos = expandedName.indexOf(":");
 	   String nsName = expandedName.substring(0, colonpos);
@@ -1287,9 +1254,9 @@ public class DTMDocumentImpl implements DTM {
 		String name = fixednames[type];
 		if (null == name) { 
 			if (type == ELEMENT_NODE) 
-				name = m_elementNames.indexToString(gotslot[3]);
+				name = m_localNames.indexToString(gotslot[3]);
 			else if (type == ATTRIBUTE_NODE)
-				name = m_attributeNames.indexToString(gotslot[3]);
+				name = m_localNames.indexToString(gotslot[3]);
 		}
 		return name;
 	}

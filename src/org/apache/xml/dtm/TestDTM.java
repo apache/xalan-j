@@ -20,7 +20,7 @@ public class TestDTM {
 		 *   <C>My Anaconda<D/>Words</C>
 		 *  </top> */
 
-		DTMDocumentImpl doc = new DTMDocumentImpl();
+		DTMDocumentImpl doc = new DTMDocumentImpl(0);
 		doc.createElement("top",  null);
 		doc.createElement( "A", null);
 		AttributesImpl atts = new AttributesImpl();
