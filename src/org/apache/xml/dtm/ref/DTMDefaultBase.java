@@ -104,10 +104,10 @@ public abstract class DTMDefaultBase implements DTM
   protected int[] m_nextsib;
 
   /** Previous sibling values, one array element for each node. */
-  protected short[] m_prevsib;
+  protected int[] m_prevsib;
 
   /** Previous sibling values, one array element for each node. */
-  protected short[] m_parent;
+  protected int[] m_parent;
   
   /** Experemental.  -sb */
   protected boolean m_haveSeenNamespace = false;
@@ -118,7 +118,7 @@ public abstract class DTMDefaultBase implements DTM
    * name, and the last array contains the the first free element
    * at the start, and the list of element handles following.
    */
-  protected short[][][] m_elemIndexes;
+  protected int[][][] m_elemIndexes;
 
   /** The default initial block size of the node arrays */
   protected int m_initialblocksize = 512;  // favor small docs.
@@ -196,8 +196,8 @@ public abstract class DTMDefaultBase implements DTM
     m_level = new byte[m_initialblocksize];
     m_firstch = new int[m_initialblocksize];
     m_nextsib = new int[m_initialblocksize];
-    m_prevsib = new short[m_initialblocksize];
-    m_parent = new short[m_initialblocksize];
+    m_prevsib = new int[m_initialblocksize];
+    m_parent = new int[m_initialblocksize];
     m_mgr = mgr;
     m_documentBaseURI = (null != source) ? source.getSystemId() : null;
     m_dtmIdent = dtmIdentity;
@@ -238,48 +238,48 @@ public abstract class DTMDefaultBase implements DTM
 
     if (null == m_elemIndexes)
     {
-      m_elemIndexes = new short[namespaceID + 20][][];
+      m_elemIndexes = new int[namespaceID + 20][][];
     }
     else if (m_elemIndexes.length <= namespaceID)
     {
-      short[][][] indexes = m_elemIndexes;
+      int[][][] indexes = m_elemIndexes;
 
-      m_elemIndexes = new short[namespaceID + 20][][];
+      m_elemIndexes = new int[namespaceID + 20][][];
 
       System.arraycopy(indexes, 0, m_elemIndexes, 0, indexes.length);
     }
 
-    short[][] localNameIndex = m_elemIndexes[namespaceID];
+    int[][] localNameIndex = m_elemIndexes[namespaceID];
 
     if (null == localNameIndex)
     {
-      localNameIndex = new short[LocalNameID + 100][];
+      localNameIndex = new int[LocalNameID + 100][];
       m_elemIndexes[namespaceID] = localNameIndex;
     }
     else if (localNameIndex.length <= LocalNameID)
     {
-      short[][] indexes = localNameIndex;
+      int[][] indexes = localNameIndex;
 
-      localNameIndex = new short[LocalNameID + 100][];
+      localNameIndex = new int[LocalNameID + 100][];
 
       System.arraycopy(indexes, 0, localNameIndex, 0, indexes.length);
 
       m_elemIndexes[namespaceID] = localNameIndex;
     }
 
-    short[] elemHandles = localNameIndex[LocalNameID];
+    int[] elemHandles = localNameIndex[LocalNameID];
 
     if (null == elemHandles)
     {
-      elemHandles = new short[128];
+      elemHandles = new int[128];
       localNameIndex[LocalNameID] = elemHandles;
       elemHandles[0] = 1;
     }
     else if (elemHandles.length <= elemHandles[0] + 1)
     {
-      short[] indexes = elemHandles;
+      int[] indexes = elemHandles;
 
-      elemHandles = new short[elemHandles[0] + 1024];
+      elemHandles = new int[elemHandles[0] + 1024];
 
       System.arraycopy(indexes, 0, elemHandles, 0, indexes.length);
 
@@ -307,9 +307,9 @@ public abstract class DTMDefaultBase implements DTM
 
       ensureSizeOfIndex(namespaceID, localNameID);
 
-      short[] index = m_elemIndexes[namespaceID][localNameID];
+      int[] index = m_elemIndexes[namespaceID][localNameID];
 
-      index[index[0]] = (short) identity;
+      index[index[0]] = identity;
 
       index[0]++;
     }
@@ -328,7 +328,7 @@ public abstract class DTMDefaultBase implements DTM
    * @return The index in the list of the slot that is higher or identical
    * to the identity argument, or -1 if no node is higher or equal.
    */
-  protected int findGTE(short[] list, int start, int len, int value)
+  protected int findGTE(int[] list, int start, int len, int value)
   {
 
     int low = start;
@@ -365,15 +365,15 @@ public abstract class DTMDefaultBase implements DTM
   int findElementFromIndex(int nsIndex, int lnIndex, int firstPotential)
   {
 
-    short[][][] indexes = m_elemIndexes;
+    int[][][] indexes = m_elemIndexes;
 
     if (null != indexes && nsIndex < indexes.length)
     {
-      short[][] lnIndexs = indexes[nsIndex];
+      int[][] lnIndexs = indexes[nsIndex];
 
       if (null != lnIndexs && lnIndex < lnIndexs.length)
       {
-        short[] elems = lnIndexs[lnIndex];
+        int[] elems = lnIndexs[lnIndex];
 
         if (null != elems)
         {
@@ -440,15 +440,15 @@ public abstract class DTMDefaultBase implements DTM
       byte[] level = m_level;
       int[] firstch = m_firstch;
       int[] nextsib = m_nextsib;
-      short[] prevsib = m_prevsib;
-      short[] parent = m_parent;
+      int[] prevsib = m_prevsib;
+      int[] parent = m_parent;
 
       m_exptype = new int[newcapacity];
       m_level = new byte[newcapacity];
       m_firstch = new int[newcapacity];
       m_nextsib = new int[newcapacity];
-      m_prevsib = new short[newcapacity];
-      m_parent = new short[newcapacity];
+      m_prevsib = new int[newcapacity];
+      m_parent = new int[newcapacity];
 
       System.arraycopy(exptype, 0, m_exptype, 0, capacity);
       System.arraycopy(level, 0, m_level, 0, capacity);
@@ -1456,17 +1456,14 @@ public abstract class DTMDefaultBase implements DTM
    * Given a node handle, return its DOM-style node type.
    * <p>
    * %REVIEW% Generally, returning short is false economy. Return int?
+   * %REVIEW% Make assumption that node has already arrived.  Is OK?
    *
    * @param nodeHandle The node id.
    * @return int Node type, as per the DOM's Node._NODE constants.
    */
   public short getNodeType(int nodeHandle)
   {
-
-    int identity = nodeHandle & m_mask;
-    short type = (short) _type(identity);
-
-    return type;
+    return (short)(_exptype(nodeHandle & m_mask) >> ExpandedNameTable.ROTAMOUNT_TYPE);
   }
 
   /**

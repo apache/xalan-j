@@ -107,6 +107,12 @@ public class ElemTextLiteral extends ElemTemplateElement
    * @serial
    */
   private char m_ch[];
+  
+  /**
+   * The character array as a string.
+   * @serial
+   */
+  private String m_str;
 
   /**
    * Set the characters that will be output to the result tree..
@@ -127,6 +133,23 @@ public class ElemTextLiteral extends ElemTemplateElement
   {
     return m_ch;
   }
+  
+  /**
+   * Get the value of the node as a string.
+   *
+   * @return null
+   */
+  public synchronized String getNodeValue()
+  {
+
+    if(null == m_str)
+    {
+      m_str = new String(m_ch);
+    }
+
+    return m_str;
+  }
+
 
   /**
    * Tells if this element should disable escaping.

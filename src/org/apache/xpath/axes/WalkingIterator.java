@@ -60,7 +60,7 @@ public class WalkingIterator extends LocPathIterator
   }
   
   /**
-   * Create a LocPathIterator object.
+   * Create a WalkingIterator object.
    *
    * @param nscontext The namespace context for this iterator,
    * should be OK if null.
@@ -73,7 +73,7 @@ public class WalkingIterator extends LocPathIterator
 
   
   /**
-   * Get a cloned LocPathIterator that holds the same
+   * Get a cloned WalkingIterator that holds the same
    * position as this iterator.
    *
    * @return A clone of this iterator that holds the same node position.
@@ -123,15 +123,22 @@ public class WalkingIterator extends LocPathIterator
 
     // If the cache is on, and the node has already been found, then 
     // just return from the list.
-    if ((null != m_cachedNodes)
-            && (m_next < m_cachedNodes.size()))
+    if (null != m_cachedNodes)
     {
-      int next = m_cachedNodes.elementAt(m_next);
-    
-      incrementNextPosition();
-      m_currentContextNode = next;
-
-      return next;
+      if(m_next < m_cachedNodes.size())
+      {
+        int next = m_lastFetched = m_currentContextNode 
+                                       = m_cachedNodes.elementAt(m_next);
+      
+        incrementNextPosition();
+  
+        return next;
+      }
+      else if(m_foundLast)
+      {
+        m_lastFetched = DTM.NULL;
+        return DTM.NULL;
+      }
     }
 
     // If the variable stack position is not -1, we'll have to 

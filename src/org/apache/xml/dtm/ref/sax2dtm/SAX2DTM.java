@@ -164,7 +164,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   private boolean m_endDocumentOccured = false;
 
   /** Data or qualified name values, one array element for each node. */
-  protected short[] m_dataOrQName;
+  protected int[] m_dataOrQName;
 
   /**
    * This table holds the ID string to node associations, for
@@ -235,7 +235,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
           
     m_data = new IntVector(doIndexing ? (1024*4) : 512);
 
-    m_dataOrQName = new short[m_initialblocksize];
+    m_dataOrQName = new int[m_initialblocksize];
 
     int doc = addNode(DTM.DOCUMENT_NODE,
                       m_expandedNameTable.getExpandedTypeID(DTM.DOCUMENT_NODE),
@@ -815,10 +815,10 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     if (capacity <= index)
     {
-      short[] dataOrQName = m_dataOrQName;
+      int[] dataOrQName = m_dataOrQName;
       int newcapacity = capacity + m_blocksize;
 
-      m_dataOrQName = new short[newcapacity];
+      m_dataOrQName = new int[newcapacity];
 
       System.arraycopy(dataOrQName, 0, m_dataOrQName, 0, capacity);
       
@@ -855,10 +855,10 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     m_level[nodeIndex] = (byte) level;
     m_firstch[nodeIndex] = canHaveFirstChild ? NOTPROCESSED : DTM.NULL;
     m_nextsib[nodeIndex] = NOTPROCESSED;
-    m_prevsib[nodeIndex] = (short) previousSibling;
-    m_parent[nodeIndex] = (short) parentIndex;
+    m_prevsib[nodeIndex] = previousSibling;
+    m_parent[nodeIndex] = parentIndex;
     m_exptype[nodeIndex] = expandedTypeID;
-    m_dataOrQName[nodeIndex] = (short) dataOrPrefix;
+    m_dataOrQName[nodeIndex] = dataOrPrefix;
     
     if(DTM.NAMESPACE_NODE == type)
       m_haveSeenNamespace = true;
@@ -1744,7 +1744,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     if (null != m_wsfilter)
     {
-      short wsv = m_wsfilter.getShouldStripSpace(elemNode | m_dtmIdent);
+      short wsv = m_wsfilter.getShouldStripSpace(elemNode | m_dtmIdent, this);
       boolean shouldStrip = (DTMWSFilter.INHERIT == wsv)
                             ? getShouldStripWhitespace()
                             : (DTMWSFilter.STRIP == wsv);

@@ -311,6 +311,46 @@ public class StepPattern extends NodeTest implements SubContextList
     if (null == m_targetString)
       calcTargetString();
   }
+  
+  /**
+   * Execute this pattern step, including predicates.
+   *
+   *
+   * @param xctxt XPath runtime context.
+   *
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public XObject execute(XPathContext xctxt, int currentNode)
+          throws javax.xml.transform.TransformerException
+  {
+
+    if (m_whatToShow == NodeTest.SHOW_BYFUNCTION)
+    {
+      if (null != m_relativePathPattern)
+      {
+        return m_relativePathPattern.execute(xctxt, currentNode);
+      }
+      else
+        return NodeTest.SCORE_NONE;
+    }
+
+    if (null == m_relativePathPattern)
+    {
+      return super.execute(xctxt, currentNode);
+    }
+    else
+    {
+      if (super.execute(xctxt, currentNode) == NodeTest.SCORE_NONE)
+        return NodeTest.SCORE_NONE;
+      return m_relativePathPattern.executeRelativePathPattern(xctxt, this);
+    }
+  }
 
   /**
    * Execute this pattern step, including predicates.
@@ -332,17 +372,15 @@ public class StepPattern extends NodeTest implements SubContextList
 
     if (m_whatToShow == NodeTest.SHOW_BYFUNCTION)
     {
-      XObject score = NodeTest.SCORE_NONE;
-
       if (null != m_relativePathPattern)
       {
-        score = m_relativePathPattern.execute(xctxt);
+        return m_relativePathPattern.execute(xctxt);
       }
-
-      return score;
+      else
+        return NodeTest.SCORE_NONE;
     }
 
-    XObject score = super.execute(xctxt);
+    XObject score = super.execute(xctxt, xctxt.getCurrentNode());
 
     if (score == NodeTest.SCORE_NONE)
       return score;
@@ -353,11 +391,7 @@ public class StepPattern extends NodeTest implements SubContextList
     }
     else
     {
-      // System.out.println("PredicateRoot: "+xctxt.getPredicateRoot());
-      // int current = xctxt.getCurrentNode();
       return score;
-      // int parent = xctxt.getDTM(current).getParent(current);
-      // return executePredicates(xctxt, this, score, current, current);
     }
   }
   
@@ -393,7 +427,7 @@ public class StepPattern extends NodeTest implements SubContextList
         {
           xctxt.pushCurrentNode(child);
 
-          if (NodeTest.SCORE_NONE != super.execute(xctxt))
+          if (NodeTest.SCORE_NONE != super.execute(xctxt, child))
           {
             boolean pass = true;
             
@@ -509,7 +543,7 @@ public class StepPattern extends NodeTest implements SubContextList
           {
             xctxt.pushCurrentNode(child);
 
-            if (NodeTest.SCORE_NONE != super.execute(xctxt))
+            if (NodeTest.SCORE_NONE != super.execute(xctxt, child))
               count++;
           }
           finally

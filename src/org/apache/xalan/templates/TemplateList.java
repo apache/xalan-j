@@ -454,14 +454,14 @@ public class TemplateList implements java.io.Serializable
    *
    * @param xctxt The XPath runtime context.
    * @param targetNode The target node that will be checked for a match.
+   * @param dtm The dtm owner for the target node.
    *
    * @return The head of a linked list that contains all possible match pattern to 
    * template associations.
    */
-  public TemplateSubPatternAssociation getHead(XPathContext xctxt, int targetNode)
+  public TemplateSubPatternAssociation getHead(XPathContext xctxt, 
+                                               int targetNode, DTM dtm)
   {
-
-    DTM dtm = xctxt.getDTM(targetNode);
     short targetNodeType = dtm.getNodeType(targetNode);
     TemplateSubPatternAssociation head;
 
@@ -523,11 +523,12 @@ public class TemplateList implements java.io.Serializable
                                 int targetNode,
                                 QName mode,
                                 int maxImportLevel,
-                                boolean quietConflictWarnings)
+                                boolean quietConflictWarnings,
+                                DTM dtm)
             throws TransformerException
   {
 
-    TemplateSubPatternAssociation head = getHead(xctxt, targetNode);
+    TemplateSubPatternAssociation head = getHead(xctxt, targetNode, dtm);
 
     if (null != head)
     {
@@ -548,7 +549,7 @@ public class TemplateList implements java.io.Serializable
           ElemTemplate template = head.getTemplate();        
           xctxt.setNamespaceContext(template);
           
-          if ((head.m_stepPattern.execute(xctxt) != NodeTest.SCORE_NONE)
+          if ((head.m_stepPattern.execute(xctxt, targetNode) != NodeTest.SCORE_NONE)
                   && head.matchMode(mode))
           {
             if (quietConflictWarnings)

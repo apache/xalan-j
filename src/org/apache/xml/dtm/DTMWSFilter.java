@@ -31,6 +31,6 @@ public interface DTMWSFilter
    * @param elementHandle int Handle of the element.
    * @return one of NOTSTRIP, STRIP, or INHERIT.
    */
-  public short getShouldStripSpace(int elementHandle);
+  public short getShouldStripSpace(int elementHandle, DTM dtm);
   
 }

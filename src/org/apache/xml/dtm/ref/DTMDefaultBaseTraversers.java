@@ -723,7 +723,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     {
 
       int first;
-      int type = getNodeType(context);
+      int type = _type(context);
 
       if ((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
       {
@@ -759,7 +759,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     {
 
       int first;
-      int type = getNodeType(context);
+      int type = _type(context);
 
       if ((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
       {

@@ -295,10 +295,16 @@ public class WalkerFactory
       if(canCrissCross(analysis) && !isSet(analysis, BIT_NAMESPACE) && 
          !isSet(analysis, BIT_FILTER))
       {
+//        if (DEBUG_ITERATOR_CREATION)
+//          diagnoseIterator("MatchPatternIterator", analysis, compiler);
+//
+//        return new MatchPatternIterator(compiler, opPos, analysis);
         if (DEBUG_ITERATOR_CREATION)
-          diagnoseIterator("MatchPatternIterator", analysis, compiler);
+          diagnoseIterator("WalkingIteratorSorted", analysis, compiler);
 
-        return new MatchPatternIterator(compiler, opPos, analysis);
+        return new WalkingIteratorSorted(compiler, opPos, analysis, true);
+
+
       }
       else
       {
@@ -449,7 +455,7 @@ public class WalkerFactory
   /**
    * Tell if the predicates need to have proximity knowledge.
    */
-  static boolean mightBeProximate(Compiler compiler, int opPos, int stepType)
+  public static boolean mightBeProximate(Compiler compiler, int opPos, int stepType)
           throws javax.xml.transform.TransformerException
   {
 

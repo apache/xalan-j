@@ -266,8 +266,8 @@ public class DOM2DTM extends DTMDefaultBaseIterators
     
     m_firstch[nodeIndex] = NOTPROCESSED;
     m_nextsib[nodeIndex] = NOTPROCESSED;
-    m_prevsib[nodeIndex] = (short)previousSibling;
-    m_parent[nodeIndex] = (short)parentIndex;
+    m_prevsib[nodeIndex] = previousSibling;
+    m_parent[nodeIndex] = parentIndex;
     
     if(DTM.NULL != parentIndex && 
        type != DTM.ATTRIBUTE_NODE && 
@@ -275,7 +275,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
     {
       // If the DTM parent had no children, this becomes its first child.
       if(NOTPROCESSED == m_firstch[parentIndex])
-        m_firstch[parentIndex] = (short)nodeIndex;
+        m_firstch[parentIndex] = nodeIndex;
     }
     
     String nsURI = node.getNamespaceURI();
@@ -507,7 +507,8 @@ public class DOM2DTM extends DTMDefaultBaseIterators
                                
       if((null != m_wsfilter) && (Node.ELEMENT_NODE == pos.getNodeType()))
       {
-        short wsv = m_wsfilter.getShouldStripSpace(newIndexHandle|m_dtmIdent);
+        short wsv = m_wsfilter.getShouldStripSpace(newIndexHandle|m_dtmIdent, 
+                                                                      this);
         boolean shouldStrip = (DTMWSFilter.INHERIT == wsv) ? 
                   getShouldStripWhitespace() : (DTMWSFilter.STRIP == wsv);
         pushShouldStripWhitespace(shouldStrip);

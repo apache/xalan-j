@@ -702,11 +702,14 @@ public class StylesheetRoot extends StylesheetComposed
                                           int targetNode,
                                           QName mode,
                                           int maxImportLevel,
-                                          boolean quietConflictWarnings)
+                                          boolean quietConflictWarnings,
+                                          DTM dtm)
             throws TransformerException
   {
-    return m_templateList.getTemplate(xctxt, targetNode, mode, maxImportLevel,
-                                                                quietConflictWarnings);
+    return m_templateList.getTemplate(xctxt, targetNode, mode, 
+                                      maxImportLevel,
+                                      quietConflictWarnings,
+                                      dtm);
   }
 
   /**
@@ -821,12 +824,12 @@ public class StylesheetRoot extends StylesheetComposed
    * @throws TransformerException
    */
   public WhiteSpaceInfo getWhiteSpaceInfo(
-          XPathContext support, int targetElement) throws TransformerException
+          XPathContext support, int targetElement, DTM dtm) throws TransformerException
   {
 
     if (null != m_whiteSpaceInfoList)
       return (WhiteSpaceInfo) m_whiteSpaceInfoList.getTemplate(support,
-              targetElement, null, -1, false);
+              targetElement, null, -1, false, dtm);
     else
       return null;
   }
@@ -849,12 +852,12 @@ public class StylesheetRoot extends StylesheetComposed
     {
       while(DTM.NULL != targetElement)
       {
+        DTM dtm = support.getDTM(targetElement);
         WhiteSpaceInfo info = (WhiteSpaceInfo) m_whiteSpaceInfoList.getTemplate(support,
-                targetElement, null, -1, false);
+                targetElement, null, -1, false, dtm);
         if(null != info)
           return info.getShouldStripSpace();
         
-        DTM dtm = support.getDTM(targetElement);
         int parent = dtm.getParent(targetElement);
         if(DTM.NULL != parent && DTM.ELEMENT_NODE == dtm.getNodeType(parent))
           targetElement = parent;

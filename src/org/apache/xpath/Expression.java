@@ -114,6 +114,26 @@ public abstract class Expression implements java.io.Serializable
   {
     m_slocator = locator;
   }
+  
+  /**
+   * Execute an expression in the XPath runtime context, and return the 
+   * result of the expression.
+   *
+   *
+   * @param xctxt The XPath runtime context.
+   * @param currentNode The currentNode.
+   *
+   * @return The result of the expression in the form of a <code>XObject</code>.
+   *
+   * @throws javax.xml.transform.TransformerException if a runtime exception 
+   *         occurs.
+   */
+  public XObject execute(XPathContext xctxt, int currentNode)
+    throws javax.xml.transform.TransformerException
+  {
+    // For now, the current node is already pushed.
+    return execute(xctxt);
+  }
 
   /**
    * Execute an expression in the XPath runtime context, and return the 

@@ -84,6 +84,7 @@ import org.apache.xalan.templates.ElemVariable;
 import org.apache.xalan.templates.ElemParam;
 import org.apache.xalan.templates.ElemCallTemplate;
 import org.apache.xalan.templates.ElemTemplate;
+import org.apache.xalan.templates.ElemTextLiteral;
 import org.apache.xalan.templates.TemplateList;
 import org.apache.xalan.templates.XUnresolvedVariable;
 import org.apache.xalan.templates.OutputProperties;
@@ -113,7 +114,6 @@ import org.apache.xpath.axes.ContextNodeList;
 import org.apache.xalan.serialize.Serializer;
 import org.apache.xalan.serialize.SerializerFactory;
 import org.apache.xalan.serialize.Method;
-
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMManager;
@@ -123,7 +123,9 @@ import org.apache.xml.dtm.DTMWSFilter;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.helpers.XMLFilterImpl;
 import org.xml.sax.InputSource;
+
 import javax.xml.transform.TransformerException;
+
 import org.xml.sax.XMLReader;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLFilter;
@@ -133,8 +135,8 @@ import org.xml.sax.ext.DeclHandler;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
-import javax.xml.transform.ErrorListener;
 
+import javax.xml.transform.ErrorListener;
 
 // TRaX Imports
 import javax.xml.transform.Source;
@@ -158,112 +160,126 @@ import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * <meta name="usage" content="advanced"/>
- * This class implements the 
- * {@link javax.xml.transform.Transformer} interface, and is the core 
+ * This class implements the
+ * {@link javax.xml.transform.Transformer} interface, and is the core
  * representation of the transformation execution.</p>
  */
 public class TransformerImpl extends Transformer
         implements Runnable, DTMWSFilter
 {
+
   // Synch object to gaurd against setting values from the TrAX interface 
   // or reentry while the transform is going on.
+
+  /** NEEDSDOC Field m_reentryGuard          */
   private Boolean m_reentryGuard = new Boolean(true);
-  
+
   /**
    * This is null unless we own the stream.
    */
   private java.io.FileOutputStream m_outputStream = null;
-  
+
   /**
    * True if the parser events should be on the main thread,
    * false if not.  Experemental.  Can not be set right now.
    */
   private boolean m_parserEventsOnMain = true;
 
-  /** The thread that the transformer is running on.          */
+  /** The thread that the transformer is running on. */
   private Thread m_transformThread;
 
-  /** The base URL of the source tree.          */
+  /** The base URL of the source tree. */
   private String m_urlOfSource = null;
 
-  /** The Result object at the start of the transform, if any.    */
+  /** The Result object at the start of the transform, if any. */
   private Result m_outputTarget = null;
 
   /**
    * The output format object set by the user.  May be null.
    */
   private OutputProperties m_outputFormat;
-  
-  /** The output serializer         */
+
+  /** The output serializer */
   private Serializer m_serializer;
-  
+
   /**
    * The content handler for the source input tree.
    */
   ContentHandler m_inputContentHandler;
-  
+
   /**
    * The content handler for the result tree.
    */
   private ContentHandler m_outputContentHandler = null;
 
-//  /*
-//   * Use member variable to store param variables as they're
-//   * being created, use member variable so we don't
-//   * have to create a new vector every time.
-//   */
-//  private Vector m_newVars = new Vector();
+  //  /*
+  //   * Use member variable to store param variables as they're
+  //   * being created, use member variable so we don't
+  //   * have to create a new vector every time.
+  //   */
+  //  private Vector m_newVars = new Vector();
 
   /** The JAXP Document Builder, mainly to create Result Tree Fragments. */
   DocumentBuilder m_docBuilder = null;
 
-  /** A pool of ResultTreeHandlers, for serialization of a subtree to text.
-   *  Please note that each of these also holds onto a Text Serializer.  */
+  /**
+   * A pool of ResultTreeHandlers, for serialization of a subtree to text.
+   *  Please note that each of these also holds onto a Text Serializer.  
+   */
   private ObjectPool m_textResultHandlerObjectPool =
     new ObjectPool("org.apache.xalan.transformer.ResultTreeHandler");
 
-  /** Related to m_textResultHandlerObjectPool, this is a pool of 
+  /**
+   * Related to m_textResultHandlerObjectPool, this is a pool of
    * StringWriters, which are passed to the Text Serializers.
-   * (I'm not sure if this is really needed any more.  -sb)      */
+   * (I'm not sure if this is really needed any more.  -sb)      
+   */
   private ObjectPool m_stringWriterObjectPool =
     new ObjectPool("java.io.StringWriter");
 
-  /** A static text format object, which can be used over and 
-   * over to create the text serializers.    */
+  /**
+   * A static text format object, which can be used over and
+   * over to create the text serializers.    
+   */
   private OutputProperties m_textformat = new OutputProperties(Method.Text);
 
   // Commenteded out in response to problem reported by 
   // Nicola Brown <Nicola.Brown@jacobsrimell.com>
-//  /**
-//   * Flag to let us know if an exception should be reported inside the 
-//   * postExceptionFromThread method.  This is needed if the transform is 
-//   * being generated from SAX events, and thus there is no central place 
-//   * to report the exception from.  (An exception is usually picked up in 
-//   * the main thread from the transform thread in {@link #transform(Source source)} 
-//   * from {@link #getExceptionThrown()}. )
-//   */
-//  private boolean m_reportInPostExceptionFromThread = false;
-  
-  /** A node vector used as a stack to track the current 
-   * ElemTemplateElement.  Needed for the 
-   * org.apache.xalan.transformer.TransformState interface,  
-   * so a tool can discover the calling template. */
+  //  /**
+  //   * Flag to let us know if an exception should be reported inside the 
+  //   * postExceptionFromThread method.  This is needed if the transform is 
+  //   * being generated from SAX events, and thus there is no central place 
+  //   * to report the exception from.  (An exception is usually picked up in 
+  //   * the main thread from the transform thread in {@link #transform(Source source)} 
+  //   * from {@link #getExceptionThrown()}. )
+  //   */
+  //  private boolean m_reportInPostExceptionFromThread = false;
+
+  /**
+   * A node vector used as a stack to track the current
+   * ElemTemplateElement.  Needed for the
+   * org.apache.xalan.transformer.TransformState interface,
+   * so a tool can discover the calling template. 
+   */
   Stack m_currentTemplateElements = new Stack();
 
-  /** A node vector used as a stack to track the current 
+  /**
+   * A node vector used as a stack to track the current
    * ElemTemplate that was matched.
-   * Needed for the 
-   * org.apache.xalan.transformer.TransformState interface,  
+   * Needed for the
+   * org.apache.xalan.transformer.TransformState interface,
    * so a tool can discover the matched template
    */
   Stack m_currentMatchTemplates = new Stack();
-  
-  /** A node vector used as a stack to track the current 
+
+  /**
+   * A node vector used as a stack to track the current
    * node that was matched.
-   * Needed for the 
-   * org.apache.xalan.transformer.TransformState interface,  
-   * so a tool can discover the matched 
-   * node. */
+   * Needed for the
+   * org.apache.xalan.transformer.TransformState interface,
+   * so a tool can discover the matched
+   * node. 
+   */
   NodeVector m_currentMatchedNodes = new NodeVector();
 
   /**
@@ -295,7 +311,7 @@ public class TransformerImpl extends Transformer
    */
   private ResultTreeHandler m_resultTreeHandler;
 
-  /** The key manager, which manages xsl:keys.   */
+  /** The key manager, which manages xsl:keys. */
   private KeyManager m_keyManager = new KeyManager();
 
   /**
@@ -315,8 +331,10 @@ public class TransformerImpl extends Transformer
    */
   BoolStack m_currentTemplateRuleIsNull = new BoolStack();
 
-  /** The message manager, which manages error messages, warning 
-   * messages, and other types of message events.   */
+  /**
+   * The message manager, which manages error messages, warning
+   * messages, and other types of message events.   
+   */
   private MsgMgr m_msgMgr;
 
   /**
@@ -324,31 +342,38 @@ public class TransformerImpl extends Transformer
    * of trace listeners. Set this to false for optimization purposes.
    */
   public static boolean S_DEBUG = false;
-  
+
   /**
    * The SAX error handler, where errors and warnings are sent.
    */
-  private ErrorListener m_errorHandler = new org.apache.xml.utils.DefaultErrorHandler();
+  private ErrorListener m_errorHandler =
+    new org.apache.xml.utils.DefaultErrorHandler();
 
   /**
    * The trace manager.
    */
   private TraceManager m_traceManager = new TraceManager(this);
 
-  /** If the transform thread throws an exception, the exception needs to 
-   * be stashed away so that the main thread can pass it on to the 
-   * client. */
+  /**
+   * If the transform thread throws an exception, the exception needs to
+   * be stashed away so that the main thread can pass it on to the
+   * client. 
+   */
   private Exception m_exceptionThrown = null;
 
-  /** The InputSource for the source tree, which is needed if the 
-   * parse thread is not the main thread, in order for the parse 
-   * thread's run method to get to the input source.   
-   * (Delete this if reversing threads is outlawed. -sb)    */
+  /**
+   * The InputSource for the source tree, which is needed if the
+   * parse thread is not the main thread, in order for the parse
+   * thread's run method to get to the input source.
+   * (Delete this if reversing threads is outlawed. -sb)    
+   */
   private Source m_xmlSource;
 
-  /** This is needed for support of setSourceTreeDocForThread(Node doc),
-   * which must be called in order for the transform thread's run 
-   * method to obtain the root of the source tree to be transformed.     */
+  /**
+   * This is needed for support of setSourceTreeDocForThread(Node doc),
+   * which must be called in order for the transform thread's run
+   * method to obtain the root of the source tree to be transformed.     
+   */
   private int m_doc;
 
   /**
@@ -356,22 +381,29 @@ public class TransformerImpl extends Transformer
    * need to know when it is done, so we can return.
    */
   private boolean m_isTransformDone = false;
-  
+
   /** Flag to to tell if the tranformer needs to be reset. */
   private boolean m_hasBeenReset = false;
-        
-        private boolean m_shouldReset = true;
 
-        public void setShouldReset(boolean shouldReset)
-        {
-                m_shouldReset = shouldReset;
-        }
-  
+  /** NEEDSDOC Field m_shouldReset          */
+  private boolean m_shouldReset = true;
+
+  /**
+   * NEEDSDOC Method setShouldReset 
+   *
+   *
+   * NEEDSDOC @param shouldReset
+   */
+  public void setShouldReset(boolean shouldReset)
+  {
+    m_shouldReset = shouldReset;
+  }
+
   /**
    * A stack of current template modes.
    */
   private Stack m_modes = new Stack();
-  
+
   //==========================================================
   // SECTION: Constructors
   //==========================================================
@@ -395,31 +427,33 @@ public class TransformerImpl extends Transformer
    */
   public void reset()
   {
-    if(!m_hasBeenReset && m_shouldReset)
+
+    if (!m_hasBeenReset && m_shouldReset)
     {
       m_hasBeenReset = true;
-      
-      if(this.m_outputStream != null)
+
+      if (this.m_outputStream != null)
       {
         try
         {
           m_outputStream.close();
         }
-        catch(java.io.IOException ioe){}
+        catch (java.io.IOException ioe){}
       }
+
       m_outputStream = null;
-  
+
       // I need to look more carefully at which of these really
       // needs to be reset.
       m_countersTable = null;
       m_stackGuard = new StackGuard();
-  
+
       getXPathContext().reset();
       getXPathContext().getVarStack().setSize(1);
       m_currentTemplateElements.removeAllElements();
       m_currentMatchTemplates.removeAllElements();
       m_currentMatchedNodes.removeAllElements();
-  
+
       m_resultTreeHandler = null;
       m_outputTarget = null;
       m_keyManager = new KeyManager();
@@ -429,13 +463,13 @@ public class TransformerImpl extends Transformer
       m_xmlSource = null;
       m_doc = DTM.NULL;
       m_isTransformDone = false;
+
       // m_inputContentHandler = null;
-      
       // For now, reset the document cache each time.
       getXPathContext().getSourceTreeManager().reset();
     }
-    
-//    m_reportInPostExceptionFromThread = false;
+
+    //    m_reportInPostExceptionFromThread = false;
   }
 
   // ========= Transformer Interface Implementation ==========
@@ -474,12 +508,15 @@ public class TransformerImpl extends Transformer
   {
     m_transformThread = t;
   }
-  
+
+  /** NEEDSDOC Field m_hasTransformThreadErrorCatcher          */
   private boolean m_hasTransformThreadErrorCatcher = false;
-  
+
   /**
-   * Return true if the transform was initiated from the transform method, 
+   * Return true if the transform was initiated from the transform method,
    * otherwise it was probably done from a pure parse events.
+   *
+   * NEEDSDOC ($objectName$) @return
    */
   public boolean hasTransformThreadErrorCatcher()
   {
@@ -492,15 +529,15 @@ public class TransformerImpl extends Transformer
    *
    * @throws TransformerException
    */
-  public void transform(Source source) 
-    throws TransformerException
+  public void transform(Source source) throws TransformerException
   {
+
     try
     {
       DTMManager mgr = this.getXPathContext().getDTMManager();
       DTM dtm = mgr.getDTM(source, false, this, true, true);
-      
       boolean hardDelete = true;  // %REVIEW% I have to think about this. -sb
+
       try
       {
         this.transformNode(dtm.getDocument());
@@ -519,14 +556,15 @@ public class TransformerImpl extends Transformer
 
       if (null != e)
       {
-        if (e instanceof javax.xml.transform.TransformerException) 
+        if (e instanceof javax.xml.transform.TransformerException)
         {
           throw (javax.xml.transform.TransformerException) e;
         }
-        else if (e instanceof org.apache.xml.utils.WrappedRuntimeException) 
+        else if (e instanceof org.apache.xml.utils.WrappedRuntimeException)
         {
-          m_errorHandler.fatalError( new javax.xml.transform.TransformerException(
-            ((org.apache.xml.utils.WrappedRuntimeException) e).getException()) );
+          m_errorHandler.fatalError(
+            new javax.xml.transform.TransformerException(
+              ((org.apache.xml.utils.WrappedRuntimeException) e).getException()));
         }
         else
         {
@@ -541,6 +579,7 @@ public class TransformerImpl extends Transformer
     catch (org.apache.xml.utils.WrappedRuntimeException wre)
     {
       Throwable throwable = wre.getException();
+
       while (throwable
              instanceof org.apache.xml.utils.WrappedRuntimeException)
       {
@@ -548,24 +587,26 @@ public class TransformerImpl extends Transformer
           ((org.apache.xml.utils.WrappedRuntimeException) throwable).getException();
       }
 
-      m_errorHandler.fatalError( new TransformerException(wre.getException()) );
+      m_errorHandler.fatalError(new TransformerException(wre.getException()));
     }
+
     // Patch attributed to David Eisenberg <david@catcode.com>
     catch (org.xml.sax.SAXParseException spe)
     {
       String msg = spe.getMessage();
       SAXSourceLocator loc = new SAXSourceLocator(spe);
-      
+
       //m_errorHandler.fatalError(new TransformerException( msg, loc ));
-                        m_errorHandler.fatalError(new TransformerException( spe ));
+      m_errorHandler.fatalError(new TransformerException(spe));
     }
-    catch(org.xml.sax.SAXException se)
+    catch (org.xml.sax.SAXException se)
     {
-      m_errorHandler.fatalError(new TransformerException( se ));
+      m_errorHandler.fatalError(new TransformerException(se));
     }
     finally
     {
       m_hasTransformThreadErrorCatcher = false;
+
       // This looks to be redundent to the one done in TransformNode.
       reset();
     }
@@ -574,17 +615,19 @@ public class TransformerImpl extends Transformer
   /**
    * Get the base URL of the source.
    *
-   * @return The base URL of the source tree, or null. 
+   * @return The base URL of the source tree, or null.
    */
   public String getBaseURLOfSource()
   {
     return m_urlOfSource;
   }
-  
+
   /**
    * Get the base URL of the source.
    *
-   * @return The base URL of the source tree, or null. 
+   *
+   * NEEDSDOC @param base
+   * @return The base URL of the source tree, or null.
    */
   public void setBaseURLOfSource(String base)
   {
@@ -600,12 +643,14 @@ public class TransformerImpl extends Transformer
   {
     return m_outputTarget;
   }
-  
+
   /**
    * Set the original output target.  This is useful when using a SAX transform and
    * supplying a ContentHandler or when the URI of the output target should
    * not be the same as the systemID of the original output target.
    *
+   *
+   * NEEDSDOC @param outputTarget
    */
   public void setOutputTarget(Result outputTarget)
   {
@@ -621,6 +666,8 @@ public class TransformerImpl extends Transformer
    * @param name A non-null String that specifies an output
    * property name, which may be namespace qualified.
    *
+   * NEEDSDOC @param qnameString
+   *
    * @return The string value of the output property, or null
    * if no property was found.
    *
@@ -629,51 +676,57 @@ public class TransformerImpl extends Transformer
    * @see javax.xml.transform.OutputKeys
    */
   public String getOutputProperty(String qnameString)
-    throws IllegalArgumentException
-  {    
+          throws IllegalArgumentException
+  {
+
     String value = null;
-    
-    OutputProperties props = getOutputFormat();    
-    
+    OutputProperties props = getOutputFormat();
+
     value = props.getProperty(qnameString);
-    
-    if(null == value)
+
+    if (null == value)
     {
-      if(!props.isLegalPropertyKey(qnameString))
-        throw new IllegalArgumentException("output property not recognized: "+qnameString);
+      if (!props.isLegalPropertyKey(qnameString))
+        throw new IllegalArgumentException("output property not recognized: "
+                                           + qnameString);
     }
+
     return value;
   }
-  
+
   /**
-   * Get the value of a property, without using the default properties.  This 
-   * can be used to test if a property has been explicitly set by the stylesheet 
+   * Get the value of a property, without using the default properties.  This
+   * can be used to test if a property has been explicitly set by the stylesheet
    * or user.
    *
    * @param name The property name, which is a fully-qualified URI.
    *
+   * NEEDSDOC @param qnameString
+   *
    * @return The value of the property, or null if not found.
    *
-   * @throws IllegalArgumentException If the property is not supported, 
+   * @throws IllegalArgumentException If the property is not supported,
    * and is not namespaced.
    */
   public String getOutputPropertyNoDefault(String qnameString)
-    throws IllegalArgumentException
-  {    
+          throws IllegalArgumentException
+  {
+
     String value = null;
-    
-    OutputProperties props = getOutputFormat();    
-    
-    value = (String)props.getProperties().get(qnameString);
-    
-    if(null == value)
+    OutputProperties props = getOutputFormat();
+
+    value = (String) props.getProperties().get(qnameString);
+
+    if (null == value)
     {
-      if(!props.isLegalPropertyKey(qnameString))
-        throw new IllegalArgumentException("output property not recognized: "+qnameString);
+      if (!props.isLegalPropertyKey(qnameString))
+        throw new IllegalArgumentException("output property not recognized: "
+                                           + qnameString);
     }
+
     return value;
   }
-  
+
   /**
    * Set the value of a property.  Recognized properties are:
    *
@@ -686,24 +739,28 @@ public class TransformerImpl extends Transformer
    * @throws IllegalArgumentException if the property name is not legal.
    */
   public void setOutputProperty(String name, String value)
-    throws IllegalArgumentException
-  {    
-    synchronized(m_reentryGuard) 
+          throws IllegalArgumentException
+  {
+
+    synchronized (m_reentryGuard)
     {
+
       // Get the output format that was set by the user, otherwise get the 
       // output format from the stylesheet.
-      if(null == m_outputFormat)
+      if (null == m_outputFormat)
       {
-        m_outputFormat = (OutputProperties)getStylesheet().getOutputComposed().clone();
+        m_outputFormat =
+          (OutputProperties) getStylesheet().getOutputComposed().clone();
       }
-  
-      if(!m_outputFormat.isLegalPropertyKey(name))
-        throw new IllegalArgumentException("output property not recognized: "+name);
-      
+
+      if (!m_outputFormat.isLegalPropertyKey(name))
+        throw new IllegalArgumentException("output property not recognized: "
+                                           + name);
+
       m_outputFormat.setProperty(name, value);
     }
   }
-  
+
   /**
    * Set the output properties for the transformation.  These
    * properties will override properties set in the templates
@@ -718,197 +775,203 @@ public class TransformerImpl extends Transformer
    */
   public void setOutputProperties(Properties oformat)
   {
-    synchronized(m_reentryGuard) 
+
+    synchronized (m_reentryGuard)
     {
-      if(null != oformat)
+      if (null != oformat)
       {
+
         // See if an *explicit* method was set.
-        String method = (String)oformat.get(OutputKeys.METHOD);
-        if(null != method)
+        String method = (String) oformat.get(OutputKeys.METHOD);
+
+        if (null != method)
           m_outputFormat = new OutputProperties(method);
         else
           m_outputFormat = new OutputProperties();
       }
-      
-      if(null != oformat)
+
+      if (null != oformat)
       {
         m_outputFormat.copyFrom(oformat);
       }
+
       // copyFrom does not set properties that have been already set, so 
       // this must be called after, which is a bit in the reverse from 
       // what one might think.
       m_outputFormat.copyFrom(m_stylesheetRoot.getOutputProperties());
     }
   }
-  
+
   /**
    * Get a copy of the output properties for the transformation.  These
    * properties will override properties set in the templates
    * with xsl:output.
-   * 
-   * <p>Note that mutation of the Properties object returned will not 
+   *
+   * <p>Note that mutation of the Properties object returned will not
    * effect the properties that the transformation contains.</p>
    *
    * @returns A copy of the set of output properties in effect
    * for the next transformation.
+   *
+   * NEEDSDOC ($objectName$) @return
    */
   public Properties getOutputProperties()
-  {    
-    return (Properties)getOutputFormat().getProperties().clone();  
+  {
+    return (Properties) getOutputFormat().getProperties().clone();
   }
 
   // %REVIEW% OK to delete?  Who needs this?
-//  /**
-//   * <meta name="usage" content="internal"/>
-//   * Process the an input source to a DOM node.  FOR INTERNAL USE ONLY.
-//   * 
-//   * @param xmlSource  The input for the source tree.
-//   *
-//   * @return The Node result of the parse, never null.
-//   *
-//   * @throws TransformerException
-//   */
-//  public Node parseToNode(Source source) throws TransformerException
-//  {
-//    if(source instanceof DOMSource)
-//      return ((DOMSource)source).getNode();
-//    
-//    InputSource xmlSource = SAXSource.sourceToInputSource(source);
-//    if(null == xmlSource)
-//    {
-//      throw new TransformerException("Can't transform a Source of type "+
-//        source.getClass().getName()+"!");
-//    }
-//
-//    // Duplicate code from above... but slightly different.  
-//    // TODO: Work on this...
-//    if (null != xmlSource.getSystemId())
-//      m_urlOfSource = xmlSource.getSystemId();
-//
-//    Node doc = null;
-//    try
-//    {
-//      // Get an already set XMLReader, or create one.
-//      XMLReader reader = null;
-//      if(source instanceof SAXSource)
-//        reader = ((SAXSource)source).getXMLReader();
-//
-//      if (null == reader)
-//      {
-//        // Use JAXP1.1 ( if possible )
-//        try {
-//          javax.xml.parsers.SAXParserFactory factory=
-//                                                     javax.xml.parsers.SAXParserFactory.newInstance();
-//          factory.setNamespaceAware( true );
-//          javax.xml.parsers.SAXParser jaxpParser=
-//                                                 factory.newSAXParser();
-//          reader=jaxpParser.getXMLReader();
-//          
-//        } catch( javax.xml.parsers.ParserConfigurationException ex ) {
-//          throw new org.xml.sax.SAXException( ex );
-//        } catch( javax.xml.parsers.FactoryConfigurationError ex1 ) {
-//            throw new org.xml.sax.SAXException( ex1.toString() );
-//        } catch( NoSuchMethodError ex2 ) {
-//        }
-//        catch (AbstractMethodError ame){}
-//      }
-//
-//      if (null == reader)
-//      {
-//        reader = XMLReaderFactory.createXMLReader();
-//      }
-//
-//      try
-//      {
-//        reader.setFeature("http://xml.org/sax/features/namespace-prefixes",
-//                          true);
-//        reader.setFeature(
-//                          "http://apache.org/xml/features/validation/dynamic", true);
-//      }
-//      catch (org.xml.sax.SAXException se)
-//      {
-//
-//        // What can we do?
-//        // TODO: User diagnostics.
-//      }
-//
-//      // TODO: Handle Xerces DOM parser.
-//      // Get the input content handler, which will handle the 
-//      // parse events and create the source tree.
-//      ContentHandler inputHandler = getInputContentHandler();
-//      Class inputHandlerClass = ((Object) inputHandler).getClass();
-//
-//      inputHandler = (ContentHandler) inputHandlerClass.newInstance();
-//
-//      reader.setContentHandler(inputHandler);
-//      if(inputHandler instanceof org.xml.sax.DTDHandler)
-//        reader.setDTDHandler((org.xml.sax.DTDHandler)inputHandler);
-//      try
-//      {
-//        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
-//          reader.setProperty("http://xml.org/sax/properties/lexical-handler",
-//                             inputHandler);
-//        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
-//          reader.setProperty("http://xml.org/sax/properties/declaration-handler",
-//                             inputHandler);
-//      }
-//      catch(SAXNotRecognizedException snre){}
-//      try
-//      {
-//        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
-//          reader.setProperty("http://xml.org/sax/handlers/LexicalHandler",
-//                             inputHandler);
-//        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
-//          reader.setProperty("http://xml.org/sax/handlers/DeclHandler",
-//                             inputHandler);
-//      }
-//      catch(org.xml.sax.SAXNotRecognizedException snre)
-//      {
-//      }
-//      getXPathContext().setPrimaryReader(reader);
-//
-//      // ...and of course I need a standard way to get a node...
-//      if (inputHandler instanceof org.apache.xalan.stree.SourceTreeHandler)
-//      {
-//
-//        // Kick off the parse.  When the ContentHandler gets 
-//        // the startDocument event, it will call transformNode( node ).
-//        reader.parse(xmlSource);
-//
-//        doc =
-//             ((org.apache.xalan.stree.SourceTreeHandler) inputHandler).getRoot();
-//      }
-//
-//    }
-//    catch (java.lang.IllegalAccessException iae)
-//    {
-//      throw new TransformerException(iae);
-//    }
-//    catch (InstantiationException ie)
-//    {
-//      throw new TransformerException(ie);
-//    }
-//    catch(org.xml.sax.SAXException se)
-//    {
-//      throw new TransformerException(se);
-//    }
-//    catch (IOException ioe)
-//    {
-//      throw new TransformerException(ioe);
-//    }
-//
-//
-//    return doc;
-//  }
+  //  /**
+  //   * <meta name="usage" content="internal"/>
+  //   * Process the an input source to a DOM node.  FOR INTERNAL USE ONLY.
+  //   * 
+  //   * @param xmlSource  The input for the source tree.
+  //   *
+  //   * @return The Node result of the parse, never null.
+  //   *
+  //   * @throws TransformerException
+  //   */
+  //  public Node parseToNode(Source source) throws TransformerException
+  //  {
+  //    if(source instanceof DOMSource)
+  //      return ((DOMSource)source).getNode();
+  //    
+  //    InputSource xmlSource = SAXSource.sourceToInputSource(source);
+  //    if(null == xmlSource)
+  //    {
+  //      throw new TransformerException("Can't transform a Source of type "+
+  //        source.getClass().getName()+"!");
+  //    }
+  //
+  //    // Duplicate code from above... but slightly different.  
+  //    // TODO: Work on this...
+  //    if (null != xmlSource.getSystemId())
+  //      m_urlOfSource = xmlSource.getSystemId();
+  //
+  //    Node doc = null;
+  //    try
+  //    {
+  //      // Get an already set XMLReader, or create one.
+  //      XMLReader reader = null;
+  //      if(source instanceof SAXSource)
+  //        reader = ((SAXSource)source).getXMLReader();
+  //
+  //      if (null == reader)
+  //      {
+  //        // Use JAXP1.1 ( if possible )
+  //        try {
+  //          javax.xml.parsers.SAXParserFactory factory=
+  //                                                     javax.xml.parsers.SAXParserFactory.newInstance();
+  //          factory.setNamespaceAware( true );
+  //          javax.xml.parsers.SAXParser jaxpParser=
+  //                                                 factory.newSAXParser();
+  //          reader=jaxpParser.getXMLReader();
+  //          
+  //        } catch( javax.xml.parsers.ParserConfigurationException ex ) {
+  //          throw new org.xml.sax.SAXException( ex );
+  //        } catch( javax.xml.parsers.FactoryConfigurationError ex1 ) {
+  //            throw new org.xml.sax.SAXException( ex1.toString() );
+  //        } catch( NoSuchMethodError ex2 ) {
+  //        }
+  //        catch (AbstractMethodError ame){}
+  //      }
+  //
+  //      if (null == reader)
+  //      {
+  //        reader = XMLReaderFactory.createXMLReader();
+  //      }
+  //
+  //      try
+  //      {
+  //        reader.setFeature("http://xml.org/sax/features/namespace-prefixes",
+  //                          true);
+  //        reader.setFeature(
+  //                          "http://apache.org/xml/features/validation/dynamic", true);
+  //      }
+  //      catch (org.xml.sax.SAXException se)
+  //      {
+  //
+  //        // What can we do?
+  //        // TODO: User diagnostics.
+  //      }
+  //
+  //      // TODO: Handle Xerces DOM parser.
+  //      // Get the input content handler, which will handle the 
+  //      // parse events and create the source tree.
+  //      ContentHandler inputHandler = getInputContentHandler();
+  //      Class inputHandlerClass = ((Object) inputHandler).getClass();
+  //
+  //      inputHandler = (ContentHandler) inputHandlerClass.newInstance();
+  //
+  //      reader.setContentHandler(inputHandler);
+  //      if(inputHandler instanceof org.xml.sax.DTDHandler)
+  //        reader.setDTDHandler((org.xml.sax.DTDHandler)inputHandler);
+  //      try
+  //      {
+  //        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
+  //          reader.setProperty("http://xml.org/sax/properties/lexical-handler",
+  //                             inputHandler);
+  //        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
+  //          reader.setProperty("http://xml.org/sax/properties/declaration-handler",
+  //                             inputHandler);
+  //      }
+  //      catch(SAXNotRecognizedException snre){}
+  //      try
+  //      {
+  //        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
+  //          reader.setProperty("http://xml.org/sax/handlers/LexicalHandler",
+  //                             inputHandler);
+  //        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
+  //          reader.setProperty("http://xml.org/sax/handlers/DeclHandler",
+  //                             inputHandler);
+  //      }
+  //      catch(org.xml.sax.SAXNotRecognizedException snre)
+  //      {
+  //      }
+  //      getXPathContext().setPrimaryReader(reader);
+  //
+  //      // ...and of course I need a standard way to get a node...
+  //      if (inputHandler instanceof org.apache.xalan.stree.SourceTreeHandler)
+  //      {
+  //
+  //        // Kick off the parse.  When the ContentHandler gets 
+  //        // the startDocument event, it will call transformNode( node ).
+  //        reader.parse(xmlSource);
+  //
+  //        doc =
+  //             ((org.apache.xalan.stree.SourceTreeHandler) inputHandler).getRoot();
+  //      }
+  //
+  //    }
+  //    catch (java.lang.IllegalAccessException iae)
+  //    {
+  //      throw new TransformerException(iae);
+  //    }
+  //    catch (InstantiationException ie)
+  //    {
+  //      throw new TransformerException(ie);
+  //    }
+  //    catch(org.xml.sax.SAXException se)
+  //    {
+  //      throw new TransformerException(se);
+  //    }
+  //    catch (IOException ioe)
+  //    {
+  //      throw new TransformerException(ioe);
+  //    }
+  //
+  //
+  //    return doc;
+  //  }
 
   /**
-   * Create a result ContentHandler from a Result object, based 
+   * Create a result ContentHandler from a Result object, based
    * on the current OutputProperties.
    *
-   * @param outputTarget Where the transform result should go, 
+   * @param outputTarget Where the transform result should go,
    * should not be null.
    *
-   * @return A valid ContentHandler that will create the 
+   * @return A valid ContentHandler that will create the
    * result tree when it is fed SAX events.
    *
    * @throws TransformerException
@@ -918,85 +981,99 @@ public class TransformerImpl extends Transformer
   {
     return createResultContentHandler(outputTarget, getOutputFormat());
   }
-    
+
   /**
    * Create a ContentHandler from a Result object and an OutputProperties.
    *
-   * @param outputTarget Where the transform result should go, 
+   * @param outputTarget Where the transform result should go,
    * should not be null.
-   * @param format The OutputProperties object that will contain 
+   * @param format The OutputProperties object that will contain
    * instructions on how to serialize the output.
    *
-   * @return A valid ContentHandler that will create the 
+   * @return A valid ContentHandler that will create the
    * result tree when it is fed SAX events.
    *
    * @throws TransformerException
    */
   public ContentHandler createResultContentHandler(
-          Result outputTarget, OutputProperties format) throws TransformerException
-  {    
+          Result outputTarget, OutputProperties format)
+            throws TransformerException
+  {
+
     ContentHandler handler = null;
-    
+
     // If the Result object contains a Node, then create 
     // a ContentHandler that will add nodes to the input node.
     org.w3c.dom.Node outputNode = null;
-    if(outputTarget instanceof DOMResult)
+
+    if (outputTarget instanceof DOMResult)
     {
-      outputNode = ((DOMResult)outputTarget).getNode();
+      outputNode = ((DOMResult) outputTarget).getNode();
 
       org.w3c.dom.Document doc;
       short type;
+
       if (null != outputNode)
       {
         type = outputNode.getNodeType();
         doc = (org.w3c.dom.Node.DOCUMENT_NODE == type)
-                       ? (org.w3c.dom.Document) outputNode 
-                       : outputNode.getOwnerDocument();
+              ? (org.w3c.dom.Document) outputNode
+              : outputNode.getOwnerDocument();
       }
       else
       {
         doc = org.apache.xpath.DOMHelper.createDocument();
         outputNode = doc;
         type = outputNode.getNodeType();
-        ((DOMResult)outputTarget).setNode(outputNode);
+
+        ((DOMResult) outputTarget).setNode(outputNode);
       }
-      
-      handler = (org.w3c.dom.Node.DOCUMENT_FRAGMENT_NODE == type)
-                ? new DOMBuilder(doc, (org.w3c.dom.DocumentFragment) outputNode)
-                  : new DOMBuilder(doc, outputNode);
+
+      handler =
+        (org.w3c.dom.Node.DOCUMENT_FRAGMENT_NODE == type)
+        ? new DOMBuilder(doc, (org.w3c.dom.DocumentFragment) outputNode)
+        : new DOMBuilder(doc, outputNode);
     }
-    else if(outputTarget instanceof SAXResult)
+    else if (outputTarget instanceof SAXResult)
     {
-      handler = ((SAXResult)outputTarget).getHandler();
-      if(null == handler)
-        throw new IllegalArgumentException("handler can not be null for a SAXResult");
+      handler = ((SAXResult) outputTarget).getHandler();
+
+      if (null == handler)
+        throw new IllegalArgumentException(
+          "handler can not be null for a SAXResult");
     }
+
     // Otherwise, create a ContentHandler that will serialize the 
     // result tree to either a stream or a writer.
-    else if(outputTarget instanceof StreamResult)
+    else if (outputTarget instanceof StreamResult)
     {
-      StreamResult sresult = (StreamResult)outputTarget;
+      StreamResult sresult = (StreamResult) outputTarget;
       String method = format.getProperty(OutputKeys.METHOD);
 
       try
       {
-        Serializer serializer = SerializerFactory.getSerializer(format.getProperties());
+        Serializer serializer =
+          SerializerFactory.getSerializer(format.getProperties());
 
         if (null != sresult.getWriter())
           serializer.setWriter(sresult.getWriter());
         else if (null != sresult.getOutputStream())
           serializer.setOutputStream(sresult.getOutputStream());
-        else if(null != sresult.getSystemId())
+        else if (null != sresult.getSystemId())
         {
           String fileURL = sresult.getSystemId();
-          if(fileURL.startsWith("file:///"))
+
+          if (fileURL.startsWith("file:///"))
           {
             fileURL = fileURL.substring(8);
           }
+
           m_outputStream = new java.io.FileOutputStream(fileURL);
+
           serializer.setOutputStream(m_outputStream);
         }
-        else throw new TransformerException("No output specified!");
+        else
+          throw new TransformerException("No output specified!");
 
         handler = serializer.asContentHandler();
 
@@ -1013,8 +1090,9 @@ public class TransformerImpl extends Transformer
     }
     else
     {
-      throw new TransformerException("Can't transform to a Result of type "+
-        outputTarget.getClass().getName()+"!");
+      throw new TransformerException("Can't transform to a Result of type "
+                                     + outputTarget.getClass().getName()
+                                     + "!");
     }
 
     return handler;
@@ -1030,11 +1108,13 @@ public class TransformerImpl extends Transformer
   public void transform(Source xmlSource, Result outputTarget)
           throws TransformerException
   {
-    synchronized(m_reentryGuard) 
+
+    synchronized (m_reentryGuard)
     {
       ContentHandler handler = createResultContentHandler(outputTarget);
+
       m_outputTarget = outputTarget;
-  
+
       this.setContentHandler(handler);
       transform(xmlSource);
     }
@@ -1055,6 +1135,7 @@ public class TransformerImpl extends Transformer
   {
 
     ContentHandler handler = createResultContentHandler(outputTarget);
+
     m_outputTarget = outputTarget;
 
     this.setContentHandler(handler);
@@ -1073,33 +1154,33 @@ public class TransformerImpl extends Transformer
    */
   public void transformNode(int node) throws TransformerException
   {
+
     // Make sure we're not writing to the same output content handler.
-    synchronized(m_outputContentHandler)
+    synchronized (m_outputContentHandler)
     {
       m_hasBeenReset = false;
-  
+
       try
       {
         pushGlobalVars(node);
-  
+
         // ==========
         // Give the top-level templates a chance to pass information into 
         // the context (this is mainly for setting up tables for extensions).
         StylesheetRoot stylesheet = this.getStylesheet();
         int n = stylesheet.getGlobalImportCount();
-  
+
         for (int i = 0; i < n; i++)
         {
           StylesheetComposed imported = stylesheet.getGlobalImport(i);
-  
           int includedCount = imported.getIncludeCountComposed();
-  
+
           for (int j = -1; j < includedCount; j++)
           {
             Stylesheet included = imported.getIncludeComposed(j);
-  
+
             included.runtimeInit(this);
-  
+
             for (ElemTemplateElement child = included.getFirstChildElem();
                     child != null; child = child.getNextSiblingElem())
             {
@@ -1107,19 +1188,20 @@ public class TransformerImpl extends Transformer
             }
           }
         }
-  
+
         // ===========
         // System.out.println("Calling applyTemplateToNode - "+Thread.currentThread().getName());
         this.applyTemplateToNode(null, null, node);
+
         // System.out.println("Done with applyTemplateToNode - "+Thread.currentThread().getName());
-  
         if (null != m_resultTreeHandler)
         {
           m_resultTreeHandler.endDocument();
-        }   
+        }
       }
       catch (Exception se)
       {
+
         // System.out.println(Thread.currentThread().getName()+" threw an exception! "
         //                   +se.getMessage());
         // If an exception was thrown, we need to make sure that any waiting 
@@ -1131,8 +1213,9 @@ public class TransformerImpl extends Transformer
           {
             m_resultTreeHandler.endDocument();
           }
-          catch(Exception e){}
+          catch (Exception e){}
         }
+
         throw new TransformerException(se.getMessage(), se);
       }
       finally
@@ -1141,10 +1224,10 @@ public class TransformerImpl extends Transformer
       }
     }
   }
-  
+
   /**
    * Get a SAX2 ContentHandler for the input.
-   * 
+   *
    * @return A valid ContentHandler, which should never be null, as
    * long as getFeature("http://xml.org/trax/features/sax/input")
    * returns true.
@@ -1156,10 +1239,10 @@ public class TransformerImpl extends Transformer
 
   /**
    * Get a SAX2 ContentHandler for the input.
-   * 
-   * @param doDocFrag true if a DocumentFragment should be created as 
+   *
+   * @param doDocFrag true if a DocumentFragment should be created as
    * the root, rather than a Document.
-   * 
+   *
    * @return A valid ContentHandler, which should never be null, as
    * long as getFeature("http://xml.org/trax/features/sax/input")
    * returns true.
@@ -1169,9 +1252,11 @@ public class TransformerImpl extends Transformer
 
     if (null == m_inputContentHandler)
     {
+
       //      if(null == m_urlOfSource && null != m_stylesheetRoot)
       //        m_urlOfSource = m_stylesheetRoot.getBaseIdentifier();
-      m_inputContentHandler = new TransformerHandlerImpl(this, doDocFrag, m_urlOfSource);
+      m_inputContentHandler = new TransformerHandlerImpl(this, doDocFrag,
+              m_urlOfSource);
     }
 
     return m_inputContentHandler;
@@ -1212,7 +1297,7 @@ public class TransformerImpl extends Transformer
    * properties will override properties set in the templates
    * with xsl:output.
    *
-   * @param oformat A valid OutputProperties object (which will 
+   * @param oformat A valid OutputProperties object (which will
    * not be mutated), or null.
    */
   public void setOutputFormat(OutputProperties oformat)
@@ -1223,7 +1308,7 @@ public class TransformerImpl extends Transformer
   /**
    * Get the output properties used for the transformation.
    *
-   * @return the output format that was set by the user, 
+   * @return the output format that was set by the user,
    * otherwise the output format from the stylesheet.
    */
   public OutputProperties getOutputFormat()
@@ -1232,8 +1317,8 @@ public class TransformerImpl extends Transformer
     // Get the output format that was set by the user, otherwise get the 
     // output format from the stylesheet.
     OutputProperties format = (null == m_outputFormat)
-                          ? getStylesheet().getOutputComposed()
-                          : m_outputFormat;
+                              ? getStylesheet().getOutputComposed()
+                              : m_outputFormat;
 
     return format;
   }
@@ -1241,7 +1326,7 @@ public class TransformerImpl extends Transformer
   /**
    * <meta name="usage" content="internal"/>
    * Get the current serializer in use, which may well not
-   * be the main serializer (for instance, this may well be 
+   * be the main serializer (for instance, this may well be
    * a text serializer for string creation from templates).
    *
    * @return The current serializer, or null if there is none.
@@ -1264,7 +1349,7 @@ public class TransformerImpl extends Transformer
 
   /**
    * Set a parameter for the templates.
-   * 
+   *
    * @param name The name of the parameter.
    * @param namespace The namespace of the parameter.
    * @param value The value object.  This can be any valid Java object
@@ -1281,9 +1366,10 @@ public class TransformerImpl extends Transformer
 
     varstack.pushOrReplaceParameter(qname, xobject);
   }
-  
+
+  /** NEEDSDOC Field m_userParams          */
   Vector m_userParams;
-  
+
   /**
    * Set a parameter for the transformation.
    *
@@ -1296,16 +1382,21 @@ public class TransformerImpl extends Transformer
    */
   public void setParameter(String name, Object value)
   {
+
     StringTokenizer tokenizer = new StringTokenizer(name, "{}", false);
+
     try
     {
+
       // The first string might be the namespace, or it might be 
       // the local name, if the namespace is null.
       String s1 = tokenizer.nextToken();
       String s2 = tokenizer.hasMoreTokens() ? tokenizer.nextToken() : null;
-      if(null == m_userParams)
+
+      if (null == m_userParams)
         m_userParams = new Vector();
-      if(null == s2)
+
+      if (null == s2)
       {
         replaceOrPushUserParam(new QName(s1), new XObject(value));
         setParameter(s1, null, value);
@@ -1315,71 +1406,90 @@ public class TransformerImpl extends Transformer
         replaceOrPushUserParam(new QName(s1, s2), new XObject(value));
         setParameter(s2, s1, value);
       }
-      
     }
-    catch(java.util.NoSuchElementException  nsee)
+    catch (java.util.NoSuchElementException nsee)
     {
+
       // Should throw some sort of an error.
     }
   }
-  
+
+  /**
+   * NEEDSDOC Method replaceOrPushUserParam 
+   *
+   *
+   * NEEDSDOC @param qname
+   * NEEDSDOC @param xval
+   */
   private void replaceOrPushUserParam(QName qname, XObject xval)
   {
-      int n = m_userParams.size();
-      for(int i = n-1; i >= 0; i--)
+
+    int n = m_userParams.size();
+
+    for (int i = n - 1; i >= 0; i--)
+    {
+      Arg arg = (Arg) m_userParams.elementAt(i);
+
+      if (arg.getQName().equals(qname))
       {
-        Arg arg = (Arg)m_userParams.elementAt(i);
-        if(arg.getQName().equals(qname))
-        {
-          m_userParams.setElementAt(new Arg(qname, xval, true), i);
-          return;
-        }
+        m_userParams.setElementAt(new Arg(qname, xval, true), i);
+
+        return;
       }
-      m_userParams.addElement(new Arg(qname, xval, true));
+    }
+
+    m_userParams.addElement(new Arg(qname, xval, true));
   }
-  
+
   /**
-   * Get a parameter that was explicitly set with setParameter 
+   * Get a parameter that was explicitly set with setParameter
    * or setParameters.
    *
-   * @return A parameter that has been set with setParameter 
+   *
+   * NEEDSDOC @param name
+   * @return A parameter that has been set with setParameter
    * or setParameters,
-   * *not* all the xsl:params on the stylesheet (which require 
+   * *not* all the xsl:params on the stylesheet (which require
    * a transformation Source to be evaluated).
    */
   public Object getParameter(String name)
   {
+
     try
     {
+
       // VariableStack varstack = getXPathContext().getVarStack();
       // The first string might be the namespace, or it might be 
       // the local name, if the namespace is null.
       QName qname = QName.getQNameFromString(name);
 
-      if(null == m_userParams)
+      if (null == m_userParams)
         return null;
+
       int n = m_userParams.size();
-      for(int i = n-1; i >= 0; i--)
+
+      for (int i = n - 1; i >= 0; i--)
       {
-        Arg arg = (Arg)m_userParams.elementAt(i);
-        if(arg.getQName().equals(qname))
+        Arg arg = (Arg) m_userParams.elementAt(i);
+
+        if (arg.getQName().equals(qname))
         {
           return arg.getVal().object();
         }
       }
+
       return null;
     }
-    catch(java.util.NoSuchElementException  nsee)
+    catch (java.util.NoSuchElementException nsee)
     {
+
       // Should throw some sort of an error.
       return null;
-    }  
+    }
   }
-  
-  
 
   /**
-   * Set a bag of parameters for the transformation. Note that 
+   * Set a bag of parameters for the transformation. Note that
    * these will not be additive, they will replace the existing
    * set of parameters.
    *
@@ -1389,28 +1499,37 @@ public class TransformerImpl extends Transformer
    * -- it's up to the processor to provide the proper
    * coersion to the object, or simply pass it on for use
    * in extensions.
+   *
+   * NEEDSDOC @param params
    */
   public void setParameters(Properties params)
   {
+
     clearParameters();
+
     Enumeration names = params.propertyNames();
-    while(names.hasMoreElements())
+
+    while (names.hasMoreElements())
     {
-      String name = params.getProperty((String)names.nextElement());
+      String name = params.getProperty((String) names.nextElement());
       StringTokenizer tokenizer = new StringTokenizer(name, "{}", false);
+
       try
       {
+
         // The first string might be the namespace, or it might be 
         // the local name, if the namespace is null.
         String s1 = tokenizer.nextToken();
         String s2 = tokenizer.hasMoreTokens() ? tokenizer.nextToken() : null;
-        if(null == s2)
+
+        if (null == s2)
           setParameter(s1, null, params.getProperty(name));
         else
           setParameter(s2, s1, params.getProperty(name));
       }
-      catch(java.util.NoSuchElementException  nsee)
+      catch (java.util.NoSuchElementException nsee)
       {
+
         // Should throw some sort of an error.
       }
     }
@@ -1421,10 +1540,13 @@ public class TransformerImpl extends Transformer
    */
   public void clearParameters()
   {
-    synchronized(m_reentryGuard) 
+
+    synchronized (m_reentryGuard)
     {
       VariableStack varstack = new VariableStack();
+
       getXPathContext().setVarStack(varstack);
+
       m_userParams = null;
     }
   }
@@ -1452,14 +1574,16 @@ public class TransformerImpl extends Transformer
     // of the current stack frame.
     VariableStack vars = xctxt.getVarStack();
     int n = xslCallTemplateElement.getParamElemCount();
-    
     int paramDeclareContext = vars.getSearchStartOrTop();
+
     vars.pushContextMarker();
+
     int paramReferenceContext = -1;
 
     for (int i = 0; i < n; i++)
     {
       vars.setSearchStart(paramDeclareContext);
+
       ElemWithParam xslParamElement = xslCallTemplateElement.getParamElem(i);
 
       // Get the argument value as either an expression or 
@@ -1470,6 +1594,7 @@ public class TransformerImpl extends Transformer
       if (null != param)
       {
         int sourceNode = xctxt.getCurrentNode();
+
         var = param.execute(getXPathContext(), sourceNode, xslParamElement);
       }
       else if (null == xslParamElement.getFirstChildElem())
@@ -1478,10 +1603,10 @@ public class TransformerImpl extends Transformer
       }
       else
       {
+        int sourceNode = xctxt.getCurrentNode();
 
-         int sourceNode = xctxt.getCurrentNode();
-       // Use result tree fragment
-       // %REVIEW% Make sure current node is pushed.
+        // Use result tree fragment
+        // %REVIEW% Make sure current node is pushed.
         int df = transformToRTF(xslParamElement);
 
         var = new XRTreeFrag(df, xctxt);
@@ -1489,21 +1614,22 @@ public class TransformerImpl extends Transformer
 
       vars.setSearchStart(paramReferenceContext);
       vars.pushVariableArg(new Arg(xslParamElement.getName(), var, true));
-//      m_newVars.addElement(new Arg(xslParamElement.getName(), var, true));
+
+      //      m_newVars.addElement(new Arg(xslParamElement.getName(), var, true));
     }
 
-//    int nNew = m_newVars.size();
-//
-//    if (nNew > 0)
-//    {
-//      for (int i = 0; i < nNew; i++)
-//      {
-//        vars.pushVariableArg((Arg) m_newVars.elementAt(i));
-//      }
-//
-//      // Dragons check: make sure this is nulling the refs.
-//      m_newVars.removeAllElements();
-//    }
+    //    int nNew = m_newVars.size();
+    //
+    //    if (nNew > 0)
+    //    {
+    //      for (int i = 0; i < nNew; i++)
+    //      {
+    //        vars.pushVariableArg((Arg) m_newVars.elementAt(i));
+    //      }
+    //
+    //      // Dragons check: make sure this is nulling the refs.
+    //      m_newVars.removeAllElements();
+    //    }
   }  // end pushParams method
 
   /**
@@ -1533,48 +1659,53 @@ public class TransformerImpl extends Transformer
     // in scope, when really only the current stylesheet's 
     // global variables should be in scope.  Have to think on 
     // this more...
-                XObject xobj;
+    XObject xobj;
     XPathContext xctxt = getXPathContext();
     VariableStack vs = xctxt.getVarStack();
     StylesheetRoot sr = getStylesheet();
     Vector vars = sr.getVariablesAndParamsComposed();
-
     int startGlobals = vs.size();
     int i = vars.size();
+
     while (--i >= 0)
     {
       ElemVariable v = (ElemVariable) vars.elementAt(i);
-
       Arg previouslyDeclared = vs.getDeclaredVariable(v.getName());
+
       if (null != previouslyDeclared)
       {
-        if ( (v instanceof ElemParam) && previouslyDeclared.isFromWithParam() )
+        if ((v instanceof ElemParam) && previouslyDeclared.isFromWithParam())
         {
           previouslyDeclared.setIsVisible(true);
         }
-                                else
+        else
         {
-          xobj = new XUnresolvedVariable(v, contextNode, 
-                             this, vs.getSearchStartOrTop(), 0, true);
+          xobj = new XUnresolvedVariable(v, contextNode, this,
+                                         vs.getSearchStartOrTop(), 0, true);
+
           previouslyDeclared.setVal(xobj);
         }
+
         continue;
       }
 
       // XObject xobj = v.getValue(this, contextNode);
-      xobj = new XUnresolvedVariable(v, contextNode, 
-                             this, vs.getSearchStartOrTop(), 0, true);
+      xobj = new XUnresolvedVariable(v, contextNode, this,
+                                     vs.getSearchStartOrTop(), 0, true);
 
       vs.pushVariable(v.getName(), xobj);
       vs.markGlobalStackFrame();
     }
+
     vs.markGlobalStackFrame();
-    
+
     int endGlobals = vs.size();
-    for(i = startGlobals; i < endGlobals; i++)
+
+    for (i = startGlobals; i < endGlobals; i++)
     {
-      Arg arg = (Arg)vs.elementAt(i);
-      XUnresolvedVariable uv = (XUnresolvedVariable)arg.getVal();
+      Arg arg = (Arg) vs.elementAt(i);
+      XUnresolvedVariable uv = (XUnresolvedVariable) arg.getVal();
+
       uv.setVarStackPos(endGlobals);
     }
 
@@ -1589,16 +1720,17 @@ public class TransformerImpl extends Transformer
    */
   public void setURIResolver(URIResolver resolver)
   {
-    synchronized(m_reentryGuard) 
+
+    synchronized (m_reentryGuard)
     {
       getXPathContext().getSourceTreeManager().setURIResolver(resolver);
     }
   }
-  
+
   /**
    * Get an object that will be used to resolve URIs used in
    * document(), etc.
-   * 
+   *
    * @return An object that implements the URIResolver interface,
    * or null.
    */
@@ -1607,27 +1739,29 @@ public class TransformerImpl extends Transformer
     return getXPathContext().getSourceTreeManager().getURIResolver();
   }
 
-
   // ======== End Transformer Implementation ========  
 
   /**
    * Set the content event handler.
    *
    * @param resolver The new content handler.
+   *
+   * NEEDSDOC @param handler
    * @throws java.lang.NullPointerException If the handler
    *            is null.
    * @see org.xml.sax.XMLReader#setContentHandler
    */
-  public void setContentHandler (ContentHandler handler)
+  public void setContentHandler(ContentHandler handler)
   {
-    if (handler == null) 
+
+    if (handler == null)
     {
       throw new NullPointerException("Null content handler");
-    } 
-    else 
+    }
+    else
     {
       m_outputContentHandler = handler;
-      
+
       if (null == m_resultTreeHandler)
         m_resultTreeHandler = new ResultTreeHandler(this, handler);
       else
@@ -1635,14 +1769,13 @@ public class TransformerImpl extends Transformer
     }
   }
 
-
   /**
    * Get the content event handler.
    *
    * @return The current content handler, or null if none was set.
    * @see org.xml.sax.XMLReader#getContentHandler
    */
-  public ContentHandler getContentHandler ()
+  public ContentHandler getContentHandler()
   {
     return m_outputContentHandler;
   }
@@ -1658,12 +1791,11 @@ public class TransformerImpl extends Transformer
    *
    * @throws TransformerException
    */
-  public int transformToRTF(
-          ElemTemplateElement templateParent)
-            throws TransformerException
+  public int transformToRTF(ElemTemplateElement templateParent)
+          throws TransformerException
   {
+
     XPathContext xctxt = getXPathContext();
-    
     DTM dtmFrag = xctxt.getDTM(null, true, this, false, false);
     ContentHandler rtfHandler = dtmFrag.getContentHandler();
 
@@ -1675,43 +1807,44 @@ public class TransformerImpl extends Transformer
 
     // And make a new handler for the RTF.
     m_resultTreeHandler = new ResultTreeHandler(this, rtfHandler);
+
     ResultTreeHandler rth = m_resultTreeHandler;
 
     try
     {
       rth.startDocument();
-  
+
       try
       {
+
         // Do the transformation of the child elements.
         executeChildTemplates(templateParent, true);
-        
+
         // Make sure everything is flushed!
         rth.flushPending();
       }
       finally
-      {      
+      {
         rth.endDocument();
       }
     }
-    catch(org.xml.sax.SAXException se)
+    catch (org.xml.sax.SAXException se)
     {
       throw new TransformerException(se);
     }
-
     finally
     {
+
       // Restore the previous result tree handler.
       this.m_resultTreeHandler = savedRTreeHandler;
     }
-    
+
     return resultFragment;
   }
 
-
   /**
    * <meta name="usage" content="internal"/>
-   * Get the StringWriter pool, so that StringWriter 
+   * Get the StringWriter pool, so that StringWriter
    * objects may be reused.
    *
    * @return The string writer pool, not null.
@@ -1726,20 +1859,27 @@ public class TransformerImpl extends Transformer
    * Take the contents of a template element, process it, and
    * convert it to a string.
    *
-   * @param elem The parent element whose children will be output 
+   * @param elem The parent element whose children will be output
    * as a string.
    * @param transformer The XSLT transformer instance.
    * @param sourceNode The current source node context.
    * @param mode The current xslt mode.
-   * 
+   *
    * @return The stringized result of executing the elements children.
-   * 
+   *
    * @throws TransformerException
    */
-  public String transformToString(
-          ElemTemplateElement elem)
-            throws TransformerException
+  public String transformToString(ElemTemplateElement elem)
+          throws TransformerException
   {
+    ElemTemplateElement firstChild = elem.getFirstChildElem();
+    if(null == firstChild)
+      return "";
+    if(firstChild.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT && 
+       firstChild.getNextSiblingElem() == null)
+    {
+      return ((ElemTextLiteral)firstChild).getNodeValue();
+    }
 
     // Save the current result tree handler.
     ResultTreeHandler savedRTreeHandler = this.m_resultTreeHandler;
@@ -1757,7 +1897,8 @@ public class TransformerImpl extends Transformer
     {
       if (null == serializer)
       {
-        serializer = SerializerFactory.getSerializer(m_textformat.getProperties());
+        serializer =
+          SerializerFactory.getSerializer(m_textformat.getProperties());
 
         m_resultTreeHandler.setSerializer(serializer);
         serializer.setWriter(sw);
@@ -1768,6 +1909,7 @@ public class TransformerImpl extends Transformer
       }
       else
       {
+
         // Leave Commented.  -sb
         // serializer.setWriter(sw);
         // serializer.setOutputFormat(m_textformat);
@@ -1792,7 +1934,7 @@ public class TransformerImpl extends Transformer
 
       result = sw.toString();
     }
-    catch(org.xml.sax.SAXException se)
+    catch (org.xml.sax.SAXException se)
     {
       throw new TransformerException(se);
     }
@@ -1831,10 +1973,11 @@ public class TransformerImpl extends Transformer
    */
   public boolean applyTemplateToNode(ElemTemplateElement xslInstruction,  // xsl:apply-templates or xsl:for-each
                                      ElemTemplateElement template, int child)
-                                                     throws TransformerException
+                                             throws TransformerException
   {
+
     DTM dtm = m_xcontext.getDTM(child);
-    short nodeType =  dtm.getNodeType(child);
+    short nodeType = dtm.getNodeType(child);
     boolean isDefaultTextRule = false;
 
     if (null == template)
@@ -1847,7 +1990,8 @@ public class TransformerImpl extends Transformer
 
       if (isApplyImports)
       {
-        maxImportLevel = xslInstruction.getStylesheetComposed().getImportCountComposed() - 1;
+        maxImportLevel =
+          xslInstruction.getStylesheetComposed().getImportCountComposed() - 1;
       }
       else
       {
@@ -1860,31 +2004,32 @@ public class TransformerImpl extends Transformer
       // that we should find any template.  This is because a value of -1 for
       // maxImportLevel has a special meaning.  But we don't want that.
       // We want to match -no- templates. See bugzilla bug 1170.
-
       if (isApplyImports && (maxImportLevel == -1))
       {
         template = null;
       }
-                        else
-                        {
-                                // Find the XSL template that is the best match for the 
-                                // element.        
-                                XPathContext xctxt = getXPathContext();
-                                PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
+      else
+      {
 
-                                try
-                                {
-                                        xctxt.setNamespaceContext(xslInstruction);
+        // Find the XSL template that is the best match for the 
+        // element.        
+        XPathContext xctxt = getXPathContext();
+        PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
 
-                                        QName mode = this.getMode();
-                                        template = m_stylesheetRoot.getTemplateComposed(xctxt, child, mode, maxImportLevel,
-                                                                                                                                                                                                                                        m_quietConflictWarnings);
-                                }
-                                finally
-                                {
-                                        xctxt.setNamespaceContext(savedPrefixResolver);
-                                }
-                        }
+        try
+        {
+          xctxt.setNamespaceContext(xslInstruction);
+
+          QName mode = this.getMode();
+
+          template = m_stylesheetRoot.getTemplateComposed(xctxt, child, mode,
+                  maxImportLevel, m_quietConflictWarnings, dtm);
+        }
+        finally
+        {
+          xctxt.setNamespaceContext(savedPrefixResolver);
+        }
+      }
 
       // If that didn't locate a node, fall back to a default template rule.
       // See http://www.w3.org/TR/xslt#built-in-rule.
@@ -1939,9 +2084,8 @@ public class TransformerImpl extends Transformer
 
         // Fire a trace event for the template.
         // 
-//        if (TransformerImpl.S_DEBUG)
-//          getTraceManager().fireTraceEvent(child, mode, template);
-
+        //        if (TransformerImpl.S_DEBUG)
+        //          getTraceManager().fireTraceEvent(child, mode, template);
         // And execute the child templates.
         // 9/11/00: If template has been compiled, hand off to it
         // since much (most? all?) of the processing has been inlined.
@@ -1951,13 +2095,11 @@ public class TransformerImpl extends Transformer
         // compiled obviously has to run its own code. It's
         // also unclear that "execute" is really the right name for
         // that entry point.)
-
         m_xcontext.setSAXLocator(template);
-
         executeChildTemplates(template, true);
       }
     }
-    catch(org.xml.sax.SAXException se)
+    catch (org.xml.sax.SAXException se)
     {
       throw new TransformerException(se);
     }
@@ -1970,38 +2112,39 @@ public class TransformerImpl extends Transformer
 
     return true;
   }
-  
+
   /**
    * <meta name="usage" content="advanced"/>
-   * Execute each of the children of a template element.  This method 
+   * Execute each of the children of a template element.  This method
    * is only for extension use.
    *
-   * @param elem The ElemTemplateElement that contains the children 
+   * @param elem The ElemTemplateElement that contains the children
    * that should execute.
    * @param sourceNode The current context node.
+   * NEEDSDOC @param context
    * @param mode The current mode.
-   * @param handler The ContentHandler to where the result events 
+   * @param handler The ContentHandler to where the result events
    * should be fed.
-   * 
+   *
    * @throws TransformerException
    */
   public void executeChildTemplates(
-          ElemTemplateElement elem, org.w3c.dom.Node context, QName mode, 
-           ContentHandler handler)
+          ElemTemplateElement elem, org.w3c.dom.Node context, QName mode, ContentHandler handler)
             throws TransformerException
   {
+
     XPathContext xctxt = getXPathContext();
+
     try
     {
-      xctxt.pushCurrentNode(
-           xctxt.getDTMHandleFromNode(context));
-             
-      executeChildTemplates( elem, handler);
+      xctxt.pushCurrentNode(xctxt.getDTMHandleFromNode(context));
+      executeChildTemplates(elem, handler);
     }
     finally
     {
       xctxt.popCurrentNode();
-      if(null != mode)
+
+      if (null != mode)
         popMode();
     }
   }
@@ -2010,11 +2153,11 @@ public class TransformerImpl extends Transformer
    * <meta name="usage" content="advanced"/>
    * Execute each of the children of a template element.
    *
-   * @param elem The ElemTemplateElement that contains the children 
+   * @param elem The ElemTemplateElement that contains the children
    * that should execute.
-   * @param handler The ContentHandler to where the result events 
+   * @param handler The ContentHandler to where the result events
    * should be fed.
-   * 
+   *
    * @throws TransformerException
    */
   public void executeChildTemplates(
@@ -2023,7 +2166,7 @@ public class TransformerImpl extends Transformer
   {
 
     ResultTreeHandler rth = this.getResultTreeHandler();
-    
+
     // These may well not be the same!  In this case when calling 
     // the Redirect extension, it has already set the ContentHandler
     // in the Transformer.
@@ -2034,17 +2177,18 @@ public class TransformerImpl extends Transformer
     {
       getResultTreeHandler().flushPending();
       this.setContentHandler(handler);
+
       // %REVIEW% Make sure current node is being pushed.
       executeChildTemplates(elem, true);
     }
-    catch(org.xml.sax.SAXException se)
+    catch (org.xml.sax.SAXException se)
     {
       throw new TransformerException(se);
     }
     finally
     {
       this.setContentHandler(savedHandler);
-      
+
       // This fixes a bug where the ResultTreeHandler's ContentHandler
       // was being reset to the wrong ContentHandler.
       rth.setContentHandler(savedRTHHandler);
@@ -2057,12 +2201,12 @@ public class TransformerImpl extends Transformer
    *
    * @param transformer The XSLT transformer instance.
    *
-   * @param elem The ElemTemplateElement that contains the children 
+   * @param elem The ElemTemplateElement that contains the children
    * that should execute.
    * @param sourceNode The current context node.
    * @param mode The current mode.
    * @param shouldAddAttrs true if xsl:attributes should be executed.
-   * 
+   *
    * @throws TransformerException
    */
   public void executeChildTemplates(
@@ -2076,8 +2220,24 @@ public class TransformerImpl extends Transformer
     if (null == t)
       return;
       
+    if(t.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT && 
+       t.getNextSiblingElem() == null)
+    {
+      char[] chars = ((ElemTextLiteral)t).getChars();
+      try
+      {
+        // %TBD% Have to push stuff on for tooling...
+        m_resultTreeHandler.characters(chars, 0, chars.length);
+      }
+      catch(SAXException se)
+      {
+        throw new TransformerException(se);
+      }
+      return;
+    }
+
     XPathContext xctxt = getXPathContext();
-    
+
     // Check for infinite loops if we have to.
     boolean check = (m_stackGuard.m_recursionLimit > -1);
 
@@ -2098,13 +2258,15 @@ public class TransformerImpl extends Transformer
 
       // Loop through the children of the template, calling execute on 
       // each of them.
-      for (; t != null;
-              t = t.getNextSiblingElem())
+      for (; t != null; t = t.getNextSiblingElem())
       {
-        if(!shouldAddAttrs && t.getXSLToken() == Constants.ELEMNAME_ATTRIBUTE)
+        if (!shouldAddAttrs
+                && t.getXSLToken() == Constants.ELEMNAME_ATTRIBUTE)
           continue;
+
         xctxt.setSAXLocator(t);
-        m_currentTemplateElements.setElementAt(t, m_currentTemplateElements.size()-1);
+        m_currentTemplateElements.setElementAt(
+          t, m_currentTemplateElements.size() - 1);
         t.execute(this);
       }
     }
@@ -2128,16 +2290,15 @@ public class TransformerImpl extends Transformer
    * Note: Should this go into ElemForEach?
    *
    * @param foreach Valid ElemForEach element, not null.
-   * @param sourceNodeContext The current node context in the source tree, 
+   * @param sourceNodeContext The current node context in the source tree,
    * needed to evaluate the Attribute Value Templates.
    *
    * @return A Vector of NodeSortKeys, or null.
    *
    * @throws TransformerException
    */
-  public Vector processSortKeys(
-                                ElemForEach foreach, int sourceNodeContext)
-    throws TransformerException
+  public Vector processSortKeys(ElemForEach foreach, int sourceNodeContext)
+          throws TransformerException
   {
 
     Vector keys = null;
@@ -2152,67 +2313,63 @@ public class TransformerImpl extends Transformer
     {
       ElemSort sort = foreach.getSortElem(i);
       String langString =
-                         (null != sort.getLang())
-                         ? sort.getLang().evaluate(xctxt, sourceNodeContext, foreach)
-                           : null;
+        (null != sort.getLang())
+        ? sort.getLang().evaluate(xctxt, sourceNodeContext, foreach) : null;
       String dataTypeString = sort.getDataType().evaluate(xctxt,
-                                                          sourceNodeContext, foreach);
+                                sourceNodeContext, foreach);
 
       if (dataTypeString.indexOf(":") >= 0)
         System.out.println(
-                           "TODO: Need to write the hooks for QNAME sort data type");
+          "TODO: Need to write the hooks for QNAME sort data type");
       else if (!(dataTypeString.equalsIgnoreCase(Constants.ATTRVAL_DATATYPE_TEXT))
                &&!(dataTypeString.equalsIgnoreCase(
-                                                   Constants.ATTRVAL_DATATYPE_NUMBER)))
+                 Constants.ATTRVAL_DATATYPE_NUMBER)))
         foreach.error(XSLTErrorResources.ER_ILLEGAL_ATTRIBUTE_VALUE,
-                             new Object[]{ Constants.ATTRNAME_DATATYPE,
-                             dataTypeString });
+                      new Object[]{ Constants.ATTRNAME_DATATYPE,
+                                    dataTypeString });
 
       boolean treatAsNumbers =
-                              ((null != dataTypeString) && dataTypeString.equals(
-                                                                                 Constants.ATTRVAL_DATATYPE_NUMBER)) ? true : false;
-      String orderString = sort.getOrder().evaluate(xctxt,
-                                                    sourceNodeContext, foreach);
+        ((null != dataTypeString) && dataTypeString.equals(
+        Constants.ATTRVAL_DATATYPE_NUMBER)) ? true : false;
+      String orderString = sort.getOrder().evaluate(xctxt, sourceNodeContext,
+                             foreach);
 
       if (!(orderString.equalsIgnoreCase(Constants.ATTRVAL_ORDER_ASCENDING))
-          &&!(orderString.equalsIgnoreCase(
-                                           Constants.ATTRVAL_ORDER_DESCENDING)))
+              &&!(orderString.equalsIgnoreCase(
+                Constants.ATTRVAL_ORDER_DESCENDING)))
         foreach.error(XSLTErrorResources.ER_ILLEGAL_ATTRIBUTE_VALUE,
-                             new Object[]{ Constants.ATTRNAME_ORDER,
-                             orderString });
+                      new Object[]{ Constants.ATTRNAME_ORDER,
+                                    orderString });
 
       boolean descending =
-                          ((null != orderString) && orderString.equals(
-                                                                       Constants.ATTRVAL_ORDER_DESCENDING)) ? true : false;
+        ((null != orderString) && orderString.equals(
+        Constants.ATTRVAL_ORDER_DESCENDING)) ? true : false;
       AVT caseOrder = sort.getCaseOrder();
       boolean caseOrderUpper;
 
       if (null != caseOrder)
       {
-        String caseOrderString = caseOrder.evaluate(xctxt,
-                                                    sourceNodeContext,
+        String caseOrderString = caseOrder.evaluate(xctxt, sourceNodeContext,
                                                     foreach);
 
         if (!(caseOrderString.equalsIgnoreCase(Constants.ATTRVAL_CASEORDER_UPPER))
-            &&!(caseOrderString.equalsIgnoreCase(
-                                                 Constants.ATTRVAL_CASEORDER_LOWER)))
-          foreach.error(
-                               XSLTErrorResources.ER_ILLEGAL_ATTRIBUTE_VALUE,
-                               new Object[]{ Constants.ATTRNAME_CASEORDER,
-                               caseOrderString });
+                &&!(caseOrderString.equalsIgnoreCase(
+                  Constants.ATTRVAL_CASEORDER_LOWER)))
+          foreach.error(XSLTErrorResources.ER_ILLEGAL_ATTRIBUTE_VALUE,
+                        new Object[]{ Constants.ATTRNAME_CASEORDER,
+                                      caseOrderString });
 
         caseOrderUpper =
-                        ((null != caseOrderString) && caseOrderString.equals(
-                                                                             Constants.ATTRVAL_CASEORDER_UPPER)) ? true : false;
+          ((null != caseOrderString) && caseOrderString.equals(
+          Constants.ATTRVAL_CASEORDER_UPPER)) ? true : false;
       }
       else
       {
         caseOrderUpper = false;
       }
 
-      keys.addElement(new NodeSortKey(this, sort.getSelect(),
-                                      treatAsNumbers, descending,
-                                      langString, caseOrderUpper,
+      keys.addElement(new NodeSortKey(this, sort.getSelect(), treatAsNumbers,
+                                      descending, langString, caseOrderUpper,
                                       foreach));
     }
 
@@ -2231,7 +2388,7 @@ public class TransformerImpl extends Transformer
    */
   public void pushElemTemplateElement(ElemTemplateElement elem)
   {
-     m_currentTemplateElements.push(elem);
+    m_currentTemplateElements.push(elem);
   }
 
   /**
@@ -2243,22 +2400,23 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * Set the top of the current template elements 
+   * Set the top of the current template elements
    * stack.
    *
-   * @param e The current ElemTemplateElement about to 
+   * @param e The current ElemTemplateElement about to
    * be executed.
    */
   public void setCurrentElement(ElemTemplateElement e)
   {
-    m_currentTemplateElements.setElementAt(e, m_currentTemplateElements.size()-1);
+    m_currentTemplateElements.setElementAt(e, m_currentTemplateElements.size()
+                                           - 1);
   }
 
   /**
-   * Retrieves the current ElemTemplateElement that is 
+   * Retrieves the current ElemTemplateElement that is
    * being executed.
    *
-   * @return The current ElemTemplateElement that is executing, 
+   * @return The current ElemTemplateElement that is executing,
    * should not normally be null.
    */
   public ElemTemplateElement getCurrentElement()
@@ -2290,6 +2448,7 @@ public class TransformerImpl extends Transformer
    */
   public ElemTemplate getCurrentTemplate()
   {
+
     ElemTemplateElement elem = getCurrentElement();
 
     while ((null != elem)
@@ -2302,7 +2461,7 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * Push both the current xsl:template or xsl:for-each onto the 
+   * Push both the current xsl:template or xsl:for-each onto the
    * stack, along with the child node that was matched.
    * (Note: should this only be used for xsl:templates?? -sb)
    *
@@ -2342,7 +2501,7 @@ public class TransformerImpl extends Transformer
    * Retrieves the node in the source tree that matched
    * the template obtained via getMatchedTemplate().
    *
-   * @return The matched node that corresponds to the 
+   * @return The matched node that corresponds to the
    * match attribute of the current xsl:template.
    */
   public int getMatchedNode()
@@ -2360,8 +2519,9 @@ public class TransformerImpl extends Transformer
 
     try
     {
-                        DTMIterator cnl = getXPathContext().getContextNodeList();
-                        return (cnl == null)? null : (DTMIterator)cnl.cloneWithReset();      
+      DTMIterator cnl = getXPathContext().getContextNodeList();
+
+      return (cnl == null) ? null : (DTMIterator) cnl.cloneWithReset();
     }
     catch (CloneNotSupportedException cnse)
     {
@@ -2403,7 +2563,7 @@ public class TransformerImpl extends Transformer
   /**
    * Get the current stylesheet for this processor.
    *
-   * @return The stylesheet that is associated with this 
+   * @return The stylesheet that is associated with this
    * transformer.
    */
   public StylesheetRoot getStylesheet()
@@ -2412,11 +2572,11 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * Get quietConflictWarnings property. If the quietConflictWarnings 
+   * Get quietConflictWarnings property. If the quietConflictWarnings
    * property is set to true, warnings about pattern conflicts won't be
    * printed to the diagnostics stream.
    *
-   * @return True if this transformer should not report 
+   * @return True if this transformer should not report
    * template match conflicts.
    */
   public boolean getQuietConflictWarnings()
@@ -2430,7 +2590,7 @@ public class TransformerImpl extends Transformer
    * printed to the diagnostics stream.
    * False by default.
    * (Currently setting this property will have no effect.)
-   * 
+   *
    * @param b true if conflict warnings should be suppressed.
    */
   public void setQuietConflictWarnings(boolean b)
@@ -2442,7 +2602,7 @@ public class TransformerImpl extends Transformer
    * <meta name="usage" content="internal"/>
    * Set the execution context for XPath.
    *
-   * @param xcontext A non-null reference to the XPathContext 
+   * @param xcontext A non-null reference to the XPathContext
    * associated with this transformer.
    */
   public void setXPathContext(XPathContext xcontext)
@@ -2499,7 +2659,7 @@ public class TransformerImpl extends Transformer
    * infinite loop situation, when there is none.
    * Post version 1.0.0, we'll make this a runtime feature.
    *
-   * @param limit A number that represents the limit of recursion, 
+   * @param limit A number that represents the limit of recursion,
    * or -1 if no checking is to be done.
    */
   public void setRecursionLimit(int limit)
@@ -2510,7 +2670,7 @@ public class TransformerImpl extends Transformer
   /**
    * Get the ResultTreeHandler object.
    *
-   * @return The current ResultTreeHandler, which may not 
+   * @return The current ResultTreeHandler, which may not
    * be the main result tree manager.
    */
   public ResultTreeHandler getResultTreeHandler()
@@ -2591,7 +2751,7 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * Tell if the current template rule is null, i.e. if we are 
+   * Tell if the current template rule is null, i.e. if we are
    * directly within an apply-templates.  Used for xsl:apply-imports.
    *
    * @return True if the current template rule is null.
@@ -2606,7 +2766,7 @@ public class TransformerImpl extends Transformer
    * Push true if the current template rule is null, false
    * otherwise.
    *
-   * @param b True if the we are executing an xsl:for-each 
+   * @param b True if the we are executing an xsl:for-each
    * (or xsl:call-template?).
    */
   public void pushCurrentTemplateRuleIsNull(boolean b)
@@ -2636,35 +2796,35 @@ public class TransformerImpl extends Transformer
 
     return m_msgMgr;
   }
-  
+
   /**
    * Set the error event listener.
    *
    * @param listener The new error listener.
-   * @throws IllegalArgumentException if 
+   * @throws IllegalArgumentException if
    */
-  public void setErrorListener (ErrorListener listener)
-    throws IllegalArgumentException
+  public void setErrorListener(ErrorListener listener)
+          throws IllegalArgumentException
   {
-    synchronized(m_reentryGuard) 
+
+    synchronized (m_reentryGuard)
     {
-      if (listener == null) 
+      if (listener == null)
         throw new IllegalArgumentException("Null error handler");
+
       m_errorHandler = listener;
     }
   }
-
 
   /**
    * Get the current error event handler.
    *
    * @return The current error handler, which should never be null.
    */
-  public ErrorListener getErrorListener ()
+  public ErrorListener getErrorListener()
   {
     return m_errorHandler;
   }
-
 
   /**
    * Get an instance of the trace manager for this transformation.
@@ -2721,127 +2881,182 @@ public class TransformerImpl extends Transformer
 
     throw new SAXNotRecognizedException(name);
   }
-  
+
   // %TODO% Doc
+
+  /**
+   * NEEDSDOC Method getMode 
+   *
+   *
+   * NEEDSDOC (getMode) @return
+   */
   public QName getMode()
   {
-    return m_modes.isEmpty() ? null : (QName)m_modes.peek();
+    return m_modes.isEmpty() ? null : (QName) m_modes.peek();
   }
-  
+
   // %TODO% Doc
+
+  /**
+   * NEEDSDOC Method pushMode 
+   *
+   *
+   * NEEDSDOC @param mode
+   */
   public void pushMode(QName mode)
   {
     m_modes.push(mode);
   }
-  
+
   // %TODO% Doc
+
+  /**
+   * NEEDSDOC Method popMode 
+   *
+   */
   public void popMode()
   {
     m_modes.pop();
   }
 
-
   ////////////////////////
   // Implement Runnable //  
   ////////////////////////
-        
-        /** Base thread controler for xalan. Must be overriden with
-      a derived class to support thread pooling.
 
-      All thread-related stuff is in this class.
-  */
-  public static class ThreadControler {
-    
-    /** Will get a thread from the pool, execute the task
+  /**
+   * Base thread controler for xalan. Must be overriden with
+   * a derived class to support thread pooling.
+   *
+   * All thread-related stuff is in this class.
+   */
+  public static class ThreadControler
+  {
+
+    /**
+     * Will get a thread from the pool, execute the task
      *  and return the thread to the pool.
      *
      *  The return value is used only to wait for completion
      *
+     *
+     * NEEDSDOC @param task
      * @param priority if >0 the task will run with the given priority
      *  ( doesn't seem to be used in xalan, since it's allways the default )
      * @returns The thread that is running the task, can be used
      *          to wait for completion
+     *
+     * NEEDSDOC ($objectName$) @return
      */
-    public Thread run( Runnable task, int priority ) {
-      Thread t=new Thread(task);
+    public Thread run(Runnable task, int priority)
+    {
+
+      Thread t = new Thread(task);
+
       t.start();
-//       if( priority > 0 )
-// 	t.setPriority( priority );
+
+      //       if( priority > 0 )
+      //      t.setPriority( priority );
       return t;
     }
 
-
     /**
      *  Wait until the task is completed on the worker
-     *  thread. 
+     *  thread.
+     *
+     * NEEDSDOC @param worker
+     * NEEDSDOC @param task
+     *
+     * @throws InterruptedException
      */
-    public void waitThread( Thread worker, Runnable task )
-      throws InterruptedException
+    public void waitThread(Thread worker, Runnable task)
+            throws InterruptedException
     {
+
       // This should wait until the transformThread is considered not alive.
       worker.join();
     }
   }
 
-  static ThreadControler tpool=new ThreadControler();
+  /** NEEDSDOC Field tpool          */
+  static ThreadControler tpool = new ThreadControler();
 
-  /** Change the ThreadControler that will be used to
+  /**
+   * Change the ThreadControler that will be used to
    *  manage the transform threads.
+   *
+   * NEEDSDOC @param tp
    */
-  public static void setThreadControler( ThreadControler tp ) {
-    tpool=tp;
-  }
-  
-  /** Called by SourceTreeHandler to start the transformation
-   *  in a separate thread
-   */
-  public void runTransformThread( int priority ) {
-    // used in SourceTreeHandler
-    Thread t=tpool.run( this, priority );
-    this.setTransformThread( t );
+  public static void setThreadControler(ThreadControler tp)
+  {
+    tpool = tp;
   }
 
-  /** Called by this.transform() if isParserEventsOnMain()==false.
+  /**
+   * Called by SourceTreeHandler to start the transformation
+   *  in a separate thread
+   *
+   * NEEDSDOC @param priority
+   */
+  public void runTransformThread(int priority)
+  {
+
+    // used in SourceTreeHandler
+    Thread t = tpool.run(this, priority);
+
+    this.setTransformThread(t);
+  }
+
+  /**
+   * Called by this.transform() if isParserEventsOnMain()==false.
    *  Similar with runTransformThread(), but no priority is set
    *  and setTransformThread is not set.
    */
-  public void runTransformThread( ) {
-    tpool.run( this, -1);
+  public void runTransformThread()
+  {
+    tpool.run(this, -1);
   }
-        
-        /** Used by SourceTreeHandler to wait until the transform
+
+  /**
+   * Used by SourceTreeHandler to wait until the transform
    *   completes
+   *
+   * @throws SAXException
    */
-  public void waitTransformThread() throws SAXException {
+  public void waitTransformThread() throws SAXException
+  {
+
     // This is called to make sure the task is done.
     // It is possible that the thread has been reused -
     // but for a different transformation. ( what if we 
     // recycle the transformer ? Not a problem since this is
     // still in use. )
     Thread transformThread = this.getTransformThread();
+
     if (null != transformThread)
+    {
+      try
       {
-        try
-          {
-            tpool.waitThread( transformThread, this );
-            
-            if(!this.hasTransformThreadErrorCatcher())
-              {
-                Exception e = this.getExceptionThrown();
-                if(null != e)
-                  throw new org.xml.sax.SAXException(e);
-              }
-            this.setTransformThread(null);
-          }
-        catch (InterruptedException ie){}
+        tpool.waitThread(transformThread, this);
+
+        if (!this.hasTransformThreadErrorCatcher())
+        {
+          Exception e = this.getExceptionThrown();
+
+          if (null != e)
+            throw new org.xml.sax.SAXException(e);
+        }
+
+        this.setTransformThread(null);
       }
+      catch (InterruptedException ie){}
+    }
   }
 
   /**
-   * Get the exception thrown by the secondary thread (normally 
+   * Get the exception thrown by the secondary thread (normally
    * the transform thread).
    *
-   * @return The thrown exception, or null if no exception was 
+   * @return The thrown exception, or null if no exception was
    * thrown.
    */
   public Exception getExceptionThrown()
@@ -2850,10 +3065,10 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * Set the exception thrown by the secondary thread (normally 
+   * Set the exception thrown by the secondary thread (normally
    * the transform thread).
    *
-   * @param e The thrown exception, or null if no exception was 
+   * @param e The thrown exception, or null if no exception was
    * thrown.
    */
   public void setExceptionThrown(Exception e)
@@ -2864,19 +3079,19 @@ public class TransformerImpl extends Transformer
   /**
    * This is just a way to set the document for run().
    *
-   * @param doc A non-null reference to the root of the 
+   * @param doc A non-null reference to the root of the
    * tree to be transformed.
    */
   public void setSourceTreeDocForThread(int doc)
   {
     m_doc = doc;
   }
-  
-  
-  /** Set the input source for the source tree, which is needed if the 
-   * parse thread is not the main thread, in order for the parse 
-   * thread's run method to get to the input source.  
-   * 
+
+  /**
+   * Set the input source for the source tree, which is needed if the
+   * parse thread is not the main thread, in order for the parse
+   * thread's run method to get to the input source.
+   *
    * @param source The input source for the source tree.
    */
   public void setXMLSource(Source source)
@@ -2887,12 +3102,13 @@ public class TransformerImpl extends Transformer
   /**
    * Tell if the transform method is completed.
    *
-   * @return True if transformNode has completed, or 
+   * @return True if transformNode has completed, or
    * an exception was thrown.
    */
   public boolean isTransformDone()
   {
-    synchronized(this)
+
+    synchronized (this)
     {
       return m_isTransformDone;
     }
@@ -2901,12 +3117,13 @@ public class TransformerImpl extends Transformer
   /**
    * Set if the transform method is completed.
    *
-   * @param done True if transformNode has completed, or 
+   * @param done True if transformNode has completed, or
    * an exception was thrown.
    */
   public void setIsTransformDone(boolean done)
   {
-    synchronized(this)
+
+    synchronized (this)
     {
       m_isTransformDone = done;
     }
@@ -2918,50 +3135,48 @@ public class TransformerImpl extends Transformer
    *
    * @param e The exception that was thrown.
    */
-  void postExceptionFromThread(Exception e)  
+  void postExceptionFromThread(Exception e)
   {
-    // Commented out in response to problem reported by Nicola Brown <Nicola.Brown@jacobsrimell.com>
-//    if(m_reportInPostExceptionFromThread)
-//    {
-//      // Consider re-throwing the exception if this flag is set.
-//      e.printStackTrace();
-//    }
-  
-    // %REVIEW Need DTM equivelent?    
-//    if (m_inputContentHandler instanceof SourceTreeHandler)
-//    {
-//      SourceTreeHandler sth = (SourceTreeHandler) m_inputContentHandler;
-//
-//      sth.setExceptionThrown(e);
-//    }
-    ContentHandler ch = getContentHandler();
-//    if(ch instanceof SourceTreeHandler)
-//    {
-//      SourceTreeHandler sth = (SourceTreeHandler) ch;
-//      ((TransformerImpl)(sth.getTransformer())).postExceptionFromThread(e);
-//    }
 
+    // Commented out in response to problem reported by Nicola Brown <Nicola.Brown@jacobsrimell.com>
+    //    if(m_reportInPostExceptionFromThread)
+    //    {
+    //      // Consider re-throwing the exception if this flag is set.
+    //      e.printStackTrace();
+    //    }
+    // %REVIEW Need DTM equivelent?    
+    //    if (m_inputContentHandler instanceof SourceTreeHandler)
+    //    {
+    //      SourceTreeHandler sth = (SourceTreeHandler) m_inputContentHandler;
+    //
+    //      sth.setExceptionThrown(e);
+    //    }
+    ContentHandler ch = getContentHandler();
+
+    //    if(ch instanceof SourceTreeHandler)
+    //    {
+    //      SourceTreeHandler sth = (SourceTreeHandler) ch;
+    //      ((TransformerImpl)(sth.getTransformer())).postExceptionFromThread(e);
+    //    }
     m_isTransformDone = true;
     m_exceptionThrown = e;
     ;  // should have already been reported via the error handler?
 
     synchronized (this)
     {
-      // See message from me on 3/27/2001 to Patrick Moore.
-//      String msg = e.getMessage();
 
+      // See message from me on 3/27/2001 to Patrick Moore.
+      //      String msg = e.getMessage();
       // System.out.println(e.getMessage());
-      
       // Is this really needed?  -sb
       notifyAll();
 
-//      if (null == msg)
-//      {
-//
-//        // m_throwNewError = false;
-//        e.printStackTrace();
-//      }
-
+      //      if (null == msg)
+      //      {
+      //
+      //        // m_throwNewError = false;
+      //        e.printStackTrace();
+      //      }
       // throw new org.apache.xml.utils.WrappedRuntimeException(e);
     }
   }
@@ -2971,21 +3186,24 @@ public class TransformerImpl extends Transformer
    */
   public void run()
   {
+
     m_hasBeenReset = false;
 
     try
     {
+
       // int n = ((SourceTreeHandler)getInputContentHandler()).getDTMRoot();
       // transformNode(n);
       try
       {
         m_isTransformDone = false;
-        
+
         transformNode(m_doc);
       }
       catch (Exception e)
       {
         e.printStackTrace();
+
         // Strange that the other catch won't catch this...
         postExceptionFromThread(e);
       }
@@ -2993,92 +3211,109 @@ public class TransformerImpl extends Transformer
       {
         m_isTransformDone = true;
 
-        if(m_inputContentHandler instanceof TransformerHandlerImpl)
+        if (m_inputContentHandler instanceof TransformerHandlerImpl)
         {
-          ((TransformerHandlerImpl)m_inputContentHandler).clearCoRoutine();
+          ((TransformerHandlerImpl) m_inputContentHandler).clearCoRoutine();
         }
 
-//        synchronized (this)
-//        {
-//          notifyAll();
-//        }
+        //        synchronized (this)
+        //        {
+        //          notifyAll();
+        //        }
       }
     }
     catch (Exception e)
     {
+
       // e.printStackTrace();
       postExceptionFromThread(e);
     }
   }
-  
+
   // Fragment re-execution interfaces for a tool.
-  
+
+  /**
+   * NEEDSDOC Method getSnapshot 
+   *
+   *
+   * NEEDSDOC (getSnapshot) @return
+   */
   public TransformSnapshot getSnapshot()
   {
     return new TransformSnapshotImpl(this);
   }
-  
+
   /**
    * This will execute the following XSLT instructions
    * from the snapshot point.
+   *
+   * NEEDSDOC @param ts
+   *
+   * @throws TransformerException
    */
   public void executeFromSnapshot(TransformSnapshot ts)
-                throws TransformerException
+          throws TransformerException
   {
+
     ElemTemplateElement template = getMatchedTemplate();
-                int child = getMatchedNode();
-                pushElemTemplateElement(template); //needed??
-    m_xcontext.pushCurrentNode(child); //needed??
-                this.executeChildTemplates(template, true); // getResultTreeHandler());
+    int child = getMatchedNode();
+
+    pushElemTemplateElement(template);  //needed??
+    m_xcontext.pushCurrentNode(child);  //needed??
+    this.executeChildTemplates(template, true);  // getResultTreeHandler());
   }
-        
-        /**
+
+  /**
    * This will execute the following XSLT instructions
    * from the snapshot point.
+   *
+   * NEEDSDOC @param ts
    */
-  public void resetToStylesheet(TransformSnapshot ts)		
+  public void resetToStylesheet(TransformSnapshot ts)
   {
-    ((TransformSnapshotImpl)ts).apply(this);		
+    ((TransformSnapshotImpl) ts).apply(this);
   }
-  
-  public void stopTransformation()
-  {
-  }
-  
+
   /**
-   * Test whether whitespace-only text nodes are visible in the logical 
+   * NEEDSDOC Method stopTransformation 
+   *
+   */
+  public void stopTransformation(){}
+
+  /**
+   * Test whether whitespace-only text nodes are visible in the logical
    * view of <code>DTM</code>. Normally, this function
-   * will be called by the implementation of <code>DTM</code>; 
+   * will be called by the implementation of <code>DTM</code>;
    * it is not normally called directly from
    * user code.
-   * 
+   *
    * @param elementHandle int Handle of the element.
    * @return one of NOTSTRIP, STRIP, or INHERIT.
    */
-  public short getShouldStripSpace(int elementHandle)
+  public short getShouldStripSpace(int elementHandle, DTM dtm)
   {
+
     try
-    {      
-      org.apache.xalan.templates.WhiteSpaceInfo info = 
-        m_stylesheetRoot.getWhiteSpaceInfo(m_xcontext, elementHandle);
-         
+    {
+      org.apache.xalan.templates.WhiteSpaceInfo info =
+        m_stylesheetRoot.getWhiteSpaceInfo(m_xcontext, elementHandle, dtm);
+
       if (null == info)
       {
         return DTMWSFilter.INHERIT;
       }
       else
       {
+
         // System.out.println("getShouldStripSpace: "+info.getShouldStripSpace());
-        return info.getShouldStripSpace() ? DTMWSFilter.STRIP : DTMWSFilter.NOTSTRIP;
+        return info.getShouldStripSpace()
+               ? DTMWSFilter.STRIP : DTMWSFilter.NOTSTRIP;
       }
     }
     catch (TransformerException se)
     {
       return DTMWSFilter.INHERIT;
     }
-
   }
-
-  
 }  // end TransformerImpl class
 

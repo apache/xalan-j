@@ -145,6 +145,7 @@ public class DTMManagerDefault extends DTMManager
                     DTMWSFilter whiteSpaceFilter, boolean incremental, 
                     boolean doIndexing)
   {
+
     if(DEBUG && null != source)
       System.out.println("Starting source: "+source.getSystemId());
     XMLStringFactory xstringFactory = m_xsf;
@@ -220,7 +221,7 @@ public class DTMManagerDefault extends DTMManager
         if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
 
-        if (incremental)
+        if (true && incremental)
         {
 
           // Create a CoroutineManager to manage the coordination between the 

@@ -106,7 +106,49 @@ public class FunctionPattern extends StepPattern
    *  @serial   
    */
   Expression m_functionExpr;
+  /**
+   * Test a node to see if it matches the given node test.
+   *
+   * @param xctxt XPath runtime context.
+   *
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public XObject execute(XPathContext xctxt, int context)
+          throws javax.xml.transform.TransformerException
+  {
 
+    XObject obj = m_functionExpr.execute(xctxt);
+    DTMIterator nl = obj.nodeset();
+    XNumber score = SCORE_NONE;
+
+    if (null != nl)
+    {
+      int n;
+
+      while (DTM.NULL != (n = nl.nextNode()))
+      {
+        score = (n == context) ? SCORE_OTHER : SCORE_NONE;
+
+        if (score == SCORE_OTHER)
+        {
+          context = n;
+
+          break;
+        }
+      }
+
+      // nl.detach();
+    }
+
+    return score;
+  }
+  
   /**
    * Test a node to see if it matches the given node test.
    *

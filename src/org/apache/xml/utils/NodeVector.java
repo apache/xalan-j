@@ -57,6 +57,7 @@
 package org.apache.xml.utils;
 
 import java.io.Serializable;
+
 import org.apache.xml.dtm.DTM;
 
 /**
@@ -66,20 +67,28 @@ import org.apache.xml.dtm.DTM;
 public class NodeVector implements Serializable, Cloneable
 {
 
-  /** Size of blocks to allocate.
-   *  @serial          */
+  /**
+   * Size of blocks to allocate.
+   *  @serial          
+   */
   private int m_blocksize;
 
-  /** Array of nodes this points to.
-   *  @serial          */
+  /**
+   * Array of nodes this points to.
+   *  @serial          
+   */
   private int m_map[];
 
-  /** Number of nodes in this NodeVector.
-   *  @serial          */
+  /**
+   * Number of nodes in this NodeVector.
+   *  @serial          
+   */
   protected int m_firstFree = 0;
 
-  /** Size of the array this points to.
-   *  @serial           */
+  /**
+   * Size of the array this points to.
+   *  @serial           
+   */
   private int m_mapSize;  // lazy initialization
 
   /**
@@ -94,7 +103,7 @@ public class NodeVector implements Serializable, Cloneable
   /**
    * Construct a NodeVector, using the given block size.
    *
-   * @param blocksize Size of blocks to allocate 
+   * @param blocksize Size of blocks to allocate
    */
   public NodeVector(int blocksize)
   {
@@ -223,7 +232,7 @@ public class NodeVector implements Serializable, Cloneable
    * Pop a node from the tail of the vector and return the
    * top of the stack after the pop.
    *
-   * @return The top of the stack after it's been popped 
+   * @return The top of the stack after it's been popped
    */
   public final int popAndTop()
   {
@@ -251,7 +260,7 @@ public class NodeVector implements Serializable, Cloneable
    * Special purpose method for TransformerImpl, pushElemTemplateElement.
    * Performance critical.
    *
-   * @return Node at the top of the stack or null if stack is empty.  
+   * @return Node at the top of the stack or null if stack is empty.
    */
   public final int peepOrNull()
   {
@@ -260,7 +269,7 @@ public class NodeVector implements Serializable, Cloneable
   }
 
   /**
-   * Push a pair of nodes into the stack.  
+   * Push a pair of nodes into the stack.
    * Special purpose method for TransformerImpl, pushElemTemplateElement.
    * Performance critical.
    *
@@ -295,7 +304,7 @@ public class NodeVector implements Serializable, Cloneable
   }
 
   /**
-   * Pop a pair of nodes from the tail of the stack. 
+   * Pop a pair of nodes from the tail of the stack.
    * Special purpose method for TransformerImpl, pushElemTemplateElement.
    * Performance critical.
    */
@@ -354,24 +363,26 @@ public class NodeVector implements Serializable, Cloneable
   {
     return m_map[m_firstFree - 2];
   }
-  
+
   /**
    * Insert a node in order in the list.
-   * 
+   *
    * @param value Node to insert
    */
   public void insertInOrder(int value)
   {
-    for (int i = 0; i < m_firstFree; i++) 
+
+    for (int i = 0; i < m_firstFree; i++)
     {
-      if(value < m_map[i])
+      if (value < m_map[i])
       {
         insertElementAt(value, i);
+
         return;
       }
     }
+
     addElement(value);
-    
   }
 
   /**
@@ -484,7 +495,7 @@ public class NodeVector implements Serializable, Cloneable
     {
       int node = m_map[i];
 
-      if ( node == s )
+      if (node == s)
       {
         if (i > m_firstFree)
           System.arraycopy(m_map, i + 1, m_map, i - 1, m_firstFree - i);
@@ -603,7 +614,7 @@ public class NodeVector implements Serializable, Cloneable
     {
       int node = m_map[i];
 
-      if ( node == elem )
+      if (node == elem)
         return i;
     }
 
@@ -615,7 +626,7 @@ public class NodeVector implements Serializable, Cloneable
    * beginning the search at index, and testing for equality
    * using the equals method.
    *
-   * @param elem Node to look for 
+   * @param elem Node to look for
    * @return the index of the first occurrence of the object
    * argument in this vector at position index or later in the
    * vector; returns -1 if the object is not found.
@@ -635,5 +646,118 @@ public class NodeVector implements Serializable, Cloneable
     }
 
     return -1;
+  }
+
+  /**
+   * Sort an array using a quicksort algorithm.
+   *
+   * @param a The array to be sorted.
+   * @param lo0  The low index.
+   * @param hi0  The high index.
+   *
+   * @throws Exception
+   */
+  public void sort(int a[], int lo0, int hi0) throws Exception
+  {
+
+    int lo = lo0;
+    int hi = hi0;
+
+    // pause(lo, hi);
+    if (lo >= hi)
+    {
+      return;
+    }
+    else if (lo == hi - 1)
+    {
+
+      /*
+       *  sort a two element list by swapping if necessary
+       */
+      if (a[lo] > a[hi])
+      {
+        int T = a[lo];
+
+        a[lo] = a[hi];
+        a[hi] = T;
+      }
+
+      return;
+    }
+
+    /*
+     *  Pick a pivot and move it out of the way
+     */
+    int pivot = a[(lo + hi) / 2];
+
+    a[(lo + hi) / 2] = a[hi];
+    a[hi] = pivot;
+
+    while (lo < hi)
+    {
+
+      /*
+       *  Search forward from a[lo] until an element is found that
+       *  is greater than the pivot or lo >= hi
+       */
+      while (a[lo] <= pivot && lo < hi)
+      {
+        lo++;
+      }
+
+      /*
+       *  Search backward from a[hi] until element is found that
+       *  is less than the pivot, or lo >= hi
+       */
+      while (pivot <= a[hi] && lo < hi)
+      {
+        hi--;
+      }
+
+      /*
+       *  Swap elements a[lo] and a[hi]
+       */
+      if (lo < hi)
+      {
+        int T = a[lo];
+
+        a[lo] = a[hi];
+        a[hi] = T;
+
+        // pause();
+      }
+
+      // if (stopRequested) {
+      //    return;
+      // }
+    }
+
+    /*
+     *  Put the median in the "center" of the list
+     */
+    a[hi0] = a[hi];
+    a[hi] = pivot;
+
+    /*
+     *  Recursive calls, elements a[lo0] to a[lo-1] are less than or
+     *  equal to pivot, elements a[hi+1] to a[hi0] are greater than
+     *  pivot.
+     */
+    sort(a, lo0, lo - 1);
+    sort(a, hi + 1, hi0);
+  }
+
+  /**
+   * Sort an array using a quicksort algorithm.
+   *
+   * @param a The array to be sorted.
+   * @param lo0  The low index.
+   * @param hi0  The high index.
+   *
+   * @throws Exception
+   */
+  public void sort() throws Exception
+  {
+    sort(m_map, 0, m_firstFree - 1);
   }
 }
