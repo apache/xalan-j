@@ -203,16 +203,16 @@ public class DTMManagerDefault extends DTMManager
           int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
           CoroutineParser coParser;
 
-          // %TBD%
-          //          if(reader instanceof org.apache.xerces.parsers.SAXParser)
-          //          {
-          //            // CoroutineSAXParser_Xerces to avoid threading.
-          //            System.out.println("Creating a CoroutineSAXParser_Xerces");
-          //            coParser = 
-          //              new CoroutineSAXParser_Xerces(coroutineManager, appCoroutine,
-          //                  (org.apache.xerces.parsers.SAXParser)reader);
-          //          }
-          //          else
+           if(null != reader && reader instanceof org.apache.xerces.parsers.SAXParser)
+          {
+            // CoroutineSAXParser_Xerces to avoid threading.
+            // System.out.println("Using CoroutineSAXParser_Xerces to avoid threading");
+            coParser = 
+              new CoroutineSAXParser_Xerces(
+                              (org.apache.xerces.parsers.SAXParser)reader,
+                              coroutineManager, appCoroutine);
+          }
+          else
           {
 
             // Create a CoroutineSAXParser that will run on the secondary thread.

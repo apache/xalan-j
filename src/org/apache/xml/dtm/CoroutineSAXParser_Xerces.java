@@ -62,6 +62,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import java.io.IOException;
 //import org.apache.xml.dtm.CoroutineManager;
+import org.apache.xerces.parsers.SAXParser;
 
 /** <p>CoroutineSAXParser_Xerces takes advantage of the fact that Xerces
  * incremental mode is already a coroutine of sorts, and just wraps our
@@ -84,7 +85,8 @@ public class CoroutineSAXParser_Xerces
 // extends org.apache.xerces.parsers.SAXParser
 implements CoroutineParser
 {
-  IncrementalXercesSaxParser incrementalParser;
+  // IncrementalXercesSaxParser incrementalParser;
+  SAXParser incrementalParser;
 
     //
     // Data
@@ -100,14 +102,14 @@ implements CoroutineParser
       this(null,co,appCoroutineID);
     }
 
-    public CoroutineSAXParser_Xerces(IncrementalXercesSaxParser ixsp, CoroutineManager co, int appCoroutineID) {
+    public CoroutineSAXParser_Xerces(SAXParser ixsp, CoroutineManager co, int appCoroutineID) {
 
       if(ixsp!=null)
         incrementalParser=ixsp;
       else
         incrementalParser=new IncrementalXercesSaxParser();
       
-      incrementalParser.initHandlers(true, incrementalParser, incrementalParser);
+      // incrementalParser.initHandlers(true, incrementalParser, incrementalParser);
     }
 
     //
@@ -223,8 +225,8 @@ implements CoroutineParser
   {
     if(!parsemore)
       {
-	fParseInProgress=false;
-	return Boolean.FALSE;
+        fParseInProgress=false;
+        return Boolean.FALSE;
       }
 
     Object arg;

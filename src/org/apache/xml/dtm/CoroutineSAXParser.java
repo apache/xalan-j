@@ -474,22 +474,22 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandl
     
     if(!fRunningInThread)
       {
-	try
-	  {
-	    fCoroutineManager.co_exit_to(exception,
-					 fParserCoroutineID,fAppCoroutineID);
-	    // %TBD% Do we need to wait for terminate?
-	  }
-	catch(NoSuchMethodException e)
-	  {
-	    // Shouldn't happen unless we've miscoded our coroutine logic
-	    // "Shut down the garbage smashers on the detention level!"
-	    e.printStackTrace(System.err);
-	    fCoroutineManager.co_exit(fParserCoroutineID);
+        try
+          {
+            fCoroutineManager.co_exit_to(exception,
+                                         fParserCoroutineID,fAppCoroutineID);
+            // %TBD% Do we need to wait for terminate?
+          }
+        catch(NoSuchMethodException e)
+          {
+            // Shouldn't happen unless we've miscoded our coroutine logic
+            // "Shut down the garbage smashers on the detention level!"
+            e.printStackTrace(System.err);
+            fCoroutineManager.co_exit(fParserCoroutineID);
 
-	    // No need to throw shutdownException; we're already
-	    // in the process of murdering the parser.
-	  }
+            // No need to throw shutdownException; we're already
+            // in the process of murdering the parser.
+          }
       }
 
     if(null!=clientErrorHandler)
@@ -588,45 +588,45 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandl
     // continue to talk to.
     if(!moreRemains)
       {
-	if(fRunningInThread)
-	  {
-	    // Just return. The command loop in run() will send the
-	    // "we're done" announcement and request the next command.
-	    return; // let the parser terminate itself
-	  }
-	  
-	else try 
-	  {
-	    // Forced Termination dialog. Say we're done, wait for a
-	    // termination request (don't accept anything else), and
-	    // shut down.
-	    arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
-					      fAppCoroutineID);
-	    while(arg!=null)
-	      {
+        if(fRunningInThread)
+          {
+            // Just return. The command loop in run() will send the
+            // "we're done" announcement and request the next command.
+            return; // let the parser terminate itself
+          }
+          
+        else try 
+          {
+            // Forced Termination dialog. Say we're done, wait for a
+            // termination request (don't accept anything else), and
+            // shut down.
+            arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
+                                              fAppCoroutineID);
+            while(arg!=null)
+              {
                 System.err.println(
                   "Filtering CoroutineSAXParser: unexpected resume parameter, "
                   +arg.getClass()+" with value=\""+arg+'"');
-		// If you don't do this, it can loop forever with the above
+                // If you don't do this, it can loop forever with the above
                 // error printing out.  -sb
-		arg = new RuntimeException(
+                arg = new RuntimeException(
                   "Filtering CoroutineSAXParser: unexpected resume parameter, "
                   +arg.getClass()+" with value=\""+arg+'"');
-		arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
-						  fAppCoroutineID);
-	      }
-	    
-	    fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
-	    return; // let the parser return
-	  }
-	catch(java.lang.NoSuchMethodException e)
-	  {
-	    // Shouldn't happen unless we've miscoded our coroutine logic
-	    // "Shut down the garbage smashers on the detention level!"
-	    e.printStackTrace(System.err);
-	    fCoroutineManager.co_exit(fParserCoroutineID);
-	    throw shutdownException;
-	  }
+                arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+                                                  fAppCoroutineID);
+              }
+            
+            fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
+            return; // let the parser return
+          }
+        catch(java.lang.NoSuchMethodException e)
+          {
+            // Shouldn't happen unless we've miscoded our coroutine logic
+            // "Shut down the garbage smashers on the detention level!"
+            e.printStackTrace(System.err);
+            fCoroutineManager.co_exit(fParserCoroutineID);
+            throw shutdownException;
+          }
       } // if moreRemains
 
 
@@ -634,73 +634,73 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandl
       {
         arg = fCoroutineManager.co_resume(arg, fParserCoroutineID, fAppCoroutineID);
 
-	// %REVIEW% I'm really not happy with the following:
-	//
-	// If we're running in filter mode, driven by an external SAX
-	// event source, and have been been yielded back to with
-	// Boolean.FALSE (doMore(false)) there are two additional
-	// problems.
-	// 
-	// First: Scott tells me that our technique of throwing an
-	// exception from the ContentHandler to terminate SAX parsing,
-	// while almost a universal practice in the SAX community, is not
-	// acceptable because we can't force this contract upon the event
-	// generator. (Though he feels we _can_ force them to accept a
-	// contract to explicitly send us a fatalError event if parsing
-	// terminates due to some other SAXException... basically, it's
-	// the old "this is a normal condition so it shouldn't be an
-	// exception" rationalle, which has some validity to it.)
-	// Instead, and despite the wasted cycles, he wants me to simply
-	// let the event stream run to completion without passing the
-	// events along to our own client. That requires disabling
-	// co_yeild() as well. IF AND WHEN SAX ADDS AN OFFICIAL
-	// STOP-PARSING-EARLY OPERATION, we can leverage that.
-	//
-	// Second: The current architecture of CoroutineSAXParser's
-	// coroutine transactions assumes that doMore(false) will be
-	// followed by either doParse(newInputSource), or
-	// doTerminate(). We must complete that coroutine dialog.
-	// 
-	// "Black magic is a matter of symbolism and intent."
-	// -- Randall Garrett
-	//
-	// %TBD% We _MUST_ get away from this architecture and switch
-	// to CoroutineSAXFilter, just so we don't have to go through
-	// this "no, I don't want another file, thank you very much"
-	// transaction. In our application we should never need it,
-	// and the only justification for running the parse within a
-	// coroutine request -- capturing SAXExceptions -- could be
-	// handled per the above discussion.
-	// 
-	if(!fRunningInThread && arg==Boolean.FALSE)
-	  {
-	    clientContentHandler=null;
-	    clientLexicalHandler=null;
-	    // Anyone else?
-	
-	    fNeverYieldAgain=true; // Horrendous kluge parsing to completion:
+        // %REVIEW% I'm really not happy with the following:
+        //
+        // If we're running in filter mode, driven by an external SAX
+        // event source, and have been been yielded back to with
+        // Boolean.FALSE (doMore(false)) there are two additional
+        // problems.
+        // 
+        // First: Scott tells me that our technique of throwing an
+        // exception from the ContentHandler to terminate SAX parsing,
+        // while almost a universal practice in the SAX community, is not
+        // acceptable because we can't force this contract upon the event
+        // generator. (Though he feels we _can_ force them to accept a
+        // contract to explicitly send us a fatalError event if parsing
+        // terminates due to some other SAXException... basically, it's
+        // the old "this is a normal condition so it shouldn't be an
+        // exception" rationalle, which has some validity to it.)
+        // Instead, and despite the wasted cycles, he wants me to simply
+        // let the event stream run to completion without passing the
+        // events along to our own client. That requires disabling
+        // co_yeild() as well. IF AND WHEN SAX ADDS AN OFFICIAL
+        // STOP-PARSING-EARLY OPERATION, we can leverage that.
+        //
+        // Second: The current architecture of CoroutineSAXParser's
+        // coroutine transactions assumes that doMore(false) will be
+        // followed by either doParse(newInputSource), or
+        // doTerminate(). We must complete that coroutine dialog.
+        // 
+        // "Black magic is a matter of symbolism and intent."
+        // -- Randall Garrett
+        //
+        // %TBD% We _MUST_ get away from this architecture and switch
+        // to CoroutineSAXFilter, just so we don't have to go through
+        // this "no, I don't want another file, thank you very much"
+        // transaction. In our application we should never need it,
+        // and the only justification for running the parse within a
+        // coroutine request -- capturing SAXExceptions -- could be
+        // handled per the above discussion.
+        // 
+        if(!fRunningInThread && arg==Boolean.FALSE)
+          {
+            clientContentHandler=null;
+            clientLexicalHandler=null;
+            // Anyone else?
+        
+            fNeverYieldAgain=true; // Horrendous kluge parsing to completion:
 
-	    // Forced Termination dialog. Say we're done, wait for a
-	    // termination request (don't accept anything else), and
-	    // shut down.
-	    arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
-					      fAppCoroutineID);
-	    while(arg!=null)
-	      {
-		String msg="Filtering CoroutineSAXParser: "+
-		  "unexpected resume parameter, "+
-		  arg.getClass()+" with value=\""+arg+'"';
+            // Forced Termination dialog. Say we're done, wait for a
+            // termination request (don't accept anything else), and
+            // shut down.
+            arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
+                                              fAppCoroutineID);
+            while(arg!=null)
+              {
+                String msg="Filtering CoroutineSAXParser: "+
+                  "unexpected resume parameter, "+
+                  arg.getClass()+" with value=\""+arg+'"';
                 System.err.println(msg);
-		// If you don't do this, it can loop forever with the above
+                // If you don't do this, it can loop forever with the above
                 // error printing out.  -sb
-		arg = new RuntimeException(msg);
-		arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
-						  fAppCoroutineID);
-	      }
-	    
-	    fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
-	    return; // let the parser run to completion and return
-	  }
+                arg = new RuntimeException(msg);
+                arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+                                                  fAppCoroutineID);
+              }
+            
+            fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
+            return; // let the parser run to completion and return
+          }
 
         if (arg == null) {
           fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
@@ -995,70 +995,70 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandl
       }
   }
 
-  //================================================================
-  /** Simple unit test. Attempt coroutine parsing of document indicated
-   * by first argument (as a URI), report progress.
-   */
-  public static void main(String args[])
-  {
-    System.out.println("Starting...");
-
-    org.xml.sax.XMLReader theSAXParser=
-      new org.apache.xerces.parsers.SAXParser();
-    
-    CoroutineManager co = new CoroutineManager();
-    int appCoroutineID = co.co_joinCoroutineSet(-1);
-    if (appCoroutineID == -1)
-      {
-        System.out.println("ERROR: Couldn't allocate coroutine number.\n");
-        return;
-      }
-    CoroutineSAXParser parser=
-      new CoroutineSAXParser(co, appCoroutineID, theSAXParser);
-    int parserCoroutineID = parser.getParserCoroutineID();
-
-    // Use a serializer as our sample output
-    org.apache.xml.serialize.XMLSerializer trace;
-    trace=new org.apache.xml.serialize.XMLSerializer(System.out,null);
-    parser.setContentHandler(trace);
-    parser.setLexHandler(trace);
-
-    // Tell coroutine to begin parsing, run while parsing is in progress
-    for(int arg=0;arg<args.length;++arg)
-      {
-        InputSource source = new InputSource(args[arg]);
-        Object result=null;
-        boolean more=true;
-        for(result = parser.doParse(source, appCoroutineID);
-            (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-            result = parser.doMore(more, appCoroutineID))
-          {
-            System.out.println("\nSome parsing successful, trying more.\n");
-            
-            // Special test: Terminate parsing early.
-            if(arg+1<args.length && "!".equals(args[arg+1]))
-              {
-                ++arg;
-                more=false;
-              }
-            
-          }
-        
-        if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
-          {
-            System.out.println("\nParser ended (EOF or on request).\n");
-          }
-        else if (result == null) {
-          System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
-        }
-        else if (result instanceof Exception) {
-          System.out.println("\nParser threw exception:");
-          ((Exception)result).printStackTrace();
-        }
-        
-      }
-
-    parser.doTerminate(appCoroutineID);
-  }
+//  //================================================================
+//  /** Simple unit test. Attempt coroutine parsing of document indicated
+//   * by first argument (as a URI), report progress.
+//   */
+//  public static void main(String args[])
+//  {
+//    System.out.println("Starting...");
+//
+//    org.xml.sax.XMLReader theSAXParser=
+//      new org.apache.xerces.parsers.SAXParser();
+//    
+//    CoroutineManager co = new CoroutineManager();
+//    int appCoroutineID = co.co_joinCoroutineSet(-1);
+//    if (appCoroutineID == -1)
+//      {
+//        System.out.println("ERROR: Couldn't allocate coroutine number.\n");
+//        return;
+//      }
+//    CoroutineSAXParser parser=
+//      new CoroutineSAXParser(co, appCoroutineID, theSAXParser);
+//    int parserCoroutineID = parser.getParserCoroutineID();
+//
+//    // Use a serializer as our sample output
+//    org.apache.xml.serialize.XMLSerializer trace;
+//    trace=new org.apache.xml.serialize.XMLSerializer(System.out,null);
+//    parser.setContentHandler(trace);
+//    parser.setLexHandler(trace);
+//
+//    // Tell coroutine to begin parsing, run while parsing is in progress
+//    for(int arg=0;arg<args.length;++arg)
+//      {
+//        InputSource source = new InputSource(args[arg]);
+//        Object result=null;
+//        boolean more=true;
+//        for(result = parser.doParse(source, appCoroutineID);
+//            (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+//            result = parser.doMore(more, appCoroutineID))
+//          {
+//            System.out.println("\nSome parsing successful, trying more.\n");
+//            
+//            // Special test: Terminate parsing early.
+//            if(arg+1<args.length && "!".equals(args[arg+1]))
+//              {
+//                ++arg;
+//                more=false;
+//              }
+//            
+//          }
+//        
+//        if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
+//          {
+//            System.out.println("\nParser ended (EOF or on request).\n");
+//          }
+//        else if (result == null) {
+//          System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
+//        }
+//        else if (result instanceof Exception) {
+//          System.out.println("\nParser threw exception:");
+//          ((Exception)result).printStackTrace();
+//        }
+//        
+//      }
+//
+//    parser.doTerminate(appCoroutineID);
+//  }
   
 } // class CoroutineSAXParser
