@@ -55,7 +55,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xalan.xml.dtm;
+package org.apache.xml.dtm;
 import org.apache.xml.utils.IntVector;
 import java.util.Vector;
 
@@ -127,6 +127,7 @@ public class DTMStringPool
       if(s==null) return NULL;
       
       int hashslot=s.hashCode()%HASHPRIME;
+      if(hashslot<0) hashslot=-hashslot;
 
       // Is it one we already know?
       int hashlast=m_hashStart[hashslot];
@@ -152,4 +153,59 @@ public class DTMStringPool
 
       return newIndex;
     }
+
+  /** Command-line unit test driver. This test relies on the fact that
+   * this version of the pool assigns indices consecutively, starting
+   * from zero, as new unique strings are encountered.
+   */
+  public static void main(String[] args)
+  {
+    String[] word={
+      "Zero","One","Two","Three","Four","Five",
+      "Six","Seven","Eight","Nine","Ten",
+      "Eleven","Twelve","Thirteen","Fourteen","Fifteen",
+      "Sixteen","Seventeen","Eighteen","Nineteen","Twenty",
+      "Twenty-One","Twenty-Two","Twenty-Three","Twenty-Four",
+      "Twenty-Five","Twenty-Six","Twenty-Seven","Twenty-Eight",
+      "Twenty-Nine","Thirty","Thirty-One","Thirty-Two",
+      "Thirty-Three","Thirty-Four","Thirty-Five","Thirty-Six",
+      "Thirty-Seven","Thirty-Eight","Thirty-Nine"};
+
+    DTMStringPool pool=new DTMStringPool();
+
+    System.out.println("If no complaints are printed below, we passed initial test.");
+
+    for(int pass=0;pass<=1;++pass)
+      {
+	int i;
+
+	for(i=0;i<word.length;++i)
+	  {
+	    int j=pool.stringToIndex(word[i]);
+	    if(j!=i)
+	      System.out.println("\tMismatch populating pool: assigned "+
+				 j+" for create "+i);
+	  }
+
+	for(i=0;i<word.length;++i)
+	  {
+	    int j=pool.stringToIndex(word[i]);
+	    if(j!=i)
+	      System.out.println("\tMismatch in stringToIndex: returned "+
+				 j+" for lookup "+i);
+	  }
+
+	for(i=0;i<word.length;++i)
+	  {
+	    String w=pool.indexToString(i);
+	    if(!word[i].equals(w))
+	      System.out.println("\tMismatch in indexToString: returned"+
+				 w+" for lookup "+i);
+	  }
+	
+	pool.removeAllElements();
+	
+	System.out.println("\nPass "+pass+" complete\n");
+      } // end pass loop
+  }
 }
