@@ -446,12 +446,15 @@ public class DTMManagerDefault extends DTMManager
          }
       
       // Fallback: Not found in one we know how to search.
-      // Current solution: Generate a new DOM2DTM with this node as root.
+      // Current solution: Generate a new DOM2DTM.
       // %REVIEW% Maybe the best I can do??
-      DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false,
+      Node root = node.getOwnerDocument();
+      if(null == root)
+        root =  node;   
+      DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(root), false,
                        null, true, true);
 
-      return dtm.getDocument();
+      return ((DOM2DTM)dtm).getHandleOfNode(node);
     }
   }
 
