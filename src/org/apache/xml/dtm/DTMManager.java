@@ -90,9 +90,14 @@ import org.apache.xml.utils.PrefixResolver;
  */
 public abstract class DTMManager
 {
-    /** The default property name according to the JAXP spec. */
-    private static final String defaultPropName =
-        "org.apache.xml.dtm.DTMManager";
+  /** The default property name according to the JAXP spec. */
+  private static final String defaultPropName =
+      "org.apache.xml.dtm.DTMManager";
+     
+  /**
+   * The default table for exandedNameID lookups.
+   */ 
+  private static ExpandedNameTable m_expandedNameTable = new ExpandedNameTable();
 
   /**
    * Default constructor is protected on purpose.
@@ -282,7 +287,7 @@ public abstract class DTMManager
      * finding the default impl).
      */
     private static String foundFactory = null;
-
+    
     /**
      * Temp debug code - this will be removed after we test everything
      */
@@ -424,6 +429,14 @@ public abstract class DTMManager
     public int getNodeIdentityMask()
     {
       return IDENT_NODE_DEFAULT;
+    }
+    
+    /**
+     * return the expanded name table.
+     */
+    public ExpandedNameTable getExpandedNameTable(DTM dtm)
+    {
+      return m_expandedNameTable;
     }
 
 }
