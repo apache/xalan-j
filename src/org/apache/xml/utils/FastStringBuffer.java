@@ -82,6 +82,8 @@ package org.apache.xml.utils;
  */
 public class FastStringBuffer
 {
+  // If nonzero, forces the inial chunk size.
+  /**/static final int DEBUG_FORCE_INIT_BITS=0;
 
   /**
    * Field m_chunkBits sets our chunking strategy, by saying how many
@@ -186,6 +188,7 @@ public class FastStringBuffer
   public FastStringBuffer(int initChunkBits, int maxChunkBits,
                           int rebundleBits)
   {
+    if(DEBUG_FORCE_INIT_BITS!=0) initChunkBits=DEBUG_FORCE_INIT_BITS;
 
     m_array = new char[16][];
 
@@ -300,7 +303,7 @@ public class FastStringBuffer
    * The only safe use for our setLength() is to truncate the FastStringBuffer
    * to a shorter string.
    * <p>
-   * TODO: Current setLength code is probably not the best solution.
+   * TODO: %REVEIW% Current setLength code is probably not the best solution.
    * It releases memory that in theory we shouldn retain and
    * reuse. Holding onto that would require recursive truncation of
    * the inner FSB, and extending the append operations to recurse
@@ -333,7 +336,7 @@ public class FastStringBuffer
    * NEEDSDOC @param l
    * NEEDSDOC @param rootFSB
    */
-  final void setLength(int l, FastStringBuffer rootFSB)
+  private final void setLength(int l, FastStringBuffer rootFSB)
   {
 
     m_lastChunk = l >>> m_chunkBits;

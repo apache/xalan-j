@@ -362,7 +362,8 @@ public class DTMManagerDefault extends DTMManager
 
   /**
    * Given a W3C DOM node, try and return a DTM handle.
-   * Note: calling this may be non-optimal.
+   * Note: calling this may be non-optimal, and there is no guarantee that
+   * the node will be found in any particular DTM.
    *
    * @param node Non-null reference to a DOM node.
    *
@@ -375,9 +376,33 @@ public class DTMManagerDefault extends DTMManager
       return ((org.apache.xml.dtm.DTMNodeProxy) node).getDTMNodeNumber();
     else
     {
-
+      // Find the DOM2DTMs wrapped around this Document (if any)
+      // and check whether they contain the Node in question.
+      //
+      // NOTE that since a DOM2DTM may represent a subtree rather
+      // than a full document, we have to be prepared to check more
+      // than one -- and there is no guarantee that we will find 
+      // one that contains ancestors or siblings of the node we're
+      // seeking.
+      //
+      // %REVIEW% We could search for the one which contains this
+      // node at the deepest level, and thus covers the widest
+      // subtree, but that's going to entail additional work
+      // checking more DTMs... and getHandleFromNode is not a
+      // cheap operation in most implementations.
+      for(int i=m_dtms.size()-1;i>=0;--i)
+	{
+	  DTM thisDTM=(DTM)m_dtms.elementAt(i);
+	  if(thisDTM instanceof DOM2DTM)
+	    {
+	      int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
+	      if(handle!=DTM.NULL) return handle;
+	    }
+	}
+      
+      // Fallback: Not found in one we know how to search.
+      // Current solution: Generate a new DOM2DTM with this node as root.
       // %REVIEW% Maybe the best I can do??
-      // Or should I first search all the DTMs??
       DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false,
                        null, true);
 
