@@ -1752,8 +1752,16 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
             _ch2toh.setTOH(handler);
             try {
       	      int dataIndex = m_dataOrQName.elementAt(nodeID);
-              m_chars.sendSAXcharacters(_ch2toh, m_data.elementAt(dataIndex), 
-                      m_data.elementAt(dataIndex + 1));                
+              if (dataIndex > 0)
+              {
+      	        m_chars.sendSAXcharacters(_ch2toh, dataIndex >>> TEXT_LENGTH_BITS, 
+      	                                  dataIndex & TEXT_LENGTH_MAX);
+              }
+              else
+              {
+                m_chars.sendSAXcharacters(_ch2toh, m_data.elementAt(-dataIndex), 
+                                          m_data.elementAt(-dataIndex+1));
+              }
             } catch (SAXException e) {
                 throw new TransletException(e);
             }

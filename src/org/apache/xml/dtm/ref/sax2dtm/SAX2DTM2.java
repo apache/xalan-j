@@ -1743,9 +1743,28 @@ public class SAX2DTM2 extends SAX2DTM
   protected int m_MASK;
   protected int m_blocksize;
   
+  /** %OPT% If the offset and length of a Text node are within certain limits,
+   * we store a bitwise encoded value into an int, using 10 bits (max. 1024)
+   * for length and 21 bits for offset. We can save two SuballocatedIntVector
+   * calls for each getStringValueX() and dispatchCharacterEvents() call by 
+   * doing this.
+   */
+  // The number of bits for the length of a Text node.
+  protected final static int TEXT_LENGTH_BITS = 10;
+  
+  // The number of bits for the offset of a Text node.
+  protected final static int TEXT_OFFSET_BITS = 21;
+  
+  // The maximum length value
+  protected final static int TEXT_LENGTH_MAX = (1<<TEXT_LENGTH_BITS) - 1;
+  
+  // The maximum offset value
+  protected final static int TEXT_OFFSET_MAX = (1<<TEXT_OFFSET_BITS) - 1;
+  
+  // True if we want to build the ID index table.
   protected boolean m_buildIdIndex = true;
       
-  // A constant for empty string
+  // Constant for empty string
   private static final String EMPTY_STR = "";
 
   /**
@@ -2354,14 +2373,28 @@ public class SAX2DTM2 extends SAX2DTM
         m_chars.setLength(m_textPendingStart);  // Discard accumulated text
       else
       {
-        //int exName = m_expandedNameTable.getExpandedTypeID(DTM.TEXT_NODE);
-        int dataIndex = m_data.size();
+        // If the offset and length do not exceed the given limits
+        // (offset < 2^21 and length < 2^10), then save both the offset
+        // and length in a bitwise encoded value.
+        if (length <= TEXT_LENGTH_MAX && m_textPendingStart <= TEXT_OFFSET_MAX)
+        {
+          m_previous = addNode(m_coalescedTextType, DTM.TEXT_NODE,
+                             m_parents.peek(), m_previous,
+                             length + (m_textPendingStart << TEXT_LENGTH_BITS),
+                             false);
+          
+        }
+        else
+        {
+          // Store the offset and length in the m_data array if one of them
+          // exceeds the given limits. Use a negative dataIndex as an indication. 
+          int dataIndex = m_data.size();
+          m_previous = addNode(m_coalescedTextType, DTM.TEXT_NODE,
+                             m_parents.peek(), m_previous, -dataIndex, false);
 
-        m_previous = addNode(m_coalescedTextType, DTM.TEXT_NODE,
-                             m_parents.peek(), m_previous, dataIndex, false);
-
-        m_data.addElement(m_textPendingStart);
-        m_data.addElement(length);
+          m_data.addElement(m_textPendingStart);
+          m_data.addElement(length);
+        }
       }
 
       // Reset for next text block
@@ -2750,13 +2783,24 @@ public class SAX2DTM2 extends SAX2DTM
 	  if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
 	  {
 	    int dataIndex = m_dataOrQName.elementAt(identity);
-
-	    if (-1 == offset)
+	    if (dataIndex > 0)
 	    {
-              offset = m_data.elementAt(dataIndex);
-	    }
+	      if (-1 == offset)
+	      {
+                offset = dataIndex >>> TEXT_LENGTH_BITS;
+	      }
 
-	    length += m_data.elementAt(dataIndex + 1);
+	      length += dataIndex & TEXT_LENGTH_MAX;	      
+	    }
+	    else
+	    {
+	      if (-1 == offset)
+	      {
+                offset = m_data.elementAt(-dataIndex);
+	      }
+
+	      length += m_data.elementAt(-dataIndex + 1);
+	    }
 	  }
 
 	  identity++;
@@ -2775,10 +2819,16 @@ public class SAX2DTM2 extends SAX2DTM
     else if (DTM.TEXT_NODE == type || DTM.CDATA_SECTION_NODE == type)
     {
       int dataIndex = m_dataOrQName.elementAt(identity);
-      int offset = m_data.elementAt(dataIndex);
-      int length = m_data.elementAt(dataIndex + 1);
-
-      return m_chars.getString(offset, length);
+      if (dataIndex > 0)
+      {
+      	return m_chars.getString(dataIndex >>> TEXT_LENGTH_BITS, 
+      	                          dataIndex & TEXT_LENGTH_MAX);
+      }
+      else
+      {
+        return m_chars.getString(m_data.elementAt(-dataIndex), 
+                                  m_data.elementAt(-dataIndex+1));
+      }
     }
     else
     {
@@ -2806,8 +2856,11 @@ public class SAX2DTM2 extends SAX2DTM
     if ((_exptype2(child) == DTM.TEXT_NODE) && (_nextsib2(child) == DTM.NULL))
     {
       int dataIndex = m_dataOrQName.elementAt(child);
-      return m_chars.getString(m_data.elementAt(dataIndex), 
-                               m_data.elementAt(dataIndex + 1));      
+      if (dataIndex > 0)
+        return m_chars.getString(dataIndex >>> TEXT_LENGTH_BITS, dataIndex & TEXT_LENGTH_MAX);
+      else
+        return m_chars.getString(m_data.elementAt(-dataIndex), 
+                                  m_data.elementAt(-dataIndex + 1));      
     }
     else
       return getStringValueX(getDocument());
@@ -2862,12 +2915,24 @@ public class SAX2DTM2 extends SAX2DTM
 	  {
 	    int dataIndex = m_dataOrQName.elementAt(identity);
 
-	    if (-1 == offset)
+	    if (dataIndex > 0)
 	    {
-              offset = m_data.elementAt(dataIndex);
-	    }
+	      if (-1 == offset)
+	      {
+                offset = dataIndex >>> TEXT_LENGTH_BITS;
+	      }
 
-	    length += m_data.elementAt(dataIndex + 1);
+	      length += dataIndex & TEXT_LENGTH_MAX;	      
+	    }
+	    else
+	    {
+	      if (-1 == offset)
+	      {
+                offset = m_data.elementAt(-dataIndex);
+	      }
+
+	      length += m_data.elementAt(-dataIndex + 1);
+	    }
 	  }
 
 	  identity++;
@@ -2883,8 +2948,16 @@ public class SAX2DTM2 extends SAX2DTM
     {
       int dataIndex = m_dataOrQName.elementAt(identity);
 
-      m_chars.sendSAXcharacters(ch, m_data.elementAt(dataIndex), 
-                                m_data.elementAt(dataIndex + 1));
+      if (dataIndex > 0)
+      {
+      	m_chars.sendSAXcharacters(ch, dataIndex >>> TEXT_LENGTH_BITS,
+      	                          dataIndex & TEXT_LENGTH_MAX);
+      }
+      else
+      {
+        m_chars.sendSAXcharacters(ch, m_data.elementAt(-dataIndex), 
+                                  m_data.elementAt(-dataIndex+1));
+      }
     }
     else
     {
@@ -2920,10 +2993,16 @@ public class SAX2DTM2 extends SAX2DTM
     if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
     {
       int dataIndex = _dataOrQName(identity);
-      int offset = m_data.elementAt(dataIndex);
-      int length = m_data.elementAt(dataIndex + 1);
-
-      return m_chars.getString(offset, length);
+      if (dataIndex > 0)
+      {
+      	return m_chars.getString(dataIndex >>> TEXT_LENGTH_BITS, 
+      	                          dataIndex & TEXT_LENGTH_MAX);
+      }
+      else
+      {
+        return m_chars.getString(m_data.elementAt(-dataIndex), 
+                                  m_data.elementAt(-dataIndex+1));
+      }
     }
     else if (DTM.ELEMENT_NODE == type || DTM.DOCUMENT_FRAGMENT_NODE == type
              || DTM.DOCUMENT_NODE == type)
