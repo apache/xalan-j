@@ -63,17 +63,19 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
 {
 
   /** The position of the last node within the iteration, as defined by XPath.
-   * (Note that this is _not_ the node's handle within the DTM!)
+   * Note that this is _not_ the node's handle within the DTM. Also, don't
+   * confuse it with the current (most recently returned) position.
    */
   private int _last = -1;
 
   /** The position of the current node within the iteration, as defined by XPath.
-   * (Note that this is _not_ the node's handle within the DTM!)
+   * Note that this is _not_ the node's handle within the DTM!
    */
   private int _position = 0;
 
-  /** The position of the marked node within the iteration.
-   * (A saved itaration state that we may want to come back to.)
+  /** The position of the marked node within the iteration;
+   * a saved itaration state that we may want to come back to.
+   * Note that only one mark is maintained; there is no stack.
    */
   protected int _markedNode;
 
@@ -89,7 +91,7 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
 
   /** True if this iteration can be restarted. False otherwise (eg, if
    * we are iterating over a stream that can not be re-scanned, or if
-   * the iterator is a clone.)
+   * the iterator was produced by cloning another iterator.)
    */
   protected boolean _isRestartable = true;
 
@@ -129,21 +131,27 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /** Returns the position of the last node within the iteration, as
-   * defined by XPath.  (Note that this is _not_ the node's handle
-   * within the DTM!)
+   * defined by XPath.  In a forward iterator, I believe this equals the number of nodes which this
+   * iterator will yield. In a reverse iterator, I believe it should return
+   * 1 (since the "last" is the first produced.)
    *
    * This may be an expensive operation when called the first time, since
-   * it may have to iterate all the way through the subtree.
+   * it may have to iterate through a large part of the document to produce
+   * its answer.
    *
-   * @return The number of nodes in this iterator.
+   * @return The number of nodes in this iterator (forward) or 1 (reverse).
    */
   public int getLast()
   {
 
     if (_last == -1)		// Not previously established
     {
-      // %REVIEW% I'm confused about the difference between setMark() and
-      // the local temp variable...?
+      // Note that we're doing both setMark() -- which saves _currentChild
+      // -- and explicitly saving our position counter (number of nodes
+      // yielded so far).
+      //
+      // %REVIEW% Should position also be saved by setMark()?
+      // (It wasn't in the XSLTC version, but I don't understand why not.)
 
       final int temp = _position; // Save state
       setMark();
@@ -181,8 +189,8 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
 
   /**
    * Returns a deep copy of this iterator. Cloned iterators may not be
-   * restartable, though the original they are cloned from is not
-   * necessarily further restricted by being cloned.
+   * restartable. The iterator being cloned may or may not become
+   * non-restartable as a side effect of this operation.
    *
    * @return a deep copy of this iterator.
    */
@@ -229,10 +237,10 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /**
-   * Reset the position to zero.
+   * Reset the position to zero. NOTE that this does not change the iteration
+   * state, only the position number associated with that state.
    *
-   * %REVIEW% Document how this dffers from reset() and setStartNode().
-   *
+   * %REVIEW% Document when this would be used?
    *
    * @return This instance.
    */

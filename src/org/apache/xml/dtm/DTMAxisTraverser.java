@@ -67,6 +67,14 @@ package org.apache.xml.dtm;
  * <p>A DTMAxisTraverser can probably not traverse a reverse axis in
  * document order.</p>
  *
+ * <p>Typical usage:</p>
+ * <pre><code>
+ * for(int nodeHandle=myTraverser.first(myContext);
+ *     nodeHandle!=DTM.NULL;
+ *     nodeHandle=myTraverser.next(myContext,nodeHandle))
+ * { ... processing for node indicated by nodeHandle goes here ... }
+ * </code></pre>
+ *
  * @author Scott Boag
  */
 public abstract class DTMAxisTraverser
