@@ -475,8 +475,9 @@ public class StreamHTMLOutput extends StreamOutput {
 		offset = i + 1;
 		break;
 	    default:
-		if ((current >= '\u007F' && current < '\u00A0') ||
-		    (_is8859Encoded && current > '\u00FF'))
+		if (current >= '\u007F'
+		    && (current < '\u00A0'
+		       || (current > '\u00FF' && _is8859Encoded)))
 		{
 		    _buffer.append(ch, offset, i - offset)
 			   .append(CHAR_ESC_START)

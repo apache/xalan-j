@@ -94,7 +94,8 @@ public abstract class NodeSortRecord {
      * A reference to a collator. May be updated by subclass if the stylesheet
      * specifies a different language (will be updated iff _locale is updated).
      */
-    protected Collator _collator = Collator.getInstance();
+    protected static final Collator DEFAULT_COLLATOR = Collator.getInstance();
+    protected Collator _collator = DEFAULT_COLLATOR;
     protected CollatorFactory _collatorFactory;
 
     protected int   _levels = 1;

@@ -1615,7 +1615,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       */
 
       // Most common case handled first
-      if (axis == Axis.CHILD && type != DTM.ELEMENT_NODE) {
+      if (axis == Axis.CHILD) {
           return new TypedChildrenIterator(type);
       }
 

@@ -130,7 +130,7 @@ public final class MultiDOM implements DOM {
             if (_source == null || _mask != mask) {
                 if (_type == NO_TYPE) {
                     _source = _adapters[dom].getAxisIterator(_axis);
-                } else if (_axis == Axis.CHILD && _type != DTM.ELEMENT_NODE) {
+                } else if (_axis == Axis.CHILD) {
                     _source = _adapters[dom].getTypedChildren(_type);
                 } else {
                     _source = _adapters[dom].getTypedAxisIterator(_axis, _type);
