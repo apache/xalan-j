@@ -164,13 +164,15 @@ public class TraceManager
    */
   public void fireTraceEvent(ElemTemplateElement styleNode)
   {
-
-  // %DTBD%
-//    if (hasTraceListeners())
-//    {
-//      fireTraceEvent(new TracerEvent(m_transformer, sourceNode, mode,
-//                                     styleNode));
-//    }
+  
+    if (hasTraceListeners())
+    {
+			int sourceNode = m_transformer.getXPathContext().getCurrentNode();
+			Node source = m_transformer.getXPathContext().getDTM(sourceNode).getNode(sourceNode);
+    
+      fireTraceEvent(new TracerEvent(m_transformer, source, null, /*sourceNode, mode,*/
+                                     styleNode));
+    }
   }
 
   /**
@@ -210,11 +212,14 @@ public class TraceManager
             throws javax.xml.transform.TransformerException
   {
 
-  // %DTBD%
-//    if (hasTraceListeners())
-//      fireSelectedEvent(new SelectionEvent(m_transformer, sourceNode,
-//                                           styleNode, attributeName, xpath,
-//                                           selection));
+    if (hasTraceListeners())
+		{
+			Node source = m_transformer.getXPathContext().getDTM(sourceNode).getNode(sourceNode);
+    
+      fireSelectedEvent(new SelectionEvent(m_transformer, source,
+                                           styleNode, attributeName, xpath,
+                                           selection));
+		}
   }
 
   /**

@@ -102,7 +102,7 @@ class TransformSnapshotImpl implements TransformSnapshot
   /**
    * The current context node list.
    */
-  private ContextNodeList m_contextNodeList;
+  private DTMIterator m_contextNodeList;
 
   /**
    * Stack of AxesIterators.
@@ -167,9 +167,9 @@ class TransformSnapshotImpl implements TransformSnapshot
 
   /**
    * Constructor TransformSnapshotImpl
+   * Take a snapshot of the currently executing context.
    *
-   *
-   * NEEDSDOC @param transformer
+   * @param transformer Non null transformer instance
    */
   TransformSnapshotImpl(TransformerImpl transformer)
   {
@@ -207,7 +207,7 @@ class TransformSnapshotImpl implements TransformSnapshot
 
       if (!m_contextNodeLists.empty())
         m_contextNodeList =
-          (ContextNodeList) xpc.getContextNodeList().clone();
+          (DTMIterator) xpc.getContextNodeList().clone();
 
       m_axesIteratorStack = (Stack) xpc.getAxesIteratorStackStacks().clone();
       m_currentTemplateRuleIsNull =
@@ -231,10 +231,10 @@ class TransformSnapshotImpl implements TransformSnapshot
   }
 
   /**
-   * NEEDSDOC Method apply 
+   * This will reset the stylesheet to a given execution context
+   * based on some previously taken snapshot where we can then start execution 
    *
-   *
-   * NEEDSDOC @param transformer
+   * @param transformer Non null transformer instance
    */
   void apply(TransformerImpl transformer)
   {

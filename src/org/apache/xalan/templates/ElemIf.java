@@ -167,5 +167,9 @@ public class ElemIf extends ElemTemplateElement
     {
       transformer.executeChildTemplates(this, true);
     }
+		
+		if (TransformerImpl.S_DEBUG)
+      transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+              "endTest", m_test, test);
   }
 }

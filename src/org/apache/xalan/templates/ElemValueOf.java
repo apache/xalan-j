@@ -259,9 +259,9 @@ public class ElemValueOf extends ElemTemplateElement
         {
           dtm.dispatchCharactersEvents(child, rth, false);
 
-          // %TBD% if (TransformerImpl.S_DEBUG)
+         //if (TransformerImpl.S_DEBUG)
           //  transformer.getTraceManager().fireSelectedEvent(child, this,
-          //          "select", m_selectExpression, ??value??);
+          //          "select", m_selectExpression, value);
         }
         finally
         {
@@ -286,13 +286,19 @@ public class ElemValueOf extends ElemTemplateElement
 
         try
         {
-          Expression expr = m_selectExpression.getExpression();
+          Expression expr = m_selectExpression.getExpression();          
 
-          expr.executeCharsToContentHandler(xctxt, rth);
-
-          // %TBD% if (TransformerImpl.S_DEBUG)
-          //  transformer.getTraceManager().fireSelectedEvent(child, this,
-          //          "select", m_selectExpression, ??value??);
+          if (TransformerImpl.S_DEBUG)
+					{
+						XObject obj = expr.execute(xctxt);
+						obj.dispatchCharactersEvents(rth);
+            transformer.getTraceManager().fireSelectedEvent(current, this,
+                    "select", m_selectExpression, obj);
+					}
+					else
+					{
+						expr.executeCharsToContentHandler(xctxt, rth);
+					}
         }
         finally
         {

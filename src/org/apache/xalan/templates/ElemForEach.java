@@ -116,15 +116,15 @@ public class ElemForEach extends ElemTemplateElement
    * @serial
    */
   protected Expression m_selectExpression = null;
-
-  /**
+	
+	 /**
    * Set the "select" attribute.
    *
    * @param xpath The XPath expression for the "select" attribute.
    */
   public void setSelect(XPath xpath)
   {
-    m_selectExpression = xpath.getExpression();
+		m_selectExpression = xpath.getExpression();
   }
 
   /**
@@ -150,7 +150,7 @@ public class ElemForEach extends ElemTemplateElement
 
     if (null == m_selectExpression)
     {
-      m_selectExpression =
+			m_selectExpression =
         getStylesheetRoot().m_selectDefault.getExpression();
     }
   }
@@ -369,17 +369,17 @@ public class ElemForEach extends ElemTemplateElement
     DTMIterator sourceNodes = m_selectExpression.asIterator(xctxt, sourceNode);
 
     try
-    {
+		{
 
-      //      if (TransformerImpl.S_DEBUG)
-      //        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-      //                          "test", m_selectExpression,
-      //                          new org.apache.xpath.objects.XNodeSet(sourceNodes));
-      final Vector keys = (m_sortElems == null)
-                          ? null
-                          : transformer.processSortKeys(this, sourceNode);
+			if (TransformerImpl.S_DEBUG)
+				transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+																												"test", new XPath(m_selectExpression),
+																												new org.apache.xpath.objects.XNodeSet(sourceNodes));
+			final Vector keys = (m_sortElems == null)
+													? null
+														: transformer.processSortKeys(this, sourceNode);
 
-      // Sort if we need to.
+			// Sort if we need to.
       if (null != keys)
         sourceNodes = sortNodes(xctxt, keys, sourceNodes);
 
@@ -551,6 +551,11 @@ public class ElemForEach extends ElemTemplateElement
             //  guard.pop();
           }
         }
+				// fire end select event 
+				if (TransformerImpl.S_DEBUG)
+					transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+																												"endTest", new XPath(m_selectExpression),
+																												new org.apache.xpath.objects.XNodeSet(sourceNodes));			
       }
       finally
       {

@@ -230,6 +230,20 @@ public class XPath implements Serializable
   {  
     this(exprString, locator, prefixResolver, type, null);    
   }
+	
+	/**
+   * Construct an XPath object.  The object must be initialized by the
+   * XPathParser.initXPath method.
+   *
+   * @param exp The XPath expression.
+   *
+   * @throws javax.xml.transform.TransformerException if syntax or other error.
+   */
+  public XPath(Expression exp)
+            throws javax.xml.transform.TransformerException
+  {  
+    this.setExpression(exp);    
+  }
   
   /**
    * <meta name="usage" content="experimental"/>

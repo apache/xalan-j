@@ -540,14 +540,26 @@ public class TransformerImpl extends Transformer
   {
     return m_hasTransformThreadErrorCatcher;
   }
-
-  /**
+	
+	/**
    * Process the source tree to SAX parse events.
    * @param source  The input for the source tree.
    *
    * @throws TransformerException
    */
   public void transform(Source source) throws TransformerException
+  {
+		transform(source, true); 
+	}
+
+  /**
+   * Process the source tree to SAX parse events.
+   * @param source  The input for the source tree.
+   * @param shouldRelease  Flag indicating whether to release DTMManager.
+   *
+   * @throws TransformerException
+   */
+  public void transform(Source source, boolean shouldRelease) throws TransformerException
   {
 
     try
@@ -562,7 +574,8 @@ public class TransformerImpl extends Transformer
       }
       finally
       {
-        mgr.release(dtm, hardDelete);
+				if (shouldRelease)
+					mgr.release(dtm, hardDelete);
       }
 
       // Kick off the parse.  When the ContentHandler gets 
@@ -1115,8 +1128,8 @@ public class TransformerImpl extends Transformer
 
     return handler;
   }
-
-  /**
+	
+	/**
    * Process the source tree to the output result.
    * @param xmlSource  The input for the source tree.
    * @param outputTarget The output source target.
@@ -1124,6 +1137,20 @@ public class TransformerImpl extends Transformer
    * @throws TransformerException
    */
   public void transform(Source xmlSource, Result outputTarget)
+          throws TransformerException
+  {
+		transform(xmlSource, outputTarget, true);
+	}
+
+  /**
+   * Process the source tree to the output result.
+   * @param xmlSource  The input for the source tree.
+   * @param outputTarget The output source target.
+   * @param shouldRelease  Flag indicating whether to release DTMManager. 
+   *
+   * @throws TransformerException
+   */
+  public void transform(Source xmlSource, Result outputTarget, boolean shouldRelease)
           throws TransformerException
   {
 
@@ -1134,7 +1161,7 @@ public class TransformerImpl extends Transformer
       m_outputTarget = outputTarget;
 
       this.setContentHandler(handler);
-      transform(xmlSource);
+      transform(xmlSource, shouldRelease);
     }
   }
 
@@ -2100,9 +2127,9 @@ public class TransformerImpl extends Transformer
       {
 
         // Fire a trace event for the template.
-        // 
-        //        if (TransformerImpl.S_DEBUG)
-        //          getTraceManager().fireTraceEvent(child, mode, template);
+         
+                if (TransformerImpl.S_DEBUG)
+                  getTraceManager().fireTraceEvent(template);
         // And execute the child templates.
         // 9/11/00: If template has been compiled, hand off to it
         // since much (most? all?) of the processing has been inlined.
@@ -3480,10 +3507,10 @@ public class TransformerImpl extends Transformer
   // Fragment re-execution interfaces for a tool.
 
   /**
-   * NEEDSDOC Method getSnapshot 
+   * This will get a snapshot of the current executing context 
    *
    *
-   * NEEDSDOC (getSnapshot) @return
+   * @return TransformerSnapshot object, snapshot of executing context
    */
   public TransformSnapshot getSnapshot()
   {
@@ -3492,9 +3519,10 @@ public class TransformerImpl extends Transformer
 
   /**
    * This will execute the following XSLT instructions
-   * from the snapshot point.
+   * from the snapshot point, after the stylesheet execution
+   * context has been reset from the snapshot point. 
    *
-   * NEEDSDOC @param ts
+   * @param ts The snapshot of where to start execution
    *
    * @throws TransformerException
    */
@@ -3511,10 +3539,10 @@ public class TransformerImpl extends Transformer
   }
 
   /**
-   * This will execute the following XSLT instructions
+   * This will reset the stylesheet execution context
    * from the snapshot point.
    *
-   * NEEDSDOC @param ts
+   * @param ts The snapshot of where to start execution
    */
   public void resetToStylesheet(TransformSnapshot ts)
   {

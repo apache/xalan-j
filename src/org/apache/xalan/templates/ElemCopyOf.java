@@ -169,7 +169,7 @@ public class ElemCopyOf extends ElemTemplateElement
       ResultTreeHandler handler = transformer.getResultTreeHandler();
 
       if (null != value)
-      {
+			{
         int type = value.getType();
         String s;
 
@@ -229,6 +229,11 @@ public class ElemCopyOf extends ElemTemplateElement
           break;
         }
       }
+			
+			if (TransformerImpl.S_DEBUG)
+        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+                                                        "endSelect", m_selectExpression, value);
+
     }
     catch(org.xml.sax.SAXException se)
     {

@@ -156,6 +156,10 @@ public class ElemChoose extends ElemTemplateElement
 
           return;
         }
+				
+				if (TransformerImpl.S_DEBUG)
+          transformer.getTraceManager().fireSelectedEvent(sourceNode, when,
+                  "endTest", when.getTest(), test);
       }
       else if (Constants.ELEMNAME_OTHERWISE == type)
       {
