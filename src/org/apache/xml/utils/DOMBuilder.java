@@ -423,11 +423,18 @@ public class DOMBuilder
 
       return;
     }
-
+    
     String s = new String(ch, start, length);
-    Text text = m_doc.createTextNode(s);
+    Node childNode = m_currentNode.getLastChild();
 
-    append(text);
+    if( childNode != null && childNode.getNodeType() == Node.TEXT_NODE ){
+      ((Text)childNode).appendData(s);
+    }
+    else
+    {
+      Text text = m_doc.createTextNode(s);
+      append(text);
+    }
   }
 
   /**
@@ -585,6 +592,7 @@ public class DOMBuilder
   public void startCDATA() throws org.xml.sax.SAXException
   {
     m_inCData = true;
+    append(m_doc.createCDATASection(""));
   }
 
   /**
@@ -627,8 +635,9 @@ public class DOMBuilder
       return;  // avoid DOM006 Hierarchy request error
 
     String s = new String(ch, start, length);
-
-    append(m_doc.createCDATASection(s));
+    
+    CDATASection section  =(CDATASection) m_currentNode.getLastChild();
+    section.appendData(s);
   }
 
   /**
