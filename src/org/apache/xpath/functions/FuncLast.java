@@ -56,8 +56,10 @@
  */
 package org.apache.xpath.functions;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.Element;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.util.Vector;
 
@@ -97,22 +99,26 @@ public class FuncLast extends Function
     if (null != iter)
       return iter.getLastPos(xctxt);
 
-    ContextNodeList cnl = xctxt.getContextNodeList();
+    DTMIterator cnl = xctxt.getContextNodeList();
 
-    if (cnl.size() == 0)
+    // %TBD%
+//    if (cnl.size() == 0)
     {
       try
       {
-        NodeIterator ni = (NodeIterator)cnl.clone();
+        DTMIterator ni = (DTMIterator)cnl.clone();
         int count = cnl.getCurrentPos();
-        while(null != ni.nextNode())
+        while(DTM.NULL != ni.nextNode())
           count++;
-        cnl.setLast(count);
+        // %TBD%
+//        cnl.setLast(count);
         return count;
       }
       catch(CloneNotSupportedException cnse){}
     }
-    return cnl.size();
+    // %REVIEW%
+    return cnl.getLength();
+//    return cnl.size();
 
     /*
     // The code below has massive problem if inside of a predicate.  -sb

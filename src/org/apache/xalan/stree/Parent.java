@@ -373,14 +373,15 @@ public class Parent extends Child
         {
           StylesheetRoot stylesheet = transformer.getStylesheet();
 
-          try
+//          try
           {
             ElementImpl elem = (ElementImpl) child;
             if(null == doc.m_xpathContext)
               doc.m_xpathContext = new org.apache.xpath.XPathContext(doc);
-            WhiteSpaceInfo info =
-              stylesheet.getWhiteSpaceInfo(doc.m_xpathContext,
-                                           elem);
+              // %TBD%
+            WhiteSpaceInfo info = null;
+//              stylesheet.getWhiteSpaceInfo(doc.m_xpathContext,
+//                                           elem);
             boolean shouldStrip;
 
             if (null == info)
@@ -394,11 +395,11 @@ public class Parent extends Child
 
             sh.setShouldStripWhitespace(shouldStrip);
           }
-          catch (TransformerException se)
-          {
-
-            // TODO: Diagnostics
-          }
+//          catch (TransformerException se)
+//          {
+//
+//            // TODO: Diagnostics
+//          }
         }
       }
     }

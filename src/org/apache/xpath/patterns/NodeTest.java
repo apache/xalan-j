@@ -65,8 +65,8 @@ import org.apache.xpath.objects.XObject;
 import org.apache.xpath.WhitespaceStrippingElementMatcher;
 import org.apache.xml.utils.PrefixResolver;
 
-import org.apache.xml.utils.DTMFilter;
-import org.apache.xml.utils.DTM;
+import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTM;
 
 /**
  * <meta name="usage" content="advanced"/>

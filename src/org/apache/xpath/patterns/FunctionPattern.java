@@ -63,8 +63,11 @@ import org.apache.xpath.XPathContext;
 import org.apache.xpath.objects.XNumber;
 import org.apache.xpath.objects.XObject;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.traversal.NodeIterator;
+
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -120,18 +123,21 @@ public class FunctionPattern extends StepPattern
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
 
-    Node context = xctxt.getCurrentNode();
+    int context = xctxt.getCurrentNode();
     XObject obj = m_functionExpr.execute(xctxt);
-    NodeIterator nl = obj.nodeset();
+    
+    // %TBD%
+    DTMIterator nl =  null; /* obj.nodeset(); */
+    
     XNumber score = SCORE_NONE;
 
     if (null != nl)
     {
-      Node n;
+      int n;
 
-      while (null != (n = nl.nextNode()))
+      while (DTM.NULL != (n = nl.nextNode()))
       {
-        score = (n.equals(context)) ? SCORE_OTHER : SCORE_NONE;
+        score = (context == context) ? SCORE_OTHER : SCORE_NONE;
 
         if (score == SCORE_OTHER)
         {

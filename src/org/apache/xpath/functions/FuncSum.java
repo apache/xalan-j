@@ -56,8 +56,10 @@
  */
 package org.apache.xpath.functions;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.traversal.NodeIterator;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.util.Vector;
 
@@ -86,13 +88,14 @@ public class FuncSum extends FunctionOneArg
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
 
-    NodeIterator nodes = m_arg0.execute(xctxt).nodeset();
+    DTMIterator nodes = m_arg0.execute(xctxt).nodeset();
     double sum = 0.0;
-    Node pos;
+    int pos;
 
-    while (null != (pos = nodes.nextNode()))
+    while (DTM.NULL != (pos = nodes.nextNode()))
     {
-      String s = DOMHelper.getNodeData(pos);
+      DTM dtm = nodes.getDTM(pos);
+      String s = dtm.getStringValue(pos);
 
       if (null != s)
         sum += XString.castToNum(s);

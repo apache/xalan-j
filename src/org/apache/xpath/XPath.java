@@ -56,10 +56,13 @@
  */
 package org.apache.xpath;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.Document;
-import org.w3c.dom.traversal.NodeIterator;
-import org.w3c.dom.DocumentFragment;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.Document;
+//import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.DocumentFragment;
+
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.util.Vector;
 
@@ -252,7 +255,7 @@ public class XPath implements Serializable
    * @throws javax.xml.transform.TransformerException
    */
   public XObject execute(
-          XPathContext xctxt, Node contextNode, PrefixResolver namespaceContext)
+          XPathContext xctxt, int contextNode, PrefixResolver namespaceContext)
             throws javax.xml.transform.TransformerException
   {
 
@@ -326,7 +329,7 @@ public class XPath implements Serializable
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public double getMatchScore(XPathContext xctxt, Node context)
+  public double getMatchScore(XPathContext xctxt, int context)
           throws javax.xml.transform.TransformerException
   {
 
@@ -338,9 +341,12 @@ public class XPath implements Serializable
       XObject score = m_mainExp.execute(xctxt);
 
       if (DEBUG_MATCHES)
+      {
+        DTM dtm = xctxt.getDTM(context);
         System.out.println("score: " + score.num() + " for "
-                           + context.getNodeName() + " for xpath "
+                           + dtm.getNodeName(context) + " for xpath "
                            + this.getPatternString());
+      }
 
       return score.num();
     }
@@ -380,7 +386,7 @@ public class XPath implements Serializable
    *                              throw an exception.
    */
   public void warn(
-          XPathContext xctxt, Node sourceNode, int msg, Object[] args)
+          XPathContext xctxt, int sourceNode, int msg, Object[] args)
             throws javax.xml.transform.TransformerException
   {
 
@@ -433,7 +439,7 @@ public class XPath implements Serializable
    *                              throw an exception.
    */
   public void error(
-          XPathContext xctxt, Node sourceNode, int msg, Object[] args)
+          XPathContext xctxt, int sourceNode, int msg, Object[] args)
             throws javax.xml.transform.TransformerException
   {
 

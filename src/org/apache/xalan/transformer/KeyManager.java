@@ -58,8 +58,9 @@ package org.apache.xalan.transformer;
 
 import java.util.Vector;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.NodeList;
+import org.apache.xml.dtm.DTM;
 
 import org.apache.xalan.templates.ElemTemplateElement;
 import org.apache.xml.utils.QName;
@@ -93,7 +94,7 @@ public class KeyManager
    * @throws javax.xml.transform.TransformerException
    */
   public LocPathIterator getNodeSetByKey(
-          XPathContext xctxt, Node doc, QName name, String ref, PrefixResolver nscontext)
+          XPathContext xctxt, int doc, QName name, String ref, PrefixResolver nscontext)
             throws javax.xml.transform.TransformerException
   {
 

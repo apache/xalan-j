@@ -58,8 +58,10 @@ package org.apache.xpath.functions;
 
 import org.apache.xpath.res.XPATHErrorResources;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.traversal.NodeIterator;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.util.Vector;
 
@@ -78,20 +80,20 @@ import org.apache.xpath.axes.ContextNodeList;
 public class FuncCurrent extends Function
 {
 
-  /**
-   * Diagnostics to show string output from a node.
-   *
-   * @param n The input node, which may be null.
-   *
-   * @return A diagnostics string representing the node.
-   */
-  protected String nodeToString(Node n)
-  {
-
-    return (null != n)
-           ? n.getNodeName() + "{" + ((org.apache.xalan.stree.Child) n).getUid() + "}"
-           : "null";
-  }
+//  /**
+//   * Diagnostics to show string output from a node.
+//   *
+//   * @param n The input node, which may be null.
+//   *
+//   * @return A diagnostics string representing the node.
+//   */
+//  protected String nodeToString(int n)
+//  {
+//
+//    return (null != n)
+//           ? n.getNodeName() + "{" + ((org.apache.xalan.stree.Child) n).getUid() + "}"
+//           : "null";
+//  }
 
   /**
    * Execute the function.  The function must return
@@ -106,7 +108,7 @@ public class FuncCurrent extends Function
 
     // If we're in a predicate, then this will return non-null.
     PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
-    Node currentNode;
+    int currentNode;
 
     if (null != iter)
     {
@@ -116,14 +118,15 @@ public class FuncCurrent extends Function
     }
     else
     {
-      ContextNodeList cnl = xctxt.getContextNodeList();
+      DTMIterator cnl = xctxt.getContextNodeList();
 
       if (null != cnl)
       {
+        // %REVIEW% Not so certain that this is doing the right thing?
         currentNode = cnl.getCurrentNode();
       }
       else
-        currentNode = null;
+        currentNode = DTM.NULL;
     }
 
     return new XNodeSet(currentNode);

@@ -56,7 +56,9 @@
  */
 package org.apache.xalan.templates;
 
-import org.w3c.dom.*;
+//import org.w3c.dom.*;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import org.xml.sax.*;
 
@@ -227,16 +229,18 @@ public class ElemValueOf extends ElemTemplateElement
    * @throws TransformerException
    */
   public void execute(
-          TransformerImpl transformer, Node sourceNode, QName mode)
+          TransformerImpl transformer)
             throws TransformerException
   {
 
     try
     {
       if (TransformerImpl.S_DEBUG)
-        transformer.getTraceManager().fireTraceEvent(sourceNode, mode, this);
+        transformer.getTraceManager().fireTraceEvent(this);
 
-      Node child;
+      XPathContext xctxt = transformer.getXPathContext();
+      int sourceNode = xctxt.getCurrentNode();
+      int child;
       XObject value;
       
       // Optimize for "."
@@ -251,38 +255,32 @@ public class ElemValueOf extends ElemTemplateElement
                                                  sourceNode, this);
         if(value.getType() == XObject.CLASS_NODESET)
         {
-          org.w3c.dom.traversal.NodeIterator iterator = value.nodeset();
+          DTMIterator iterator = value.nodeset();
           child = iterator.nextNode();
-          if(null == child)
+          if(DTM.NULL == child)
             return;
         }
         else
-          child = null;
+          child = DTM.NULL;
         if (TransformerImpl.S_DEBUG)
           transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
                                                           "select", m_selectExpression, value);
       }
          
       String s;                                                                                             
-      if(null != child)
+      if(DTM.NULL != child)
       {
-        if (child.isSupported(SaxEventDispatch.SUPPORTSINTERFACE, "1.0"))
+        DTM dtm = xctxt.getDTM(child);
+        ResultTreeHandler rth = transformer.getResultTreeHandler();
+        if (m_disableOutputEscaping)
         {
-          if (m_disableOutputEscaping)
-          {
-            ResultTreeHandler rth = transformer.getResultTreeHandler();
-            rth.processingInstruction(javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
-            ((SaxEventDispatch) child).dispatchCharactersEvent(rth);
-            rth.processingInstruction(javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
-          }
-          else
-            ((SaxEventDispatch) child).dispatchCharactersEvent(transformer.getResultTreeHandler());
-          return;
+          rth.processingInstruction(javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
+          dtm.dispatchCharactersEvents(child, rth);
+          rth.processingInstruction(javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
         }
         else
-        {
-          s = XNodeSet.getStringFromNode(child);
-        }
+          dtm.dispatchCharactersEvents(child, rth);
+        return;
       }
       else
         s = value.str();
@@ -318,7 +316,7 @@ public class ElemValueOf extends ElemTemplateElement
    *
    * @throws DOMException
    */
-  public Node appendChild(Node newChild) throws DOMException
+  public ElemTemplateElement appendChild(ElemTemplateElement newChild)
   {
 
     error(XSLTErrorResources.ER_CANNOT_ADD,

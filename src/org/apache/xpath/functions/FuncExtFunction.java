@@ -63,7 +63,7 @@ import org.apache.xpath.XPathContext;
 import org.apache.xpath.objects.*;
 import org.apache.xalan.extensions.ExtensionsTable;
 
-import org.w3c.dom.Node;
+//import org.w3c.dom.Node;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.traversal.NodeIterator;
 
@@ -138,8 +138,10 @@ public class FuncExtFunction extends Function
     }
 
     ExtensionsTable etable = xctxt.getExtensionsTable();
-    Object val = etable.extFunction(m_namespace, m_extensionName, argVec,
-                                    m_methodKey, xctxt);
+    // %TBD% Not sure why this won't compile
+    Object val = null;
+//    Object val = etable.extFunction(m_namespace, m_extensionName, argVec,
+//                                    m_methodKey, xctxt);
 
     if (null != val)
     {
@@ -168,18 +170,19 @@ public class FuncExtFunction extends Function
       {
         result = new XNumber(((Double) val).doubleValue());
       }
-      else if (val instanceof DocumentFragment)
-      {
-        result = new XRTreeFrag((DocumentFragment) val);
-      }
-      else if (val instanceof NodeIterator)
-      {
-        result = new XNodeSet((NodeIterator) val);
-      }
-      else if (val instanceof Node)
-      {
-        result = new XNodeSet((Node) val);
-      }
+      // %TBD%
+//      else if (val instanceof DocumentFragment)
+//      {
+//        result = new XRTreeFrag((DocumentFragment) val);
+//      }
+//      else if (val instanceof NodeIterator)
+//      {
+//        result = new XNodeSet((NodeIterator) val);
+//      }
+//      else if (val instanceof Node)
+//      {
+//        result = new XNodeSet((Node) val);
+//      }
       else
       {
         result = new XObject(val);

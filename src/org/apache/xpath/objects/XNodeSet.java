@@ -56,10 +56,13 @@
  */
 package org.apache.xpath.objects;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.Text;
-import org.w3c.dom.DocumentFragment;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.Text;
+//import org.w3c.dom.DocumentFragment;
+//import org.w3c.dom.traversal.NodeIterator;
+
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import org.apache.xpath.DOMHelper;
 import org.apache.xpath.XPathContext;
@@ -80,7 +83,7 @@ public class XNodeSet extends XObject
    *
    * @param val Value of the XNodeSet object
    */
-  public XNodeSet(NodeIterator val)
+  public XNodeSet(DTMIterator val)
   {
     super(val);
   }
@@ -98,12 +101,12 @@ public class XNodeSet extends XObject
    *
    * @param n Node to add to the new XNodeSet object
    */
-  public XNodeSet(Node n)
+  public XNodeSet(int n)
   {
 
     super(new NodeSet());
 
-    if (null != n)
+    if (DTM.NULL != n)
     {
       ((NodeSet) m_obj).addNode(n);
     }
@@ -137,7 +140,7 @@ public class XNodeSet extends XObject
    *
    * @return numeric value of the string conversion from a single node.
    */
-  public static double getNumberFromNode(Node n)
+  public static double getNumberFromNode(int n)
   {
     return XString.castToNum(getStringFromNode(n));
   }
@@ -151,10 +154,10 @@ public class XNodeSet extends XObject
   public double num()
   {
 
-    NodeIterator nl = nodeset();
-    Node node = nl.nextNode();
+    DTMIterator nl = nodeset();
+    int node = nl.nextNode();
 
-    return (node != null) ? getNumberFromNode(node) : Double.NaN;
+    return (node != DTM.NULL) ? getNumberFromNode(node) : Double.NaN;
   }
 
   /**
@@ -164,7 +167,7 @@ public class XNodeSet extends XObject
    */
   public boolean bool()
   {
-    return (nodeset().nextNode() != null);
+    return (nodeset().nextNode() != DTM.NULL);
   }
 
   /**
@@ -174,24 +177,27 @@ public class XNodeSet extends XObject
    *
    * @return the string conversion from a single node.
    */
-  public static String getStringFromNode(Node n)
+  public static String getStringFromNode(int n)
   {
 
-    switch (n.getNodeType())
-    {
-    case Node.ELEMENT_NODE :
-    case Node.DOCUMENT_NODE :
-      return DOMHelper.getNodeData(n);
-    case Node.CDATA_SECTION_NODE :
-    case Node.TEXT_NODE :
-      return ((Text) n).getData();
-    case Node.COMMENT_NODE :
-    case Node.PROCESSING_INSTRUCTION_NODE :
-    case Node.ATTRIBUTE_NODE :
-      return n.getNodeValue();
-    default :
-      return DOMHelper.getNodeData(n);
-    }
+    // %TBD%
+    // I guess we'll have to get a static instance of the DTM manager...
+    return null;
+//    switch (n.getNodeType())
+//    {
+//    case DTM.ELEMENT_NODE :
+//    case DTM.DOCUMENT_NODE :
+//      return DOMHelper.getNodeData(n);
+//    case DTM.CDATA_SECTION_NODE :
+//    case DTM.TEXT_NODE :
+//      return ((Text) n).getData();
+//    case DTM.COMMENT_NODE :
+//    case DTM.PROCESSING_INSTRUCTION_NODE :
+//    case DTM.ATTRIBUTE_NODE :
+//      return n.getNodeValue();
+//    default :
+//      return DOMHelper.getNodeData(n);
+//    }
   }
 
   /**
@@ -203,10 +209,10 @@ public class XNodeSet extends XObject
   public String str()
   {
 
-    NodeIterator nl = nodeset();
-    Node node = nl.nextNode();
+    DTMIterator nl = nodeset();
+    int node = nl.nextNode();
 
-    return (node != null) ? getStringFromNode(node) : "";
+    return (node != DTM.NULL) ? getStringFromNode(node) : "";
   }
 
   /**
@@ -216,20 +222,19 @@ public class XNodeSet extends XObject
    *
    * @return the nodeset as a result tree fragment.
    */
-  public DocumentFragment rtree(XPathContext support)
+  public DTMIterator rtree(XPathContext support)
   {
+    DTM frag = support.createDocumentFragment();
 
-    DocumentFragment frag =
-      support.getDOMHelper().getDOMFactory().createDocumentFragment();
-    NodeIterator nl = nodeset();
-    Node node;
+    DTMIterator nl = nodeset();
+    int node;
 
-    while (null != (node = nl.nextNode()))
+    while (DTM.NULL != (node = nl.nextNode()))
     {
-      frag.appendChild(node.cloneNode(true));
+      frag.appendChild(node, true, true);
     }
 
-    return frag;
+    return support.createDTMIterator(frag.getDocument());
   }
   
   /**
@@ -237,34 +242,35 @@ public class XNodeSet extends XObject
    *
    * @return The nodeset as a nodelist
    */
-  public NodeIterator nodeset()
+  public DTMIterator nodeset()
   {
 
     // System.out.println("In XNodeSet.nodeset()");
-    NodeIterator ns = (NodeIterator) m_obj;
+    DTMIterator ns = (DTMIterator) m_obj;
 
     // System.out.println("Got NodeIterator");
-    if (ns instanceof ContextNodeList)
-    {
-
-      // System.out.println("Is a ContextNodeList: "+ns);
-      if (((ContextNodeList) ns).isFresh())  // bit of a hack...
-      {
-        return ns;
-      }
-      else
-      {
-        try
-        {
-          return ((ContextNodeList) ns).cloneWithReset();
-        }
-        catch (CloneNotSupportedException cnse)
-        {
-          throw new RuntimeException(cnse.getMessage());
-        }
-      }
-    }
-    else
+    // %TBD% !!!
+//    if (ns instanceof ContextNodeList)
+//    {
+//
+//      // System.out.println("Is a ContextNodeList: "+ns);
+//      if (((ContextNodeList) ns).isFresh())  // bit of a hack...
+//      {
+//        return ns;
+//      }
+//      else
+//      {
+//        try
+//        {
+//          return ((ContextNodeList) ns).cloneWithReset();
+//        }
+//        catch (CloneNotSupportedException cnse)
+//        {
+//          throw new RuntimeException(cnse.getMessage());
+//        }
+//      }
+//    }
+//    else
     {
 
       // System.out.println("Returning node iterator");
@@ -345,20 +351,20 @@ public class XNodeSet extends XObject
       // is true if and only if some node in $x has the string-value 
       // foo; the latter is true if and only if all nodes in $x have 
       // the string-value foo.
-      NodeIterator list1 = nodeset();
-      NodeIterator list2 = ((XNodeSet) obj2).nodeset();
-      Node node1;
+      DTMIterator list1 = nodeset();
+      DTMIterator list2 = ((XNodeSet) obj2).nodeset();
+      int node1;
       StringVector node2Strings = null;
 
-      while (null != (node1 = list1.nextNode()))
+      while (DTM.NULL != (node1 = list1.nextNode()))
       {
         String s1 = getStringFromNode(node1);
 
         if (null == node2Strings)
         {
-          Node node2;
+          int node2;
 
-          while (null != (node2 = list2.nextNode()))
+          while (DTM.NULL != (node2 = list2.nextNode()))
           {
             String s2 = getStringFromNode(node2);
 
@@ -415,11 +421,11 @@ public class XNodeSet extends XObject
       // comparison on the number to be compared and on the result of 
       // converting the string-value of that node to a number using 
       // the number function is true. 
-      NodeIterator list1 = nodeset();
+      DTMIterator list1 = nodeset();
       double num2 = obj2.num();
-      Node node;
+      int node;
 
-      while (null != (node = list1.nextNode()))
+      while (DTM.NULL != (node = list1.nextNode()))
       {
         double num1 = getNumberFromNode(node);
 
@@ -441,10 +447,10 @@ public class XNodeSet extends XObject
 
       if (!Double.isNaN(num2))
       {
-        NodeIterator list1 = nodeset();
-        Node node;
+        DTMIterator list1 = nodeset();
+        int node;
 
-        while (null != (node = list1.nextNode()))
+        while (DTM.NULL != (node = list1.nextNode()))
         {
           double num1 = getNumberFromNode(node);
 
@@ -459,10 +465,10 @@ public class XNodeSet extends XObject
       else
       {
         String s2 = obj2.str();
-        NodeIterator list1 = nodeset();
-        Node node;
+        DTMIterator list1 = nodeset();
+        int node;
 
-        while (null != (node = list1.nextNode()))
+        while (DTM.NULL != (node = list1.nextNode()))
         {
           String s1 = getStringFromNode(node);
 
@@ -485,10 +491,10 @@ public class XNodeSet extends XObject
       // the comparison on the string-value of the node and the other 
       // string is true. 
       String s2 = obj2.str();
-      NodeIterator list1 = nodeset();
-      Node node;
+      DTMIterator list1 = nodeset();
+      int node;
 
-      while (null != (node = list1.nextNode()))
+      while (DTM.NULL != (node = list1.nextNode()))
       {
         String s1 = getStringFromNode(node);
 

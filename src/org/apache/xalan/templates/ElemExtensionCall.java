@@ -60,7 +60,7 @@ import java.io.*;
 
 import java.util.*;
 
-import org.w3c.dom.*;
+//import org.w3c.dom.*;
 
 import org.xml.sax.*;
 import org.xml.sax.helpers.*;
@@ -238,7 +238,7 @@ public class ElemExtensionCall extends ElemLiteralResult
    * @throws TransformerException
    */
   public void executeFallbacks(
-          TransformerImpl transformer, Node sourceNode, QName mode)
+          TransformerImpl transformer)
             throws TransformerException
   {
     for (ElemTemplateElement child = m_firstChild; child != null;
@@ -249,7 +249,7 @@ public class ElemExtensionCall extends ElemLiteralResult
         try
         {
           transformer.pushElemTemplateElement(child);
-          ((ElemFallback) child).executeFallback(transformer, sourceNode, mode);
+          ((ElemFallback) child).executeFallback(transformer);
         }
         finally
         {
@@ -271,7 +271,7 @@ public class ElemExtensionCall extends ElemLiteralResult
    * @throws TransformerException
    */
   public void execute(
-          TransformerImpl transformer, Node sourceNode, QName mode)
+          TransformerImpl transformer)
             throws TransformerException
   {
 
@@ -294,7 +294,7 @@ public class ElemExtensionCall extends ElemLiteralResult
           etable.addExtensionNamespace(m_extns, nsh);
         else
         {
-          executeFallbacks(transformer, sourceNode, mode);
+          executeFallbacks(transformer);
           return;
         }
 
@@ -303,8 +303,7 @@ public class ElemExtensionCall extends ElemLiteralResult
       try
       {
         nsh.processElement(this.getLocalName(), this, transformer,
-                           getStylesheet(), sourceNode.getOwnerDocument(),
-                           sourceNode, mode, this);
+                           getStylesheet(), this);
       }
       catch (Exception e)
       {
@@ -344,7 +343,7 @@ public class ElemExtensionCall extends ElemLiteralResult
           transformer.getErrorListener().error(te); // ??
 
         executeFallbacks(
-          transformer, sourceNode, mode);
+          transformer);
       }
     }
     catch(org.xml.sax.SAXException se)
@@ -387,7 +386,7 @@ public class ElemExtensionCall extends ElemLiteralResult
    * @throws TransformerException
    */
   public String getAttribute(
-          String rawName, Node sourceNode, TransformerImpl transformer)
+          String rawName, int sourceNode /* %TBD% Node varient? */, TransformerImpl transformer)
             throws TransformerException
   {
 

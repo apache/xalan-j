@@ -56,7 +56,10 @@
  */
 package org.apache.xpath.objects;
 
-import org.w3c.dom.*;
+//import org.w3c.dom.*;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMFilter;
 
 import org.apache.xpath.XPathContext;
 
@@ -200,17 +203,12 @@ public class XString extends XObject
    *
    * @return A document fragment with this string as a child node
    */
-  public DocumentFragment rtree(XPathContext support)
+  public DTMIterator rtree(XPathContext support)
   {
-
-    DocumentFragment df =
-      support.getDOMHelper().getDOMFactory().createDocumentFragment();
-    Text textNode =
-      support.getDOMHelper().getDOMFactory().createTextNode(str());
-
-    df.appendChild(textNode);
-
-    return df;
+    DTM frag = support.createDocumentFragment();
+    frag.appendTextChild(str());
+    
+    return support.createDTMIterator(frag.getDocument());
   }
 
   /**

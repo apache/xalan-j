@@ -56,7 +56,8 @@
  */
 package org.apache.xalan.templates;
 
-import org.w3c.dom.*;
+//import org.w3c.dom.*;
+import org.apache.xml.dtm.DTM;
 
 import org.xml.sax.*;
 
@@ -245,13 +246,14 @@ public class ElemVariable extends ElemTemplateElement
    * @throws TransformerException
    */
   public void execute(
-          TransformerImpl transformer, Node sourceNode, QName mode)
+          TransformerImpl transformer)
             throws TransformerException
   {
 
     if (TransformerImpl.S_DEBUG)
-      transformer.getTraceManager().fireTraceEvent(sourceNode, mode, this);
+      transformer.getTraceManager().fireTraceEvent(this);
 
+    int sourceNode = transformer.getXPathContext().getCurrentNode();
     XObject var = getValue(transformer, sourceNode);
 
     transformer.getXPathContext().getVarStack().pushVariable(m_qname, var);
@@ -267,7 +269,7 @@ public class ElemVariable extends ElemTemplateElement
    *
    * @throws TransformerException
    */
-  public XObject getValue(TransformerImpl transformer, Node sourceNode)
+  public XObject getValue(TransformerImpl transformer, int sourceNode)
           throws TransformerException
   {
 
@@ -282,7 +284,7 @@ public class ElemVariable extends ElemTemplateElement
         transformer.getTraceManager().fireSelectedEvent(sourceNode, this, 
                                       "select", m_selectPattern, var);
     }
-    else if (null == getFirstChild())
+    else if (null == getFirstChildElem())
     {
       var = XString.EMPTYSTRING;
     }
@@ -290,10 +292,9 @@ public class ElemVariable extends ElemTemplateElement
     {
 
       // Use result tree fragment
-      DocumentFragment df = transformer.transformToRTF(this, sourceNode,
-                              null);
-
-      var = new XRTreeFrag(df);
+      int df = transformer.transformToRTF(this);
+      XPathContext xctxt = transformer.getXPathContext();
+      var = new XRTreeFrag(xctxt.createDTMIterator(df));
     }
 
     return var;

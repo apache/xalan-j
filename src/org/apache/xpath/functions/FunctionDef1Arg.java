@@ -56,7 +56,7 @@
  */
 package org.apache.xpath.functions;
 
-import org.w3c.dom.Node;
+//import org.w3c.dom.Node;
 
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.objects.XNodeSet;
@@ -82,7 +82,7 @@ public class FunctionDef1Arg extends FunctionOneArg
    * @throws javax.xml.transform.TransformerException if an error occurs while
    *                                   executing the argument expression.
    */
-  protected Node getArg0AsNode(XPathContext xctxt)
+  protected int getArg0AsNode(XPathContext xctxt)
           throws javax.xml.transform.TransformerException
   {
 

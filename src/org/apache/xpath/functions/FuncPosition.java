@@ -56,8 +56,10 @@
  */
 package org.apache.xpath.functions;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.traversal.NodeIterator;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.util.Vector;
 
@@ -99,7 +101,7 @@ public class FuncPosition extends Function
       return prox;
     }
 
-    ContextNodeList cnl = (ContextNodeList) xctxt.getContextNodeList();
+    DTMIterator cnl = xctxt.getContextNodeList();
 
     if (null != cnl)
     {

@@ -69,11 +69,14 @@ import org.apache.xpath.axes.DescendantOrSelfWalker;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPath;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.traversal.NodeFilter;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.DOMException;
+//import org.w3c.dom.NamedNodeMap;
+//import org.w3c.dom.traversal.NodeFilter;
+//import org.w3c.dom.traversal.NodeIterator;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMFilter;
 
 import javax.xml.transform.TransformerException;
 
@@ -99,24 +102,20 @@ public class KeyWalker extends DescendantOrSelfWalker
    *
    * @param root Document root node
    */
-  public void setRoot(Node root)
+  public void setRoot(int root)
   {
 
-    m_attrs = null;
+    m_nextAttr = DTM.NULL;
     m_foundAttrs = false;
-    m_attrPos = 0;
 
     super.setRoot(root);
   }
 
-  /** List of attribute nodes of the current node      */
-  transient NamedNodeMap m_attrs;
+  /** First attribute of the current node.      */
+  transient int m_nextAttr;
 
   /** Flag indicating that attibute nodes were found for the current node    */
   transient boolean m_foundAttrs;
-
-  /** Current position in the attribute nodes list         */
-  transient int m_attrPos;
 
   /** Key value that this is looking for.
    *  @serial           */
@@ -127,30 +126,28 @@ public class KeyWalker extends DescendantOrSelfWalker
    *
    * @return The next node found or null.
    */
-  protected Node getNextNode()
+  protected int getNextNode()
   {
 
+    int currentNode = getCurrentNode();
+    DTM dtm = this.m_lpi.getXPathContext().getDTM(currentNode);
     if (!m_foundAttrs)
     {
-      m_attrs = getCurrentNode().getAttributes();
+      m_nextAttr = dtm.getFirstAttribute(currentNode);
       m_foundAttrs = true;
+      if (DTM.NULL != m_nextAttr)
+        return m_nextAttr;
     }
-
-    if (null != m_attrs)
+    else if (DTM.NULL != m_nextAttr)
     {
-      if (m_attrPos < m_attrs.getLength())
-      {
-        return m_attrs.item(m_attrPos++);
-      }
-      else
-      {
-        m_attrs = null;
-      }
+      m_nextAttr = dtm.getNextAttribute(m_nextAttr);
+      if (DTM.NULL != m_nextAttr)
+        return m_nextAttr;
     }
 
-    Node next = super.getNextNode();
+    int next = super.getNextNode();
 
-    if (null != next)
+    if (DTM.NULL != next)
       m_foundAttrs = false;
 
     return next;
@@ -167,9 +164,9 @@ public class KeyWalker extends DescendantOrSelfWalker
    * @return  a constant to determine whether the node is accepted,
    *   rejected, or skipped, as defined  above .
    */
-  public short acceptNode(Node testNode)
+  public short acceptNode(int testNode)
   {
-		boolean foundKey = false;
+    boolean foundKey = false;
     KeyIterator ki = (KeyIterator) m_lpi;
     Vector keys = ki.getKeyDeclarations();
 
@@ -191,7 +188,7 @@ public class KeyWalker extends DescendantOrSelfWalker
         if(!kd.getName().equals(name)) 
           continue;
         
-				foundKey = true;
+                                foundKey = true;
         ki.getXPathContext().setNamespaceContext(ki.getPrefixResolver());
 
         // See if our node matches the given key declaration according to 
@@ -213,12 +210,12 @@ public class KeyWalker extends DescendantOrSelfWalker
           ((KeyIterator)m_lpi).addRefNode(exprResult, testNode);
           
           if (lookupKey.equals(exprResult))
-            return this.FILTER_ACCEPT;
+            return DTMIterator.FILTER_ACCEPT;
         }
         else
         {
-          NodeIterator nl = xuse.nodeset();
-          Node useNode;
+          DTMIterator nl = xuse.nodeset();
+          int useNode;
           short result = -1;
           /*
           We are walking through all the nodes in this nodeset
@@ -232,14 +229,15 @@ public class KeyWalker extends DescendantOrSelfWalker
           matches. What if the next call is for the same match+use 
           combination??
           */
-          while (null != (useNode = nl.nextNode()))
+          while (DTM.NULL != (useNode = nl.nextNode()))
           {
-            String exprResult = m_lpi.getDOMHelper().getNodeData(useNode);
+            DTM dtm = getDTM(useNode);
+            String exprResult = dtm.getStringValue(useNode);
             ((KeyIterator)m_lpi).addRefNode(exprResult, testNode); 
             
             if ((null != exprResult) && lookupKey.equals(exprResult))
-              result = this.FILTER_ACCEPT;
-              //return this.FILTER_ACCEPT;
+              result = DTMIterator.FILTER_ACCEPT;
+              //return DTMIterator.FILTER_ACCEPT;
           }
           if (-1 != result)
             return result;
@@ -253,10 +251,10 @@ public class KeyWalker extends DescendantOrSelfWalker
       // TODO: What to do?
     }
 
-		if (!foundKey)
-			throw new RuntimeException
-				(XSLMessages.createMessage(XSLTErrorResources.ER_NO_XSLKEY_DECLARATION, new Object[]{name.getLocalName()}));
-    return this.FILTER_REJECT;
+                if (!foundKey)
+                        throw new RuntimeException
+                                (XSLMessages.createMessage(XSLTErrorResources.ER_NO_XSLKEY_DECLARATION, new Object[]{name.getLocalName()}));
+    return DTMIterator.FILTER_REJECT;
   }
   
    /**
@@ -269,13 +267,13 @@ public class KeyWalker extends DescendantOrSelfWalker
    * @return  The new node, or <code>null</code> if the current node has no
    *   next node  in the TreeWalker's logical view.
    */
-  public Node nextNode()
+  public int nextNode()
   {
-    Node node = super.nextNode();
+    int node = super.nextNode();
     // If there is no next node, we have walked the whole source tree.
     // Notify the iterator of that so that its callers know that there
     // are no more nodes to be found.
-    if (node == null)
+    if (node == DTM.NULL)
       ((KeyIterator)m_lpi).setLookForMoreNodes(false);
     return node;
   }

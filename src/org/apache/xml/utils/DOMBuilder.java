@@ -342,7 +342,8 @@ public class DOMBuilder
       
       // append(elem);
   
-      m_elemStack.push(elem);
+      // %TBD%
+//      m_elemStack.push(elem);
   
       m_currentNode = elem;
       
@@ -375,7 +376,8 @@ public class DOMBuilder
   public void endElement(String ns, String localName, String name)
           throws org.xml.sax.SAXException
   {
-    m_currentNode = m_elemStack.popAndTop();
+    // %TBD%
+//    m_currentNode = m_elemStack.popAndTop();
   }
 
   /**

@@ -63,11 +63,14 @@ import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.compiler.OpCodes;
 
-import org.w3c.dom.traversal.NodeIterator;
-import org.w3c.dom.Node;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.traversal.NodeFilter;
+//import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.NamedNodeMap;
+//import org.w3c.dom.DOMException;
+//import org.w3c.dom.traversal.NodeFilter;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMFilter;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -116,8 +119,9 @@ public class DescendantIterator extends LocPathIterator
     int whatToShow = compiler.getWhatToShow(firstStepPos);
 
     if ((0 == (whatToShow
-               & (NodeFilter.SHOW_ATTRIBUTE | NodeFilter.SHOW_ELEMENT
-                  | NodeFilter.SHOW_PROCESSING_INSTRUCTION))) || (whatToShow == NodeFilter.SHOW_ALL))
+               & (DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_ELEMENT
+                  | DTMFilter.SHOW_PROCESSING_INSTRUCTION))) || 
+                   (whatToShow == DTMFilter.SHOW_ALL))
       initNodeTest(whatToShow);
     else
     {
@@ -135,7 +139,7 @@ public class DescendantIterator extends LocPathIterator
    * 
    *  @throws CloneNotSupportedException
    */
-  public NodeIterator cloneWithReset() throws CloneNotSupportedException
+  public DTMIterator cloneWithReset() throws CloneNotSupportedException
   {
 
     DescendantIterator clone = (DescendantIterator) super.cloneWithReset();
@@ -157,7 +161,7 @@ public class DescendantIterator extends LocPathIterator
    *    INVALID_STATE_ERR: Raised if this method is called after the
    *   <code>detach</code> method was invoked.
    */
-  public Node nextNode() throws DOMException
+  public int nextNode()
   {
 
     // If the cache is on, and the node has already been found, then 
@@ -165,7 +169,7 @@ public class DescendantIterator extends LocPathIterator
     if ((null != m_cachedNodes)
             && (m_cachedNodes.getCurrentPos() < m_cachedNodes.size()))
     {
-      Node next = m_cachedNodes.nextNode();
+      int next = m_cachedNodes.nextNode();
 
       this.setCurrentPos(m_cachedNodes.getCurrentPos());
 
@@ -173,15 +177,15 @@ public class DescendantIterator extends LocPathIterator
     }
 
     if (m_foundLast)
-      return null;
+      return DTM.NULL;
 
-    Node pos;  // our main itteration node.  
+    int pos;  // our main itteration node.  
     boolean getSelf;
 
     // Figure out what the start context should be.
     // If the m_lastFetched is null at this point we're at the start 
     // of a fresh iteration.
-    if (null == m_lastFetched)
+    if (DTM.NULL == m_lastFetched)
     {
       getSelf = m_orSelf; // true if descendants-or-self.
       
@@ -189,10 +193,10 @@ public class DescendantIterator extends LocPathIterator
       // or the root node.
       if (getSelf && m_fromRoot)
       {
-        if(m_context.getNodeType() == Node.DOCUMENT_NODE)
+        if(m_cdtm.getNodeType(m_context) == DTM.DOCUMENT_NODE)
           pos = m_context;
         else
-          pos = m_context.getOwnerDocument();
+          pos = m_cdtm.getDocument();
       }
       else
         pos = m_context;
@@ -227,16 +231,16 @@ public class DescendantIterator extends LocPathIterator
     
     try
     {
-      Node top = m_startContext; // tells us when to stop.
-      Node next = null;
+      int top = m_startContext; // tells us when to stop.
+      int next = DTM.NULL;
   
       // non-recursive depth-first traversal.
-      while (null != pos)
+      while (DTM.NULL != pos)
       {
         if(getSelf)
         {
           m_lastFetched = pos; // we have to do this for a clone in a predicate to work correctly.
-          if(NodeFilter.FILTER_ACCEPT == acceptNode(pos))
+          if(DTMIterator.FILTER_ACCEPT == acceptNode(pos))
           {
             next = pos;
             break;
@@ -245,22 +249,22 @@ public class DescendantIterator extends LocPathIterator
         else
           getSelf = true;
          
-        Node nextNode = pos.getFirstChild();
+        int nextNode = m_cdtm.getFirstChild(pos);
   
-        while (null == nextNode)
+        while (DTM.NULL == nextNode)
         {
-          if (top.equals(pos))
+          if (top == pos)
             break;
   
-          nextNode = pos.getNextSibling();
+          nextNode = m_cdtm.getNextSibling(pos);
   
-          if (null == nextNode)
+          if (DTM.NULL == nextNode)
           {
-            pos = pos.getParentNode();
+            pos = m_cdtm.getParent(pos);
   
-            if ((null == pos) || (top.equals(pos)))
+            if ((DTM.NULL == pos) || (top == pos))
             {
-              nextNode = null;
+              nextNode = DTM.NULL;
   
               break;
             }
@@ -272,7 +276,7 @@ public class DescendantIterator extends LocPathIterator
       
       m_lastFetched = next;
   
-      if (null != next)
+      if (DTM.NULL != next)
       {
         if (null != m_cachedNodes)
           m_cachedNodes.addElement(next);
@@ -284,9 +288,9 @@ public class DescendantIterator extends LocPathIterator
       else
       {
         m_foundLast = true;
-        m_startContext = null;
+        m_startContext = DTM.NULL;
   
-        return null;
+        return DTM.NULL;
       }
     }
     finally
@@ -301,7 +305,7 @@ public class DescendantIterator extends LocPathIterator
   }
   
   /** The top of the subtree, may not be the same as m_context if "//foo" pattern. */ 
-  transient private Node m_startContext;
+  transient private int m_startContext;
 
   /** True if this is a descendants-or-self axes.
    *  @serial */

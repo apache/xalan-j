@@ -56,9 +56,12 @@
  */
 package org.apache.xpath.objects;
 
-import org.w3c.dom.*;
-import org.w3c.dom.traversal.NodeIterator;
-import org.w3c.dom.traversal.NodeFilter;
+//import org.w3c.dom.*;
+//import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.traversal.NodeFilter;
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMFilter;
 
 import org.apache.xpath.DOMHelper;
 
@@ -72,10 +75,11 @@ public class XRTreeFrag extends XObject
 
   /**
    * Create an XRTreeFrag Object.
+   * %REVIEW%
    *
    * @param frag Document fragment this will wrap
    */
-  public XRTreeFrag(DocumentFragment frag)
+  public XRTreeFrag(DTMIterator frag)
   {
     super(frag);
   }
@@ -112,7 +116,9 @@ public class XRTreeFrag extends XObject
 //    java.text.NumberFormat m_formatter =
 //      java.text.NumberFormat.getNumberInstance();
     double result;
-    String s = DOMHelper.getNodeData((DocumentFragment) m_obj);
+    
+    int node = ((DTMIterator)m_obj).nextNode();
+    String s = ((DTMIterator)m_obj).getDTM(node).getStringValue(node);
 
     if (null != s)
     {
@@ -158,8 +164,8 @@ public class XRTreeFrag extends XObject
    */
   public String str()
   {
-
-    String str = DOMHelper.getNodeData((DocumentFragment) m_obj);
+    int node = ((DTMIterator)m_obj).nextNode();
+    String str = ((DTMIterator)m_obj).getDTM(node).getStringValue(node);
 
     return (null == str) ? "" : str;
   }
@@ -169,38 +175,35 @@ public class XRTreeFrag extends XObject
    *
    * @return The document fragment this wraps
    */
-  public DocumentFragment rtree()
+  public DTMIterator rtree()
   {
-    return (DocumentFragment) m_obj;
+    return (DTMIterator) m_obj;
   }
 
   /**
-   * Cast result object to a NodeIterator.
+   * Cast result object to a DTMIterator.
    *
-   * @return The document fragment as a NodeIterator
+   * @return The document fragment as a DTMIterator
    */
-  public NodeIterator asNodeIterator()
+  public DTMIterator asNodeIterator()
   {
-
-    if (m_obj instanceof NodeIterator)
-      return (NodeIterator) m_obj;
-    else
-      return new NodeIteratorWrapper(rtree());
+    return (DTMIterator) m_obj;
   }
 
-  /**
-   * Cast result object to a nodelist. (special function).
-   *
-   * @return The document fragment as a nodelist
-   */
-  public NodeList convertToNodeset()
-  {
-
-    if (m_obj instanceof NodeList)
-      return (NodeList) m_obj;
-    else
-      return null;
-  }
+  // %TBD%
+//  /**
+//   * Cast result object to a nodelist. (special function).
+//   *
+//   * @return The document fragment as a nodelist
+//   */
+//  public NodeList convertToNodeset()
+//  {
+//
+//    if (m_obj instanceof NodeList)
+//      return (NodeList) m_obj;
+//    else
+//      return null;
+//  }
 
   /**
    * Tell if two objects are functionally equal.
@@ -250,133 +253,4 @@ public class XRTreeFrag extends XObject
     }
   }
 
-  /**
-   * <meta name="usage" content="internal"/>
-   * Class to wrap a  NodeIterator object
-   */
-  class NodeIteratorWrapper implements NodeIterator
-  {
-
-    /** Position of next node          */
-    private int m_pos = -1;
-
-    /** Document fragment instance this will wrap         */
-    private DocumentFragment m_docFrag;
-
-    /**
-     * Constructor NodeIteratorWrapper
-     *
-     *
-     * @param df Document fragment instance this will wrap
-     */
-    NodeIteratorWrapper(DocumentFragment df)
-    {
-      m_docFrag = df;
-    }
-
-    /**
-     *  The root node of the Iterator, as specified when it was created.
-     *
-     * @return null
-     */
-    public Node getRoot()
-    {
-      return null;
-    }
-
-    /**
-     *  This attribute determines which node types are presented via the
-     * iterator. The available set of constants is defined in the
-     * <code>NodeFilter</code> interface.
-     *
-     * @return All node types
-     */
-    public int getWhatToShow()
-    {
-      return NodeFilter.SHOW_ALL;
-    }
-
-    /**
-     *  The filter used to screen nodes.
-     *
-     * @return null
-     */
-    public NodeFilter getFilter()
-    {
-      return null;
-    }
-
-    /**
-     *  The value of this flag determines whether the children of entity
-     * reference nodes are visible to the iterator. If false, they will be
-     * skipped over.
-     * <br> To produce a view of the document that has entity references
-     * expanded and does not expose the entity reference node itself, use the
-     * whatToShow flags to hide the entity reference node and set
-     * expandEntityReferences to true when creating the iterator. To produce
-     * a view of the document that has entity reference nodes but no entity
-     * expansion, use the whatToShow flags to show the entity reference node
-     * and set expandEntityReferences to false.
-     *
-     * @return true
-     */
-    public boolean getExpandEntityReferences()
-    {
-      return true;
-    }
-
-    /**
-     *  Returns the next node in the set and advances the position of the
-     * iterator in the set. After a NodeIterator is created, the first call
-     * to nextNode() returns the first node in the set.
-     * @return  The next <code>Node</code> in the set being iterated over, or
-     *   <code>null</code> if there are no more members in that set.
-     * @throws DOMException
-     *    INVALID_STATE_ERR: Raised if this method is called after the
-     *   <code>detach</code> method was invoked.
-     */
-    public Node nextNode() throws DOMException
-    {
-
-      if (-1 == m_pos)
-      {
-        m_pos = 0;
-
-        return m_docFrag;
-      }
-      else
-        return null;
-    }
-
-    /**
-     *  Returns the previous node in the set and moves the position of the
-     * iterator backwards in the set.
-     * @return  The previous <code>Node</code> in the set being iterated over,
-     *   or<code>null</code> if there are no more members in that set.
-     * @throws DOMException
-     *    INVALID_STATE_ERR: Raised if this method is called after the
-     *   <code>detach</code> method was invoked.
-     */
-    public Node previousNode() throws DOMException
-    {
-
-      if (0 == m_pos)
-      {
-        m_pos = -1;
-
-        return m_docFrag;
-      }
-      else
-        return null;
-    }
-
-    /**
-     *  Detaches the iterator from the set which it iterated over, releasing
-     * any computational resources and placing the iterator in the INVALID
-     * state. After<code>detach</code> has been invoked, calls to
-     * <code>nextNode</code> or<code>previousNode</code> will raise the
-     * exception INVALID_STATE_ERR.
-     */
-    public void detach(){}
-  }
 }

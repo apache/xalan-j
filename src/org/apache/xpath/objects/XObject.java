@@ -56,10 +56,13 @@
  */
 package org.apache.xpath.objects;
 
-import org.w3c.dom.DocumentFragment;
-import org.w3c.dom.Text;
-import org.w3c.dom.Node;
-import org.w3c.dom.traversal.NodeIterator;
+//import org.w3c.dom.DocumentFragment;
+//import org.w3c.dom.Text;
+//import org.w3c.dom.Node;
+//import org.w3c.dom.traversal.NodeIterator;
+
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 import java.io.Serializable;
 
@@ -143,18 +146,19 @@ public class XObject extends Expression implements Serializable
     {
       result = new XNumber(((Double) val).doubleValue());
     }
-    else if (val instanceof DocumentFragment)
-    {
-      result = new XRTreeFrag((DocumentFragment) val);
-    }
-    else if (val instanceof Node)
-    {
-      result = new XNodeSet((Node) val);
-    }
-    else if (val instanceof NodeIterator)
-    {
-      result = new XNodeSet((NodeIterator) val);
-    }
+      // %TBD%
+//    else if (val instanceof DocumentFragment)
+//    {
+//      result = new XRTreeFrag((DocumentFragment) val);
+//    }
+//    else if (val instanceof Node)
+//    {
+//      result = new XNodeSet((Node) val);
+//    }
+//    else if (val instanceof NodeIterator)
+//    {
+//      result = new XNodeSet((NodeIterator) val);
+//    }
     else
     {
       result = new XObject(val);
@@ -268,20 +272,18 @@ public class XObject extends Expression implements Serializable
    *
    * @return the objec as a result tree fragment.
    */
-  public DocumentFragment rtree(XPathContext support)
+  public DTMIterator rtree(XPathContext support)
   {
 
-    DocumentFragment result = rtree();
+    DTMIterator result = rtree();
 
     if (null == result)
     {
-      result =
-        support.getDOMHelper().getDOMFactory().createDocumentFragment();
-
-      Text textNode =
-        support.getDOMHelper().getDOMFactory().createTextNode(str());
-
-      result.appendChild(textNode);
+      DTM frag = support.createDocumentFragment();
+      
+      // %OPT%
+      frag.appendTextChild(str());
+      support.createDTMIterator(frag.getDocument());
     }
 
     return result;
@@ -292,7 +294,7 @@ public class XObject extends Expression implements Serializable
    *
    * @return null
    */
-  public DocumentFragment rtree()
+  public DTMIterator rtree()
   {
     return null;
   }
@@ -315,7 +317,7 @@ public class XObject extends Expression implements Serializable
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public NodeIterator nodeset() throws javax.xml.transform.TransformerException
+  public DTMIterator nodeset() throws javax.xml.transform.TransformerException
   {
 
     error(XPATHErrorResources.ER_CANT_CONVERT_TO_NODELIST,
@@ -373,9 +375,10 @@ public class XObject extends Expression implements Serializable
     case CLASS_UNKNOWN :
       result = m_obj;
       break;
-    case CLASS_RTREEFRAG :
-      result = rtree(support);
-      break;
+      // %TBD%  What to do here?
+//    case CLASS_RTREEFRAG :
+//      result = rtree(support);
+//      break;
     default :
       error(XPATHErrorResources.ER_CANT_CONVERT_TO_TYPE,
             new Object[]{ getTypeString(),

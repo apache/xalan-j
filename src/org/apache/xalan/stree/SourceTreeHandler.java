@@ -402,11 +402,11 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
             
           }
         } 
-        
-        if(null != m_docFrag)
-          m_transformer.setSourceTreeDocForThread(m_docFrag);
-        else
-          m_transformer.setSourceTreeDocForThread(m_root);
+        // %TBD?%        
+//        if(null != m_docFrag)
+//          m_transformer.setSourceTreeDocForThread(m_docFrag);
+//        else
+//          m_transformer.setSourceTreeDocForThread(m_root);
 
         Thread t = m_transformer.createTransformThread();
 
@@ -448,15 +448,16 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
 
       if (!m_useMultiThreading && (null != m_transformer) && m_shouldTransformAtEnd)
       {
-        try
-        {
-          m_transformer.transformNode(m_root);
-        }
-        catch(TransformerException te)
-        {
-          // te.printStackTrace();
-          throw new org.xml.sax.SAXException(te);
-        }
+          // %TBD?%
+//        try
+//        {
+//          // m_transformer.transformNode(m_root);
+//        }
+//        catch(TransformerException te)
+//        {
+//          // te.printStackTrace();
+//          throw new org.xml.sax.SAXException(te);
+//        }
       }
     }
 
@@ -1009,7 +1010,8 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
     
     m_inputSource = new StreamSource(baseID);
     
-    stm.putDocumentInCache(m_root, m_inputSource);
+          // %TBD?%
+//    stm.putDocumentInCache(m_root, m_inputSource);
   }
   
   /**

@@ -56,7 +56,8 @@
  */
 package org.apache.xalan.templates;
 
-import org.w3c.dom.*;
+//import org.w3c.dom.*;
+import org.apache.xml.dtm.DTM;
 
 import org.xml.sax.*;
 
@@ -256,12 +257,13 @@ public class ElemElement extends ElemUse
    * @throws TransformerException
    */
   public void execute(
-          TransformerImpl transformer, Node sourceNode, QName mode)
+          TransformerImpl transformer)
             throws TransformerException
   {
 
     ResultTreeHandler rhandler = transformer.getResultTreeHandler();
     XPathContext xctxt = transformer.getXPathContext();
+    int sourceNode = xctxt.getCurrentNode();
     String nodeName = m_name_avt.evaluate(xctxt, sourceNode, this);
 
     // make sure that if a prefix is specified on the attribute name, it is valid
@@ -351,8 +353,7 @@ public class ElemElement extends ElemUse
       }
     }
 
-    constructNode(nodeName, prefix, nodeNamespace, transformer, sourceNode,
-                  mode);
+    constructNode(nodeName, prefix, nodeNamespace, transformer);
   }
   
   /**
@@ -369,7 +370,7 @@ public class ElemElement extends ElemUse
    * @throws TransformerException
    */
   void constructNode(
-          String nodeName, String prefix, String nodeNamespace, TransformerImpl transformer, Node sourceNode, QName mode)
+          String nodeName, String prefix, String nodeNamespace, TransformerImpl transformer)
             throws TransformerException
   {
 
@@ -395,10 +396,9 @@ public class ElemElement extends ElemUse
       boolean shouldAddAttrs = (null != nodeName);
 
       if (shouldAddAttrs)
-        super.execute(transformer, sourceNode, mode);
+        super.execute(transformer);
 
-      transformer.executeChildTemplates(this, sourceNode, mode,
-                                        shouldAddAttrs);
+      transformer.executeChildTemplates(this, shouldAddAttrs);
 
       // Now end the element if name was valid
       if (null != nodeName)
