@@ -75,6 +75,8 @@ import org.apache.xpath.XPath;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMAxisTraverser;
+import org.apache.xml.dtm.Axis;
 
 import org.apache.xml.utils.XMLString;
 
@@ -82,8 +84,8 @@ import org.apache.xml.utils.XMLString;
  * Serves as common interface for axes Walkers, and stores common
  * state variables.
  */
-public abstract class AxesWalker extends PredicatedNodeTest
-        implements Cloneable , DTMFilter
+public class AxesWalker extends PredicatedNodeTest
+        implements Cloneable
 {
   
   /**
@@ -91,9 +93,10 @@ public abstract class AxesWalker extends PredicatedNodeTest
    *
    * @param locPathIterator non-null reference to the parent iterator.
    */
-  public AxesWalker(LocPathIterator locPathIterator)
+  public AxesWalker(LocPathIterator locPathIterator, int axis)
   {
     super( locPathIterator );
+    m_axis = axis;
   }
   
   public final WalkingIterator wi()
@@ -114,21 +117,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   public void init(Compiler compiler, int opPos, int stepType)
           throws javax.xml.transform.TransformerException
   {
-
-    // int nodeTestOpPos = compiler.getFirstChildPosOfStep(opPos);
-    m_stepType = stepType;
-
-    switch (stepType)
-    {
-    case OpCodes.OP_VARIABLE :
-    case OpCodes.OP_EXTFUNCTION :
-    case OpCodes.OP_FUNCTION :
-    case OpCodes.OP_GROUP :
-      m_argLen = compiler.getArgLength(opPos);
-      break;
-    default :
-      m_argLen = compiler.getArgLengthOfStep(opPos);
-    }
 
     initPredicateInfo(compiler, opPos);
 
@@ -227,68 +215,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
     return null;    
   }
   
-  /**
-   * Tell if this expression or it's subexpressions can traverse outside 
-   * the current subtree.
-   * 
-   * @return true if traversal outside the context node's subtree can occur.
-   */
-   public boolean canTraverseOutsideSubtree()
-   {
-    if(super.canTraverseOutsideSubtree())
-      return true;
-    if(null != m_nextWalker)
-      return m_nextWalker.canTraverseOutsideSubtree();
-    return false;
-   }
-
-  /**
-   * The the step type op code.
-   *
-   *
-   * @return An integer that represents an axes traversal opcode found in 
-   * {@link org.apache.xpath.compiler.OpCodes}.
-   */
-  protected int getStepType()
-  {
-    return m_stepType;
-  }
-
-  /**
-   * Get the argument length of the location step in the opcode map.
-   * TODO: Can this be removed since it is only valuable at compile time?
-   *
-   * @return The argument length of the location step in the opcode map.
-   */
-  protected int getArgLen()
-  {
-    return m_argLen;
-  }
-
-  /**
-   * Tell if the given node is a parent of the
-   * step context, or the step context node itself.
-   *
-   * @param n The node being tested.
-   *
-   * @return true if n is a parent of the step context, or the step context 
-   *              itself.
-   */
-  boolean isAncestorOfRootContext(int n)
-  {
-
-    int parent = m_root;
-    
-    DTM dtm = getDTM(parent);
-    while (DTM.NULL != (parent = dtm.getParent(parent)))
-    {
-      if (parent == n)
-        return true;
-    }
-
-    return false;
-  }
-
   //=============== TreeWalker Implementation ===============
 
   /**
@@ -312,6 +238,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
   {
     // %OPT% Get this directly from the lpi.
     m_dtm = wi().getXPathContext().getDTM(root);
+    m_traverser = m_dtm.getAxisTraverser(m_axis);
     m_isFresh = true;
     m_isDone = false;
     m_root = root;
@@ -344,140 +271,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   public final int getCurrentNode()
   {
     return m_currentNode;
-  }
-
-  /**
-   * Set the current node.
-   *
-   * @param currentNode The current itteration node, should not be null.
-   */
-  public void setCurrentNode(int currentNode)
-  {
-    m_currentNode = currentNode;
-  }
-
-  /**
-   * Set the current node if it's not null.
-   *
-   * @param currentNode The current node or null.
-   * @return The node passed in.
-   */
-  protected int setCurrentIfNotNull(int currentNode)
-  {
-
-    if (DTM.NULL != currentNode)
-      m_currentNode = currentNode;
-
-    return currentNode;
-  }
-
-  /**
-   *  The filter used to screen nodes.
-   *
-   * @return This AxesWalker.
-   */
-  public DTMFilter getFilter()
-  {
-    return this;
-  }
-
-  /**
-   *  The value of this flag determines whether the children of entity
-   * reference nodes are visible to the TreeWalker. If false, they will be
-   * skipped over.
-   * <br> To produce a view of the document that has entity references
-   * expanded and does not expose the entity reference node itself, use the
-   * whatToShow flags to hide the entity reference node and set
-   * expandEntityReferences to true when creating the TreeWalker. To
-   * produce a view of the document that has entity reference nodes but no
-   * entity expansion, use the whatToShow flags to show the entity
-   * reference node and set expandEntityReferences to false.
-   *
-   * @return true.
-   */
-  public boolean getExpandEntityReferences()
-  {
-    return true;
-  }
-
-  /**
-   *  Moves to and returns the closest visible ancestor node of the current
-   * node. If the search for parentNode attempts to step upward from the
-   * TreeWalker's root node, or if it fails to find a visible ancestor
-   * node, this method retains the current position and returns null.
-   * @return  The new parent node, or null if the current node has no parent
-   *   in the TreeWalker's logical view.
-   */
-  public int parentNode()
-  {
-    return DTM.NULL;
-  }
-
-  /**
-   *  Moves the <code>TreeWalker</code> to the first visible child of the
-   * current node, and returns the new node. If the current node has no
-   * visible children, returns <code>null</code> , and retains the current
-   * node.
-   * @return  The new node, or <code>null</code> if the current node has no
-   *   visible children in the TreeWalker's logical view.
-   */
-  public int firstChild()
-  {
-    return DTM.NULL;
-  }
-
-  /**
-   *  Moves the <code>TreeWalker</code> to the next sibling of the current
-   * node, and returns the new node. If the current node has no visible
-   * next sibling, returns <code>null</code> , and retains the current node.
-   * @return  The new node, or <code>null</code> if the current node has no
-   *   next sibling in the TreeWalker's logical view.
-   */
-  public int nextSibling()
-  {
-    return DTM.NULL;
-  }
-
-  /**
-   *  Moves the <code>TreeWalker</code> to the last visible child of the
-   * current node, and returns the new node. If the current node has no
-   * visible children, returns <code>null</code> , and retains the current
-   * node.
-   * @return  The new node, or <code>null</code> if the current node has no
-   *   children  in the TreeWalker's logical view.
-   */
-  public int lastChild()
-  {
-
-    // We may need to support this...
-    throw new RuntimeException("lastChild not supported!");
-  }
-
-  /**
-   *  Moves the <code>TreeWalker</code> to the previous sibling of the
-   * current node, and returns the new node. If the current node has no
-   * visible previous sibling, returns <code>null</code> , and retains the
-   * current node.
-   * @return  The new node, or <code>null</code> if the current node has no
-   *   previous sibling in the TreeWalker's logical view.
-   */
-  public int previousSibling()
-  {
-    throw new RuntimeException("previousSibling not supported!");
-  }
-
-  /**
-   *  Moves the <code>TreeWalker</code> to the previous visible node in
-   * document order relative to the current node, and returns the new node.
-   * If the current node has no previous node,  or if the search for
-   * previousNode attempts to step upward from the TreeWalker's root node,
-   * returns <code>null</code> , and retains the current node.
-   * @return  The new node, or <code>null</code> if the current node has no
-   *   previous node in the TreeWalker's logical view.
-   */
-  public int previousNode()
-  {
-    throw new RuntimeException("previousNode not supported!");
   }
 
   /**
@@ -527,40 +320,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   }
 
   /**
-   * Diagnostic string for this walker.
-   *
-   * @return Diagnostic string for this walker.
-   */
-  public String toString()
-  {
-
-    Class cl = this.getClass();
-    String clName = cl.getName();
-    java.util.StringTokenizer tokenizer =
-      new java.util.StringTokenizer(clName, ".");
-
-    while (tokenizer.hasMoreTokens())
-    {
-      clName = tokenizer.nextToken();
-    }
-
-    String rootName;
-    String currentNodeName;
-
-    rootName = (DTM.NULL == m_root)
-               ? "null"
-               : getDTM(m_root).getNodeName(m_root) + "{"
-                 + (m_root+1) + "}";
-    currentNodeName =
-      (DTM.NULL == m_currentNode)
-      ? "null"
-      : getDTM(m_currentNode).getNodeName(m_currentNode) + "{"
-        + (m_currentNode+1) + "}";
-
-    return clName + "[" + rootName + "][" + currentNodeName + "]";
-  }
-
-  /**
    * This is simply a way to bottle-neck the return of the next node, for 
    * diagnostic purposes.
    *
@@ -571,167 +330,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
   private int returnNextNode(int n)
   {
 
-    if (DEBUG_LOCATED && (DTM.NULL != n))
-    {
-      printDebug("RETURN --->" + nodeToString(n));
-    }
-    else if (DEBUG_LOCATED)
-    {
-      printDebug("RETURN --->null");
-    }
-
     return n;
-  }
-
-  /**
-   * Print a diagnostics string, adding a line break before the print.
-   *
-   * @param s String to print.
-   */
-  private void printDebug(String s)
-  {
-
-    if (DEBUG)
-    {
-      System.out.print("\n");
-
-      if (DTM.NULL != m_currentNode)
-      {
-        try
-        {
-          int depth = getDTM(m_currentNode).getLevel(m_currentNode);
-
-          for (int i = 0; i < depth; i++)
-          {
-            System.out.print(" ");
-          }
-        }
-        catch (ClassCastException cce){}
-      }
-
-      System.out.print(s);
-    }
-  }
-
-  /**
-   * Do a diagnostics dump of an entire subtree.
-   *
-   * @param node The top of the subtree.
-   * @param indent The amount to begin the indenting at.
-   */
-  private void dumpAll(int node, int indent)
-  {
-
-    for (int i = 0; i < indent; i++)
-    {
-      System.out.print(" ");
-    }
-
-    System.out.print(nodeToString(node));
-
-    if (DTM.TEXT_NODE == getDTM(node).getNodeType(node))
-    {
-      XMLString value = getDTM(node).getStringValue(node);
-
-      if (null != value)
-      {
-        System.out.print("+= -->" + value.trim());
-      }
-    }
-
-    System.out.println("");
-
-    DTM dtm = getDTM(node);
-    for (int attr = dtm.getFirstAttribute(node); attr != DTM.NULL; 
-         attr = dtm.getNextAttribute(attr))
-    {
-      for (int k = 0; k < indent; k++)
-      {
-        System.out.print(" ");
-      }
-
-      System.out.print("attr -->");
-      System.out.print(nodeToString(attr));
-
-      XMLString value = dtm.getStringValue(attr);
-
-      if (null != value)
-      {
-        System.out.print("+= -->" + value.trim());
-      }
-
-      System.out.println("");
-    }
-
-    for (int child = dtm.getFirstChild(node); DTM.NULL != child; 
-         child = dtm.getNextSibling(child))
-    {
-      dumpAll(child, indent + 1);
-    }
-  }
-
-  /**
-   * Print a diagnostic string without adding a line break.
-   *
-   * @param s The string to print.
-   */
-  private void printDebugAdd(String s)
-  {
-
-    if (DEBUG)
-    {
-      System.out.print("; " + s);
-    }
-  }
-
-  /**
-   * Diagnostics.
-   */
-  private void printEntryDebug()
-  {
-
-    if (true && DEBUG_TRAVERSAL)
-    {
-      System.out.print("\n============================\n");
-
-      if (DTM.NULL != m_currentNode)
-      {
-        try
-        {
-          int depth = getDTM(m_currentNode).getLevel(m_currentNode);
-
-          for (int i = 0; i < depth; i++)
-          {
-            System.out.print("+");
-          }
-        }
-        catch (ClassCastException cce){}
-      }
-
-      System.out.print(" " + this.toString() + ", "
-                       + nodeToString(this.m_currentNode));
-    }
-  }
-
-  /**
-   * Tell what's the maximum level this axes can descend to.  This method is 
-   * meant to be overloaded by derived classes.
-   *
-   * @return An estimation of the maximum level this axes can descend to.
-   */
-  protected int getLevelMax()
-  {
-    return 0;
-  }
-
-  /**
-   * Tell what's the next level this axes can descend to.
-   *
-   * @return An estimation of the next level that this walker will traverse to.
-   */
-  protected int getNextLevelAmount()
-  {
-    return m_nextLevelAmount;
   }
 
   /**
@@ -743,34 +342,22 @@ public abstract class AxesWalker extends PredicatedNodeTest
   {
 
     if (m_isFresh)
-      m_isFresh = false;
-
-    int current = this.getCurrentNode();
-
-    // %NODETESTFILTER%
-//    if (current.isSupported(FEATURE_NODETESTFILTER, "1.0"))
-//      ((NodeTestFilter) current).setNodeTest(this);
-
-    int next = this.firstChild();
-
-    while (DTM.NULL == next)
     {
-      next = this.nextSibling();
-
-      if (DTM.NULL == next)
-      {
-        int p = this.parentNode();
-
-        if (DTM.NULL == p)
-          break;
-      }
+      m_currentNode = m_traverser.first(m_root);
+      m_isFresh = false;
+    }
+    // I shouldn't have to do this the check for current node, I think.
+    // numbering\numbering24.xsl fails if I don't do this.  I think 
+    // it occurs as the walkers are backing up. -sb
+    else if(DTM.NULL != m_currentNode) 
+    {
+      m_currentNode = m_traverser.next(m_root, m_currentNode);
     }
 
-    if (DTM.NULL == next)
+    if (DTM.NULL == m_currentNode)
       this.m_isDone = true;
 
-    // System.out.println("Returning: "+this);
-    return next;
+    return m_currentNode;
   }
 
   /**
@@ -785,14 +372,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   public int nextNode()
   {
 
-    if (DEBUG_TRAVERSAL &&!m_didDumpAll)
-    {
-      m_didDumpAll = true;
-
-      // Node doc = (Node.DOCUMENT_NODE == m_root.getNodeType()) ? m_root : m_root.getOwnerDocument();
-      // dumpAll(doc, 0);
-    }
-
     int nextNode = DTM.NULL;
     AxesWalker walker = wi().getLastUsedWalker();
 
@@ -805,10 +384,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
         nextNode = walker.getNextNode();
 
-        if (DEBUG_TRAVERSAL)
-          walker.printDebug(walker.toString() + "--NEXT->"
-                            + nodeToString(nextNode) + ")");
-
         if (DTM.NULL == nextNode)
         {
 
@@ -818,28 +393,11 @@ public abstract class AxesWalker extends PredicatedNodeTest
         {
           if (walker.acceptNode(nextNode) != DTMIterator.FILTER_ACCEPT)
           {
-            if (DEBUG_TRAVERSAL)
-              printDebugAdd("[FILTER_SKIP]");
-
             continue;
-          }
-          else
-          {
-            if (DEBUG_TRAVERSAL)
-              printDebugAdd("[FILTER_ACCEPT]");
           }
 
           if (null == walker.m_nextWalker)
           {
-
-            // walker.pushState();
-            if (DEBUG_TRAVERSAL)
-              printDebug("May be returning: " + nodeToString(nextNode));
-
-            if (DEBUG_TRAVERSAL && (DTM.NULL != m_prevReturned))
-              printDebugAdd(", m_prevReturned: "
-                            + nodeToString(m_prevReturned));
-
             wi().setLastUsedWalker(walker);
 
             // return walker.returnNextNode(nextNode);
@@ -854,8 +412,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
             walker.setRoot(nextNode);
 
             walker.m_prevWalker = prev;
-
-            walker.printEntryDebug();
 
             continue;
           }
@@ -873,10 +429,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
     m_prevReturned = nextNode;
 
-    if (DEBUG_LOCATED)
-      return returnNextNode(nextNode);
-    else
-      return nextNode;
+    return nextNode;
   }
 
   //============= End TreeWalker Implementation =============
@@ -934,82 +487,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
     return pos;
   }
   
-  /**
-   * Tell if this is a special type of walker compatible with ChildWalkerMultiStep.
-   * 
-   * @return true this is a special type of walker compatible with ChildWalkerMultiStep.
-   */
-  protected boolean isFastWalker()
-  {
-    return false;
-  }
-  
-  /**
-   * Test whether a specified node is visible in the logical view of a
-   * <code>DTMIterator</code>. Normally, this function
-   * will be called by the implementation of <code>DTMIterator</code>;
-   * it is not normally called directly from
-   * user code.
-   *
-   * @param nodeHandle int Handle of the node.
-   * @param whatToShow one of SHOW_XXX values.
-   * @return one of FILTER_ACCEPT, FILTER_REJECT, or FILTER_SKIP.
-   */
-  public short acceptNode(int nodeHandle, int whatToShow)
-  {
-    return DTMIterator.FILTER_ACCEPT;  // %TBD%
-  }
-
-  /**
-   * Test whether a specified node is visible in the logical view of a
-   * <code>DTMIterator</code>. Normally, this function
-   * will be called by the implementation of <code>DTMIterator</code>;
-   * it is not normally called directly from
-   * user code.
-   *
-   * @param nodeHandle int Handle of the node.
-   * @param whatToShow one of SHOW_XXX values.
-   * @param expandedName a value defining the exanded name as defined in
-   *                     the DTM interface.  Wild cards will be defined
-   *                     by 0xFFFF in the high word and/or in the low word.
-   * @return one of FILTER_ACCEPT, FILTER_REJECT, or FILTER_SKIP.
-   */
-  public short acceptNode(int nodeHandle, int whatToShow, int expandedName)
-  {
-    return DTMIterator.FILTER_ACCEPT;  // %TBD%
-  }
-
-  //============= Static Data =============
-
-  // These are useful to enable if you want to turn diagnostics messages 
-  // on or off temporarily from another module.
-//  public static boolean DEBUG = false;
-//  public static boolean DEBUG_WAITING = false;
-//  public static boolean DEBUG_TRAVERSAL = false;
-//  public static boolean DEBUG_LOCATED = false;
-//  public static boolean DEBUG_PREDICATECOUNTING = false;
-  
-  /** General static debug flag.  Setting this to false will suppress some 
-   *  of the output messages caused by the other debug categories.  */
-  static final boolean DEBUG = false;
-
-  /** If true, diagnostic messages about the waiting queue will be posted.  */
-  static final boolean DEBUG_WAITING = false;
-
-  /** If true, diagnostic messages about the tree traversal will be posted.  */
-  static final boolean DEBUG_TRAVERSAL = false;
-
-  /** If true, diagnostic messages about the nodes that have 
-   *  been 'located' will be posted.  */
-  static final boolean DEBUG_LOCATED = false;
-
-  /** For diagnostic purposes, tells if we already did a subtree dump.  */
-  static boolean m_didDumpAll = false;
-
-  /** String passed to {@link org.w3c.dom.Node#isSupported} to see if it implements 
-   *  a {@link org.apache.xpath.patterns.NodeTestFilter} interface. */
-  public static final String FEATURE_NODETESTFILTER = "NodeTestFilter";
-  
   //============= State Data =============
   
   /**
@@ -1049,36 +526,16 @@ public abstract class AxesWalker extends PredicatedNodeTest
   /**
    *  The node at which the TreeWalker is currently positioned.
    */
-  transient int m_currentNode = DTM.NULL;
+  private transient int m_currentNode = DTM.NULL;
   
   /** The node last returned from nextNode(). */
   transient int m_prevReturned = DTM.NULL;
-
-  /**
-   * The arg length of the XPath step. Does not change after the constructor.
-   * TODO: Can this be removed since it is only valuable at compile time?
-   * @serial
-   */
-  private int m_argLen;
-  
-  /**
-   * The step type of the XPath step. Does not change after the constructor.
-   * @serial
-   */
-  private int m_stepType;
-    
-  /** Fairly short lived flag to tell if we switched to a waiting walker.  */
-  transient private boolean m_didSwitch = false;
 
   /** True if this walker has found it's last node.  */
   transient boolean m_isDone = false;
 
   /** True if an itteration has not begun.  */
   transient boolean m_isFresh;
-
-  /** An estimation of the next level that this walker will traverse to.  Not 
-   *  always accurate.  */
-  transient protected int m_nextLevelAmount;
 
   /** The next walker in the location step chain.
    *  @serial  */
@@ -1087,5 +544,10 @@ public abstract class AxesWalker extends PredicatedNodeTest
   /** The previous walker in the location step chain, or null.
    *  @serial   */
   AxesWalker m_prevWalker;
-    
+  
+  /** The traversal axis from where the nodes will be filtered. */
+  protected int m_axis = -1;
+
+  /** The DTM inner traversal class, that corresponds to the super axis. */
+  protected DTMAxisTraverser m_traverser;   
 }

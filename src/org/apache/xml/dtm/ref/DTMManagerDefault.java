@@ -99,7 +99,7 @@ import org.apache.xml.utils.XMLStringFactory;
 public class DTMManagerDefault extends DTMManager
 {
 
-  /** NEEDSDOC Field m_dtms */
+  /** Vector of DTMs that this manager manages. */
   protected Vector m_dtms = new Vector();
   
   /**
@@ -136,11 +136,14 @@ public class DTMManagerDefault extends DTMManager
    *                         be null.
    * @param incremental true if the DTM should be built incrementally, if
    *                    possible.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    *
    * @return a non-null DTM reference.
    */
   public DTM getDTM(Source source, boolean unique,
-                    DTMWSFilter whiteSpaceFilter, boolean incremental)
+                    DTMWSFilter whiteSpaceFilter, boolean incremental, 
+                    boolean doIndexing)
   {
     if(DEBUG && null != source)
       System.out.println("Starting source: "+source.getSystemId());
@@ -150,7 +153,7 @@ public class DTMManagerDefault extends DTMManager
     if ((null != source) && source instanceof DOMSource)
     {
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
-                                whiteSpaceFilter, xstringFactory);
+                                whiteSpaceFilter, xstringFactory, doIndexing);
 
       m_dtms.add(dtm);
 
@@ -204,7 +207,7 @@ public class DTMManagerDefault extends DTMManager
 
         // Create the basic SAX2DTM.
         SAX2DTM dtm = new SAX2DTM(this, source, documentID, whiteSpaceFilter,
-                                  xstringFactory);
+                                  xstringFactory, doIndexing);
 
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
@@ -413,7 +416,7 @@ public class DTMManagerDefault extends DTMManager
       // Current solution: Generate a new DOM2DTM with this node as root.
       // %REVIEW% Maybe the best I can do??
       DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false,
-                       null, true);
+                       null, true, false);
 
       return dtm.getDocument();
     }
@@ -588,7 +591,7 @@ public class DTMManagerDefault extends DTMManager
       Document doc = db.newDocument();
       Node df = doc.createDocumentFragment();
 
-      return getDTM(new DOMSource(df), true, null, false);
+      return getDTM(new DOMSource(df), true, null, false, false);
     }
     catch (Exception e)
     {

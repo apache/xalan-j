@@ -154,7 +154,7 @@ public class NodeTest extends Expression
    * The local name to be tested for.
    *  @serial 
    */
-  String m_name;
+  protected String m_name;
 
   /**
    * Return the local name to be tested.
@@ -341,12 +341,71 @@ public class NodeTest extends Expression
   {
     return m_score.num();
   }
+  
+  /**
+   * Tell what node type to test, if not DTMFilter.SHOW_ALL.
+   *
+   * @param whatToShow Bit set defined mainly by 
+   *        {@link org.apache.xml.dtm.DTMFilter}.
+   * @return the node type for the whatToShow.  Since whatToShow can specify 
+   *         multiple types, it will return the first bit tested that is on, 
+   *         so the caller of this function should take care that this is 
+   *         the function they really want to call.  If none of the known bits
+   *         are set, this function will return zero.
+   */
+  public static int getNodeTypeTest(int whatToShow)
+  {
+    // %REVIEW% Is there a better way?
+    if (0 != (whatToShow & DTMFilter.SHOW_ELEMENT))
+      return DTM.ELEMENT_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_ATTRIBUTE))
+      return DTM.ATTRIBUTE_NODE;
+      
+    if (0 != (whatToShow & DTMFilter.SHOW_TEXT))
+      return DTM.TEXT_NODE;
+      
+    if (0 != (whatToShow & DTMFilter.SHOW_DOCUMENT))
+      return DTM.DOCUMENT_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_DOCUMENT_FRAGMENT))
+      return DTM.DOCUMENT_FRAGMENT_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_NAMESPACE))
+      return DTM.NAMESPACE_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_COMMENT))
+      return DTM.COMMENT_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_PROCESSING_INSTRUCTION))
+      return DTM.PROCESSING_INSTRUCTION_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_DOCUMENT_TYPE))
+      return DTM.DOCUMENT_TYPE_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_ENTITY))
+      return DTM.ENTITY_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_ENTITY_REFERENCE))
+      return DTM.ENTITY_REFERENCE_NODE;
+
+    if (0 != (whatToShow & DTMFilter.SHOW_NOTATION))
+      return DTM.NOTATION_NODE;
+      
+    if (0 != (whatToShow & DTMFilter.SHOW_CDATA_SECTION))
+      return DTM.CDATA_SECTION_NODE;
+
+
+    return 0;
+  }
+
 
   /**
    * Do a diagnostics dump of a whatToShow bit set.
    *
    *
-   * @param whatToShow Bit set defined mainly by {@link org.w3c.dom.traversal.NodeFilter}.
+   * @param whatToShow Bit set defined mainly by 
+   *        {@link org.apache.xml.dtm.DTMFilter}.
    */
   public static void debugWhatToShow(int whatToShow)
   {

@@ -78,13 +78,17 @@ public abstract class DTMDefaultBaseIterators extends DTMDefaultBaseTraversers
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
    * @param xstringfactory The factory to use for creating XMLStrings.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    */
   public DTMDefaultBaseIterators(DTMManager mgr, Source source,
                                  int dtmIdentity,
                                  DTMWSFilter whiteSpaceFilter,
-                                 XMLStringFactory xstringfactory)
+                                 XMLStringFactory xstringfactory,
+                                 boolean doIndexing)
   {
-    super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory);
+    super(mgr, source, dtmIdentity, whiteSpaceFilter, 
+          xstringfactory, doIndexing);
   }
 
   /**
@@ -1021,8 +1025,19 @@ public abstract class DTMDefaultBaseIterators extends DTMDefaultBaseTraversers
       if (_isRestartable)
       {
         _startNode = node;
+
         if(node == NULL)
+        {
           _currentNode = node;
+          return resetPosition();
+        }
+          
+        int type = getExpandedTypeID(node) & ExpandedNameTable.MASK_NODETYPE;
+        if(ExpandedNameTable.ATTRIBUTE == type 
+           || ExpandedNameTable.NAMESPACE == type )
+        {
+          _currentNode = node;
+        }
         else
           _currentNode = getFirstChild(getParent(node));
 

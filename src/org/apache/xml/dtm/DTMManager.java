@@ -223,12 +223,14 @@ public abstract class DTMManager
    *                         be null.
    * @param incremental true if the DTM should be built incrementally, if
    *                    possible.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    *
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(javax.xml.transform.Source source,
                              boolean unique, DTMWSFilter whiteSpaceFilter,
-                             boolean incremental);
+                             boolean incremental, boolean doIndexing);
 
   /**
    * Get the instance of DTM that "owns" a node handle.

@@ -69,12 +69,10 @@ import org.apache.xpath.patterns.NodeTestFilter;
 
 import java.util.Vector;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.traversal.NodeFilter;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.Axis;
 
 /**
  * Walker for the OP_VARIABLE, or OP_EXTFUNCTION, or OP_FUNCTION, or OP_GROUP,
@@ -91,7 +89,7 @@ public class FilterExprWalker extends AxesWalker
    */
   public FilterExprWalker(WalkingIterator locPathIterator)
   {
-    super(locPathIterator);
+    super(locPathIterator, Axis.FILTEREDLIST);
   }
 
   /**
@@ -258,43 +256,15 @@ public class FilterExprWalker extends AxesWalker
       {
         int current = this.getCurrentNode();
 
-        // %NODETESTFILTER%
-//        if (current instanceof NodeTestFilter)
-//          ((NodeTestFilter) current).setNodeTest(this);
-
         next = m_nodeSet.nextNode();
       }
       else
         next = DTM.NULL;
     }
 
-    // Bogus, I think, but probably OK for right now since a filterExpr 
-    // can only occur at the head of a location path.
-    if (DTM.NULL == next)
-    {
-      m_nextLevelAmount = 0;
-    }
-    else
-    {
-
-      // System.out.println("FilterExprWalker.getNextNode");
-      m_nextLevelAmount = ((getDTM(next).getFirstChild(next) != DTM.NULL) ? 1 : 0);
-
-      /* ...WAIT TO SEE IF WE REALLY NEED THIS...
-      m_peek = m_nodeSet.nextNode();
-      if(null == m_peek)
-        m_nextLevelAmount = 0;
-      else
-      {
-        DOMHelper dh = m_lpi.getDOMHelper();
-        m_nextLevelAmount = dh.getLevel(m_peek) - dh.getLevel(next);
-      }
-      */
-    }
-
-    int current = setCurrentIfNotNull(next);
+    // int current = setCurrentIfNotNull(next);
     // System.out.println("Returning: "+this);
-    return current;
+    return next;
   }
   
   /** The contained expression. Should be non-null.

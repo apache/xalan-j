@@ -74,6 +74,7 @@ import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.dtm.*;
 import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.XMLStringFactory;
+import org.apache.xml.utils.WrappedRuntimeException;
 
 /**
  * This class implements a DTM that tends to be optimized more for speed than
@@ -124,9 +125,6 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
   /** This vector holds offset and length data. */
   protected IntVector m_data = new IntVector();
-
-  /** The table of expanded names, which may well be owned by the DTMManager */
-  ExpandedNameTable m_ent;
 
   /** The parent stack, needed only for construction. */
   transient private IntStack m_parents = new IntStack();
@@ -223,22 +221,22 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
    * @param xstringfactory XMLString factory for creating character content.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    */
   public SAX2DTM(DTMManager mgr, Source source, int dtmIdentity,
                  DTMWSFilter whiteSpaceFilter,
-                 XMLStringFactory xstringfactory)
+                 XMLStringFactory xstringfactory,
+                 boolean doIndexing)
   {
 
-    super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory);
+    super(mgr, source, dtmIdentity, whiteSpaceFilter, 
+          xstringfactory, doIndexing);
 
     m_dataOrQName = new short[m_initialblocksize];
-    m_ent = ((DTMManagerDefault)mgr).getExpandedNameTable(this);
-
-    if (null == m_ent)
-      m_ent = new ExpandedNameTable();
 
     int doc = addNode(DTM.DOCUMENT_NODE,
-                      m_ent.getExpandedTypeID(DTM.DOCUMENT_NODE),
+                      m_expandedNameTable.getExpandedTypeID(DTM.DOCUMENT_NODE),
                       m_levelAmount, DTM.NULL, DTM.NULL, 0, true);
 
     m_levelAmount++;
@@ -543,7 +541,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     if (0 == namespaceID)
     {
-      String name = m_ent.getLocalName(expandedTypeID);
+      String name = m_expandedNameTable.getLocalName(expandedTypeID);
       int type = getNodeType(nodeHandle);
 
       if (type == DTM.NAMESPACE_NODE)
@@ -591,7 +589,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     if (0 == namespaceID)
     {
-      String name = m_ent.getLocalName(expandedTypeID);
+      String name = m_expandedNameTable.getLocalName(expandedTypeID);
 
       if (name == null)
         return "";
@@ -743,7 +741,14 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     // no-op.
     if (!(gotMore instanceof Boolean))
     {
-
+      if(gotMore instanceof RuntimeException)
+      {
+        throw (RuntimeException)gotMore;
+      }
+      else if(gotMore instanceof Exception)
+      {
+        throw new WrappedRuntimeException((Exception)gotMore);
+      }
       // for now...
       clearCoRoutine();
 
@@ -907,7 +912,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   {
 
     int expandedTypeID = getExpandedTypeID(nodeHandle);
-    String name = m_ent.getLocalName(expandedTypeID);
+    String name = m_expandedNameTable.getLocalName(expandedTypeID);
 
     if (name == null)
       return "";
@@ -1110,7 +1115,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     int expandedTypeID = getExpandedTypeID(nodeHandle);
 
-    return m_ent.getNamespace(expandedTypeID);
+    return m_expandedNameTable.getNamespace(expandedTypeID);
   }
 
   /**
@@ -1319,7 +1324,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
         m_chars.setLength(m_textPendingStart);  // Discard accumulated text
       else
       {
-        int exName = m_ent.getExpandedTypeID(DTM.TEXT_NODE);
+        int exName = m_expandedNameTable.getExpandedTypeID(DTM.TEXT_NODE);
         int dataIndex = m_data.size();
 
         m_previous = addNode(m_coalescedTextType, exName, m_levelAmount,
@@ -1630,13 +1635,14 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     charactersFlush();
 
-    int exName = m_ent.getExpandedTypeID(uri, localName, DTM.ELEMENT_NODE);
+    int exName = m_expandedNameTable.getExpandedTypeID(uri, localName, DTM.ELEMENT_NODE);
     String prefix = getPrefix(qName, uri);
     int prefixIndex = (null != prefix)
                       ? m_valuesOrPrefixes.stringToIndex(qName) : 0;
     int elemNode = addNode(DTM.ELEMENT_NODE, exName, m_levelAmount,
                            m_parents.peek(), m_previous, prefixIndex, true);
-
+    indexNode(exName, elemNode);
+    
     m_levelAmount++;
 
     m_parents.push(elemNode);
@@ -1654,7 +1660,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
       String declURL = (String) m_prefixMappings.elementAt(i + 1);
 
-      exName = m_ent.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
+      exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
 
       int val = m_valuesOrPrefixes.stringToIndex(declURL);
 
@@ -1706,7 +1712,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
         val = -dataIndex;
       }
 
-      exName = m_ent.getExpandedTypeID(attrUri, attrLocalName, nodeType);
+      exName = m_expandedNameTable.getExpandedTypeID(attrUri, attrLocalName, nodeType);
       prev = addNode(nodeType, exName, m_levelAmount, elemNode, prev, val,
                      false);
     }
@@ -1861,7 +1867,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     charactersFlush();
 
-    int exName = m_ent.getExpandedTypeID(null, target,
+    int exName = m_expandedNameTable.getExpandedTypeID(null, target,
                                          DTM.PROCESSING_INSTRUCTION_NODE);
     int dataIndex = m_valuesOrPrefixes.stringToIndex(data);
 
@@ -2176,7 +2182,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     charactersFlush();
 
-    int exName = m_ent.getExpandedTypeID(DTM.COMMENT_NODE);
+    int exName = m_expandedNameTable.getExpandedTypeID(DTM.COMMENT_NODE);
 
     // For now, treat comments as strings...  I guess we should do a 
     // seperate FSB buffer instead.

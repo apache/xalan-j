@@ -160,15 +160,18 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
    *                         be null.
    * @param incremental true if the construction should try and be incremental.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    *
    * @return a non-null DTM reference.
    */
   public DTM getDTM(javax.xml.transform.Source source, boolean unique, 
                     DTMWSFilter wsfilter,
-                    boolean incremental)
+                    boolean incremental,
+                    boolean doIndexing)
   {
     return m_dtmManager.getDTM(source, unique, wsfilter, 
-                               incremental);
+                               incremental, doIndexing);
   }
                              
   /**

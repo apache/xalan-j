@@ -57,6 +57,7 @@
 package org.apache.xml.dtm.ref;
 
 import org.apache.xml.dtm.*;
+
 import javax.xml.transform.Source;
 
 import org.apache.xml.utils.XMLStringFactory;
@@ -77,13 +78,17 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
    * @param xstringfactory The factory to use for creating XMLStrings.
+   * @param doIndexing true if the caller considers it worth it to use
+   *                   indexing schemes.
    */
   public DTMDefaultBaseTraversers(DTMManager mgr, Source source,
                                   int dtmIdentity,
                                   DTMWSFilter whiteSpaceFilter,
-                                  XMLStringFactory xstringfactory)
+                                  XMLStringFactory xstringfactory,
+                                  boolean doIndexing)
   {
-    super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory);
+    super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
+          doIndexing);
   }
 
   /**
@@ -171,8 +176,10 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     case Axis.ROOT :
       traverser = new RootTraverser();
       break;
+    case Axis.FILTEREDLIST :
+      return null; // Don't want to throw an exception for this one.
     default :
-      throw new DTMException("Unknown axis traversal type");
+      throw new DTMException("Unknown axis traversal type: "+axis);
     }
 
     if (null == traverser)
@@ -364,10 +371,136 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
   }
 
   /**
+   * Super class for derived classes that want a convenient way to access 
+   * the indexing mechanism.
+   */
+  private abstract class IndexedDTMAxisTraverser extends DTMAxisTraverser
+  {
+
+    /**
+     * Tell if the indexing is on and the given extended type ID matches 
+     * what is in the indexes.  Derived classes should call this before 
+     * calling {@link #getNextIndexed(int, int, int) getNextIndexed} method.
+     *
+     * @param extendedTypeID The extended type ID being requested.
+     *
+     * @return true if it is OK to call the 
+     *         {@link #getNextIndexed(int, int, int) getNextIndexed} method.
+     */
+    protected final boolean isIndexed(int extendedTypeID)
+    {
+
+      return (m_indexing
+              && ExpandedNameTable.ELEMENT
+                 == (extendedTypeID & ExpandedNameTable.MASK_NODETYPE));
+    }
+
+    /**
+     * Tell if a node is outside the axis being traversed.  This method must be 
+     * implemented by derived classes, and must be robust enough to handle any 
+     * node that occurs after the axis root.
+     *
+     * @param axisRoot The root identity of the axis.
+     * @param identity The node in question.
+     *
+     * @return true if the given node falls outside the axis being traversed.
+     */
+    protected abstract boolean isAfterAxis(int axisRoot, int identity);
+
+    /**
+     * Tell if the axis has been fully processed to tell if a the wait for 
+     * an arriving node should terminate.  This method must be implemented 
+     * be a derived class.
+     *
+     * @param axisRoot The root identity of the axis.
+     *
+     * @return true if the axis has been fully processed.
+     */
+    protected abstract boolean axisHasBeenProcessed(int axisRoot);
+
+    /**
+     * Get the next indexed node that matches the extended type ID.  Before 
+     * calling this function, one should first call 
+     * {@link #isIndexed(int) isIndexed} to make sure that the index can 
+     * contain nodes that match the given extended type ID.
+     *
+     * @param axisRoot The root identity of the axis.
+     * @param nextPotential The node found must match or occur after this node.
+     * @param extendedTypeID The extended type ID for the request.
+     *
+     * @return The node or NULL if not found.
+     */
+    protected int getNextIndexed(int axisRoot, int nextPotential,
+                                 int extendedTypeID)
+    {
+
+      int nsIndex = m_expandedNameTable.getNamespaceID(extendedTypeID);
+      int lnIndex = m_expandedNameTable.getLocalNameID(extendedTypeID);
+
+      do
+      {
+        int next = findElementFromIndex(nsIndex, lnIndex, nextPotential);
+
+        if (NOTPROCESSED != next)
+        {
+          if (isAfterAxis(axisRoot, next))
+            return NULL;
+
+          // System.out.println("Found node via index: "+first);
+          return next;
+        }
+
+        nextNode();
+      }
+      while( !axisHasBeenProcessed(axisRoot) );
+
+      return DTM.NULL;
+    }
+  }
+
+  /**
    * Implements traversal of the Ancestor access, in reverse document order.
    */
-  private class DescendantTraverser extends DTMAxisTraverser
+  private class DescendantTraverser extends IndexedDTMAxisTraverser
   {
+    /**
+     * Get the first potential identity that can be returned.  This should 
+     * be overridded by classes that need to return the self node.
+     *
+     * @param identity The node identity of the root context of the traversal.
+     *
+     * @return The first potential node that can be in the traversal.
+     */
+    protected int getFirstPotential(int identity)
+    {
+      return identity + 1;
+    }
+    
+    /**
+     * Tell if the axis has been fully processed to tell if a the wait for 
+     * an arriving node should terminate.
+     *
+     * @param axisRoot The root identity of the axis.
+     *
+     * @return true if the axis has been fully processed.
+     */
+    protected boolean axisHasBeenProcessed(int axisRoot)
+    {
+      return !(m_nextsib[axisRoot] == NOTPROCESSED);
+    }
+    
+    /**
+     * Get the subtree root identity from the handle that was passed in by 
+     * the caller.  Derived classes may override this to change the root 
+     * context of the traversal.
+     * 
+     * @param handle handle to the root context.
+     * @return identity of the root of the subtree.
+     */
+    protected int getSubtreeRoot(int handle)
+    {
+      return handle & m_mask;
+    }
 
     /**
      * Tell if this node identity is a descendant.  Assumes that
@@ -377,13 +510,65 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
      * which fails if the parent starts after the root ends.
      * May be sufficient for this class's logic, but misleadingly named!
      *
-     * NEEDSDOC @param subtreeRootIdentity
+     * @param subtreeRootIdentity The root context of the subtree in question.
      * @param identity The index number of the node in question.
      * @return true if the index is a descendant of _startNode.
      */
     protected boolean isDescendant(int subtreeRootIdentity, int identity)
     {
       return _parent(identity) >= subtreeRootIdentity;
+    }
+
+    /**
+     * Tell if a node is outside the axis being traversed.  This method must be 
+     * implemented by derived classes, and must be robust enough to handle any 
+     * node that occurs after the axis root.
+     *
+     * @param axisRoot The root identity of the axis.
+     * @param identity The node in question.
+     *
+     * @return true if the given node falls outside the axis being traversed.
+     */
+    protected boolean isAfterAxis(int axisRoot, int identity)
+    {   
+      // %REVIEW% Is there *any* cheaper way to do this?
+      do
+      {
+        if(identity == axisRoot)
+          return false;
+        identity = m_parent[identity];
+      }
+        while(identity >= axisRoot);
+        
+      return true;
+    }
+
+    /**
+     * By the nature of the stateless traversal, the context node can not be
+     * returned or the iteration will go into an infinate loop.  So to traverse
+     * an axis, the first function must be used to get the first node.
+     *
+     * <p>This method needs to be overloaded only by those axis that process
+     * the self node. <\p>
+     *
+     * @param context The context node of this traversal. This is the point
+     * of origin for the traversal -- its "root node" or starting point.
+     * @param extendedTypeID The extended type ID that must match.
+     *
+     * @return the first node in the traversal.
+     */
+    public int first(int context, int extendedTypeID)
+    {
+
+      if (isIndexed(extendedTypeID))
+      {
+        int identity = getSubtreeRoot(context);
+        int firstPotential = getFirstPotential(identity);
+
+        return getNextIndexed(identity, firstPotential, extendedTypeID);
+      }
+
+      return next(context, context, extendedTypeID);
     }
 
     /**
@@ -397,7 +582,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int next(int context, int current)
     {
 
-      int subtreeRootIdent = context & m_mask;
+      int subtreeRootIdent = getSubtreeRoot(context);
 
       for (current = (current & m_mask) + 1; ; current++)
       {
@@ -426,9 +611,16 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int next(int context, int current, int extendedTypeID)
     {
 
-      int subtreeRootIdent = context & m_mask;
+      int subtreeRootIdent = getSubtreeRoot(context);
 
-      for (current = (current & m_mask) + 1; ; current++)
+      current = (current & m_mask) + 1;
+
+      if (isIndexed(extendedTypeID))
+      {
+        return getNextIndexed(subtreeRootIdent, current, extendedTypeID);
+      }
+
+      for (; ; current++)
       {
         int exptype = _exptype(current);  // may call nextNode()
 
@@ -450,6 +642,19 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
   {
 
     /**
+     * Get the first potential identity that can be returned, which is the 
+     * axis context, in this case.
+     *
+     * @param identity The node identity of the root context of the traversal.
+     *
+     * @return The axis context.
+     */
+    protected int getFirstPotential(int identity)
+    {
+      return identity;
+    }
+
+    /**
      * By the nature of the stateless traversal, the context node can not be
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
@@ -461,24 +666,6 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int first(int context)
     {
       return context;
-    }
-
-    /**
-     * By the nature of the stateless traversal, the context node can not be
-     * returned or the iteration will go into an infinate loop.  To see if
-     * the self node should be processed, use this function.  If the context
-     * node does not match the extended type ID, this function will return
-     * false.
-     *
-     * @param context The context node of this traversal.
-     * @param extendedTypeID The extended type ID that must match.
-     *
-     * @return the first node in the traversal.
-     */
-    public int first(int context, int extendedTypeID)
-    {
-      return (m_exptype[context & m_mask] == extendedTypeID)
-             ? context : next(context, context, extendedTypeID);
     }
   }
 
@@ -524,76 +711,88 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
    */
   private class FollowingTraverser extends DescendantTraverser
   {
-    
-  /**
-   * Get the first of the following.
-   *
-   * @param context The context node of this traversal. This is the point
-   * that the traversal starts from.
-   * @return the first node in the traversal.
-   */
-  public int first(int context)
-  {
-    int first;
-    int type = getNodeType(context);
-    if((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
-    {
-      context = getParent(context);
-      first = getFirstChild(context);
-      if(NULL != first)
-        return first;
-    }
-    do
-    {
-      first = getNextSibling(context);
-      if(NULL == first)
-        context = getParent(context);
-    }
-      while(NULL == first && NULL != context);
-      
-    return first;
-  }
 
-  /**
-   * Get the first of the following.
-   *
-   * @param context The context node of this traversal. This is the point
-   * of origin for the traversal -- its "root node" or starting point.
-   * @param extendedTypeID The extended type ID that must match.
-   *
-   * @return the first node in the traversal.
-   */
-  public int first(int context, int extendedTypeID)
-  {
-    int first;
-    int type = getNodeType(context);
-    if((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
+    /**
+     * Get the first of the following.
+     *
+     * @param context The context node of this traversal. This is the point
+     * that the traversal starts from.
+     * @return the first node in the traversal.
+     */
+    public int first(int context)
     {
-      context = getParent(context);
-      first = getFirstChild(context);
-      if(NULL != first)
+
+      int first;
+      int type = getNodeType(context);
+
+      if ((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
       {
-        if(_exptype(first) == extendedTypeID)
-          return first;
-        else return next(context, first, extendedTypeID);
-      }
-    }
-    do
-    {
-      first = getNextSibling(context);
-      if(NULL == first)
         context = getParent(context);
-      else
-      {
-        if(_exptype(first) == extendedTypeID)
+        first = getFirstChild(context);
+
+        if (NULL != first)
           return first;
-        else return next(context, first, extendedTypeID);
       }
+
+      do
+      {
+        first = getNextSibling(context);
+
+        if (NULL == first)
+          context = getParent(context);
+      }
+      while (NULL == first && NULL != context);
+
+      return first;
     }
-      while(NULL == first && NULL != context);
-      
-    return first;
-  }
+
+    /**
+     * Get the first of the following.
+     *
+     * @param context The context node of this traversal. This is the point
+     * of origin for the traversal -- its "root node" or starting point.
+     * @param extendedTypeID The extended type ID that must match.
+     *
+     * @return the first node in the traversal.
+     */
+    public int first(int context, int extendedTypeID)
+    {
+
+      int first;
+      int type = getNodeType(context);
+
+      if ((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
+      {
+        context = getParent(context);
+        first = getFirstChild(context);
+
+        if (NULL != first)
+        {
+          if (_exptype(first) == extendedTypeID)
+            return first;
+          else
+            return next(context, first, extendedTypeID);
+        }
+      }
+
+      do
+      {
+        first = getNextSibling(context);
+
+        if (NULL == first)
+          context = getParent(context);
+        else
+        {
+          if (_exptype(first) == extendedTypeID)
+            return first;
+          else
+            return next(context, first, extendedTypeID);
+        }
+      }
+      while (NULL == first && NULL != context);
+
+      return first;
+    }
 
     /**
      * Traverse to the next node after the current node.
@@ -609,6 +808,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       while (true)
       {
         current++;
+
         int type = _type(current);  // may call nextNode()
 
         if (NULL == type)
@@ -637,6 +837,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       while (true)
       {
         current++;
+
         int etype = _exptype(current);  // may call nextNode()
 
         if (NULL == etype)
@@ -931,9 +1132,9 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       return NULL;
     }
   }
-  
+
   /**
-   * Implements traversal of the Ancestor and the Preceding axis, 
+   * Implements traversal of the Ancestor and the Preceding axis,
    * in reverse document order.
    */
   private class PrecedingAndAncestorTraverser extends DTMAxisTraverser
@@ -995,7 +1196,6 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       return NULL;
     }
   }
-
 
   /**
    * Implements traversal of the Ancestor access, in reverse document order.
@@ -1105,7 +1305,6 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     }
   }
 
-
   /**
    * Implements traversal of the Ancestor access, in reverse document order.
    */
@@ -1137,7 +1336,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       return (m_exptype[getDocument() & m_mask] == extendedTypeID)
              ? context : next(context, context, extendedTypeID);
     }
-    
+
     /**
      * Traverse to the next node after the current node.
      *
@@ -1154,7 +1353,8 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) + 1; ; current++)
       {
         int type = _type(current);  // may call nextNode()
-        if(type == NULL)
+
+        if (type == NULL)
           return NULL;
 
         return (current | m_dtmIdent);  // make handle.
@@ -1179,7 +1379,8 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) + 1; ; current++)
       {
         int exptype = _exptype(current);  // may call nextNode()
-        if(exptype == NULL)
+
+        if (exptype == NULL)
           return NULL;
 
         if (exptype != extendedTypeID)
@@ -1233,6 +1434,29 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
   {
 
     /**
+     * Get the first potential identity that can be returned, which is the axis 
+     * root context in this case.
+     *
+     * @param identity The node identity of the root context of the traversal.
+     *
+     * @return The identity argument.
+     */
+    protected int getFirstPotential(int identity)
+    {
+      return identity;
+    }
+
+    /**
+     * Get the first potential identity that can be returned.
+     * @param handle handle to the root context.
+     * @return identity of the root of the subtree.
+     */
+    protected int getSubtreeRoot(int handle)
+    {
+      return getDocument() & m_mask;
+    }
+
+    /**
      * Return the root.
      *
      * @param context The context node of this traversal.
@@ -1242,74 +1466,6 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int first(int context)
     {
       return getDocument();
-    }
-
-    /**
-     * Return the root if it matches the extended type ID.
-     *
-     * @param context The context node of this traversal.
-     * @param extendedTypeID The extended type ID that must match.
-     *
-     * @return the first node in the traversal.
-     */
-    public int first(int context, int extendedTypeID)
-    {
-      return (m_exptype[getDocument() & m_mask] == extendedTypeID)
-             ? context : next(context, context, extendedTypeID);
-    }
-    
-    /**
-     * Traverse to the next node after the current node.
-     *
-     * @param context The context node of this iteration.
-     * @param current The current node of the iteration.
-     *
-     * @return the next node in the iteration, or DTM.NULL.
-     */
-    public int next(int context, int current)
-    {
-
-      int subtreeRootIdent = context & m_mask;
-
-      for (current = (current & m_mask) + 1; ; current++)
-      {
-        int type = _type(current);  // may call nextNode()
-        if(type == NULL)
-          return NULL;
-
-        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
-          continue;
-
-        return (current | m_dtmIdent);  // make handle.
-      }
-    }
-
-    /**
-     * Traverse to the next node after the current node that is matched
-     * by the extended type ID.
-     *
-     * @param context The context node of this iteration.
-     * @param current The current node of the iteration.
-     * @param extendedTypeID The extended type ID that must match.
-     *
-     * @return the next node in the iteration, or DTM.NULL.
-     */
-    public int next(int context, int current, int extendedTypeID)
-    {
-
-      int subtreeRootIdent = context & m_mask;
-
-      for (current = (current & m_mask) + 1; ; current++)
-      {
-        int exptype = _exptype(current);  // may call nextNode()
-        if(exptype == NULL)
-          return NULL;
-
-        if (exptype != extendedTypeID)
-          continue;
-
-        return (current | m_dtmIdent);  // make handle.
-      }
     }
   }
 }

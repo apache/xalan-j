@@ -90,20 +90,20 @@ public class StreamableNode extends UnImplNode
     return m_statement;
   }
 
-  /**
-   * Check if a given feature is supported 
-   *
-   *
-   * @param feature Feature to check
-   * @param version Version to check
-   *
-   * @return True if NodeTest feature is supported
-   */
-  public boolean isSupported(String feature, String version)
-  {
-    return (AxesWalker.FEATURE_NODETESTFILTER == feature)
-           || feature.equals(AxesWalker.FEATURE_NODETESTFILTER);
-  }
+//  /**
+//   * Check if a given feature is supported 
+//   *
+//   *
+//   * @param feature Feature to check
+//   * @param version Version to check
+//   *
+//   * @return True if NodeTest feature is supported
+//   */
+//  public boolean isSupported(String feature, String version)
+//  {
+//    return (AxesWalker.FEATURE_NODETESTFILTER == feature)
+//           || feature.equals(AxesWalker.FEATURE_NODETESTFILTER);
+//  }
 
   /** Instance of a NodeTest          */
   private NodeTest m_nodetest;

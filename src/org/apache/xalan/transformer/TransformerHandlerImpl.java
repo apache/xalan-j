@@ -123,7 +123,7 @@ public class TransformerHandlerImpl
     m_baseSystemID = baseSystemID;
 
     XPathContext xctxt = transformer.getXPathContext();
-    DTM dtm = xctxt.getDTM(null, true, transformer, true);
+    DTM dtm = xctxt.getDTM(null, true, transformer, true, true);
     
     m_dtm = dtm;
     dtm.setDocumentBaseURI(baseSystemID);

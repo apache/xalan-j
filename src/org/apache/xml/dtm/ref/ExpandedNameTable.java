@@ -56,6 +56,8 @@
  */
 package org.apache.xml.dtm.ref;
 
+import org.apache.xml.dtm.DTM;
+
 /**
  * This is a default implementation of a table that manages mappings from
  * expanded names to expandedNameIDs.
@@ -85,6 +87,23 @@ public class ExpandedNameTable
   public static int MASK_LOCALNAME = 0x0000FFFF;
   public static int MASK_NAMESPACE = 0x03FF0000;
   public static int MASK_NODETYPE = 0xFC000000;
+  
+  public static final int ROTAMOUNT_TYPE = (BITS_PER_NAMESPACE+BITS_PER_LOCALNAME);
+  
+  // These are all the types prerotated, for caller convenience.
+  public static final int ELEMENT = ((int)DTM.ELEMENT_NODE) << ROTAMOUNT_TYPE;
+  public static final int ATTRIBUTE = ((int)DTM.ATTRIBUTE_NODE) << ROTAMOUNT_TYPE;
+  public static final int TEXT = ((int)DTM.TEXT_NODE) << ROTAMOUNT_TYPE;
+  public static final int CDATA_SECTION = ((int)DTM.CDATA_SECTION_NODE) << ROTAMOUNT_TYPE;
+  public static final int ENTITY_REFERENCE = ((int)DTM.ENTITY_REFERENCE_NODE) << ROTAMOUNT_TYPE;
+  public static final int ENTITY = ((int)DTM.ENTITY_NODE) << ROTAMOUNT_TYPE;
+  public static final int PROCESSING_INSTRUCTION = ((int)DTM.PROCESSING_INSTRUCTION_NODE) << ROTAMOUNT_TYPE;
+  public static final int COMMENT = ((int)DTM.COMMENT_NODE) << ROTAMOUNT_TYPE;
+  public static final int DOCUMENT = ((int)DTM.DOCUMENT_NODE) << ROTAMOUNT_TYPE;
+  public static final int DOCUMENT_TYPE = ((int)DTM.DOCUMENT_TYPE_NODE) << ROTAMOUNT_TYPE;
+  public static final int DOCUMENT_FRAGMENT =((int)DTM.DOCUMENT_FRAGMENT_NODE) << ROTAMOUNT_TYPE;
+  public static final int NOTATION = ((int)DTM.NOTATION_NODE) << ROTAMOUNT_TYPE;
+  public static final int NAMESPACE = ((int)DTM.NAMESPACE_NODE) << ROTAMOUNT_TYPE;
 
   /**
    * Create an expanded name table that uses private string pool lookup.
@@ -207,7 +226,7 @@ public class ExpandedNameTable
    */
   public static final int getType(int ExpandedNameID)
   {
-    return ExpandedNameID >> (BITS_PER_NAMESPACE+BITS_PER_LOCALNAME);
+    return ExpandedNameID >> ROTAMOUNT_TYPE;
   }
-
+  
 }

@@ -343,11 +343,11 @@ public class SourceTreeManager
       if(null != xowner && xowner instanceof org.apache.xml.dtm.DTMWSFilter)
       {
         dtm = xctxt.getDTM(source, false, 
-                          (org.apache.xml.dtm.DTMWSFilter)xowner, false);
+                          (org.apache.xml.dtm.DTMWSFilter)xowner, false, true);
       }
       else
       {
-        dtm = xctxt.getDTM(source, false, null, false);
+        dtm = xctxt.getDTM(source, false, null, false, true);
       }
       return dtm.getDocument();
     }

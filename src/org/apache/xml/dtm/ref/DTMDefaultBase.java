@@ -109,6 +109,14 @@ public abstract class DTMDefaultBase implements DTM
   /** Previous sibling values, one array element for each node. */
   protected short[] m_parent;
 
+  /**
+   * These hold indexes to elements based on namespace and local name.
+   * The base lookup is the the namespace.  The second lookup is the local
+   * name, and the last array contains the the first free element
+   * at the start, and the list of element handles following.
+   */
+  protected short[][][] m_elemIndexes;
+
   /** The default initial block size of the node arrays */
   protected int m_initialblocksize = 512;  // favor small docs.
 
@@ -155,6 +163,15 @@ public abstract class DTMDefaultBase implements DTM
   public static final int ROOTNODE = 0;
 
   /**
+   * The table for exandedNameID lookups.  This may or may not be the same
+   * table as is contained in the DTMManagerDefault.
+   */
+  protected ExpandedNameTable m_expandedNameTable;
+
+  /** true if indexing is turned on. */
+  protected boolean m_indexing;
+
+  /**
    * Construct a DTMDefaultBase object from a DOM node.
    *
    * @param mgr The DTMManager who owns this DTM.
@@ -164,10 +181,12 @@ public abstract class DTMDefaultBase implements DTM
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
    * @param xstringfactory The factory to use for creating XMLStrings.
+   * @param doIndexing true if the caller considers it worth it to use
+   *                   indexing schemes.
    */
   public DTMDefaultBase(DTMManager mgr, Source source, int dtmIdentity,
                         DTMWSFilter whiteSpaceFilter,
-                        XMLStringFactory xstringfactory)
+                        XMLStringFactory xstringfactory, boolean doIndexing)
   {
 
     m_exptype = new int[m_initialblocksize];
@@ -182,6 +201,20 @@ public abstract class DTMDefaultBase implements DTM
     m_mask = mgr.getNodeIdentityMask();
     m_wsfilter = whiteSpaceFilter;
     m_xstrf = xstringfactory;
+    m_indexing = doIndexing;
+
+    if (doIndexing)
+    {
+      m_expandedNameTable = new ExpandedNameTable();
+    }
+    else
+    {
+
+      // %REVIEW% Is there a better way to do this?
+      DTMManagerDefault dmd = (DTMManagerDefault) m_mgr;
+
+      m_expandedNameTable = dmd.getExpandedNameTable(this);
+    }
 
     if (null != whiteSpaceFilter)
     {
@@ -189,6 +222,168 @@ public abstract class DTMDefaultBase implements DTM
 
       pushShouldStripWhitespace(false);
     }
+  }
+
+  /**
+   * Ensure that the size of the element indexes can hold the information.
+   *
+   * @param namespaceID Namespace ID index.
+   * @param LocalNameID Local name ID.
+   */
+  protected void ensureSizeOfIndex(int namespaceID, int LocalNameID)
+  {
+
+    if (null == m_elemIndexes)
+    {
+      m_elemIndexes = new short[namespaceID + 20][][];
+    }
+    else if (m_elemIndexes.length <= namespaceID)
+    {
+      short[][][] indexes = m_elemIndexes;
+
+      m_elemIndexes = new short[namespaceID + 20][][];
+
+      System.arraycopy(indexes, 0, m_elemIndexes, 0, indexes.length);
+    }
+
+    short[][] localNameIndex = m_elemIndexes[namespaceID];
+
+    if (null == localNameIndex)
+    {
+      localNameIndex = new short[LocalNameID + 100][];
+      m_elemIndexes[namespaceID] = localNameIndex;
+    }
+    else if (localNameIndex.length <= LocalNameID)
+    {
+      short[][] indexes = localNameIndex;
+
+      localNameIndex = new short[LocalNameID + 100][];
+
+      System.arraycopy(indexes, 0, localNameIndex, 0, indexes.length);
+
+      m_elemIndexes[namespaceID] = localNameIndex;
+    }
+
+    short[] elemHandles = localNameIndex[LocalNameID];
+
+    if (null == elemHandles)
+    {
+      elemHandles = new short[128];
+      localNameIndex[LocalNameID] = elemHandles;
+      elemHandles[0] = 1;
+    }
+    else if (elemHandles.length <= elemHandles[0] + 1)
+    {
+      short[] indexes = elemHandles;
+
+      elemHandles = new short[elemHandles[0] + 1024];
+
+      System.arraycopy(indexes, 0, elemHandles, 0, indexes.length);
+
+      localNameIndex[LocalNameID] = elemHandles;
+    }
+  }
+
+  /**
+   * Add a node to the element indexes. The node will not be added unless
+   * it's an element.
+   *
+   * @param expandedTypeID The expanded type ID of the node.
+   * @param identity The node identity index.
+   */
+  protected void indexNode(int expandedTypeID, int identity)
+  {
+
+    ExpandedNameTable ent = m_expandedNameTable;
+    int type = ent.getType(expandedTypeID);
+
+    if (DTM.ELEMENT_NODE == type)
+    {
+      int namespaceID = ent.getNamespaceID(expandedTypeID);
+      int localNameID = ent.getLocalNameID(expandedTypeID);
+
+      ensureSizeOfIndex(namespaceID, localNameID);
+
+      short[] index = m_elemIndexes[namespaceID][localNameID];
+
+      index[index[0]] = (short) identity;
+
+      index[0]++;
+    }
+  }
+
+  /**
+   * Find the first index that occurs in the list that is greater than or
+   * equal to the given value.
+   *
+   * @param list A list of integers.
+   * @param start The start index to begin the search.
+   * @param len The number of items to search.
+   * @param value Find the slot that has a value that is greater than or 
+   * identical to this argument.
+   *
+   * @return The index in the list of the slot that is higher or identical
+   * to the identity argument, or -1 if no node is higher or equal.
+   */
+  protected int findGTE(short[] list, int start, int len, int value)
+  {
+
+    int low = start;
+    int high = start + (len - 1);
+
+    while (low <= high)
+    {
+      int mid = (low + high) / 2;
+      int c = list[mid];
+
+      if (c > value)
+        high = mid - 1;
+      else if (c < value)
+        low = mid + 1;
+      else
+        return mid;
+    }
+
+    return (list[low] > value) ? low : -1;
+  }
+
+  /**
+   * Find the first matching element from the index at or after the
+   * given node.
+   *
+   * @param nsIndex The namespace index lookup.
+   * @param lnIndex The local name index lookup.
+   * @param firstPotential The first potential match that is worth looking at.
+   *
+   * @return The first node that is greater than or equal to the
+   *         firstPotential argument, or DTM.NOTPROCESSED if not found.
+   */
+  int findElementFromIndex(int nsIndex, int lnIndex, int firstPotential)
+  {
+
+    short[][][] indexes = m_elemIndexes;
+
+    if (null != indexes && nsIndex < indexes.length)
+    {
+      short[][] lnIndexs = indexes[nsIndex];
+
+      if (null != lnIndexs && lnIndex < lnIndexs.length)
+      {
+        short[] elems = lnIndexs[lnIndex];
+
+        if (null != elems)
+        {
+          int pos = findGTE(elems, 1, elems[0], firstPotential);
+
+          if (pos > -1)
+          {
+            return elems[pos];
+          }
+        }
+      }
+    }
+
+    return NOTPROCESSED;
   }
 
   /**
@@ -222,10 +417,8 @@ public abstract class DTMDefaultBase implements DTM
    * Ensure that the size of the information arrays can hold another entry
    * at the given index.
    *
-   * @param on exit from this function, the information arrays sizes must be
+   * @param index On exit from this function, the information arrays sizes must be
    * at least index+1.
-   *
-   * NEEDSDOC @param index
    */
   protected void ensureSize(int index)
   {
@@ -239,7 +432,6 @@ public abstract class DTMDefaultBase implements DTM
       // %OPT% Compilers might be happier if we operated on one array
       // at a time, though the parallel code might be a trifle less
       // obvious.
-      
       int[] exptype = m_exptype;
       byte[] level = m_level;
       int[] firstch = m_firstch;
@@ -1133,7 +1325,7 @@ public abstract class DTMDefaultBase implements DTM
   public int getExpandedTypeID(String namespace, String localName, int type)
   {
 
-    ExpandedNameTable ent = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
+    ExpandedNameTable ent = m_expandedNameTable;
 
     return ent.getExpandedTypeID(namespace, localName, type);
   }
@@ -1147,7 +1339,7 @@ public abstract class DTMDefaultBase implements DTM
   public String getLocalNameFromExpandedNameID(int ExpandedNameID)
   {
 
-    ExpandedNameTable ent = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
+    ExpandedNameTable ent = m_expandedNameTable;
 
     return ent.getLocalName(ExpandedNameID);
   }
@@ -1161,10 +1353,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   public String getNamespaceFromExpandedNameID(int ExpandedNameID)
   {
-
-    ExpandedNameTable ent = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
-
-    return ent.getNamespace(ExpandedNameID);
+    return m_expandedNameTable.getNamespace(ExpandedNameID);
   }
 
   /**
@@ -1719,5 +1908,4 @@ public abstract class DTMDefaultBase implements DTM
     if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWhitespaceStack.setTop(shouldStrip);
   }
-
 }

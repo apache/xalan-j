@@ -191,12 +191,17 @@ public class DOM2DTM extends DTMDefaultBaseIterators
    * @param dtmIdentity The DTM identity ID for this DTM.
    * @param whiteSpaceFilter The white space filter for this DTM, which may 
    *                         be null.
+   * @param xstringfactory XMLString factory for creating character content.
+   * @param doIndexing true if the caller considers it worth it to use 
+   *                   indexing schemes.
    */
   public DOM2DTM(DTMManager mgr, DOMSource domSource, 
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
-                 XMLStringFactory xstringfactory)
+                 XMLStringFactory xstringfactory,
+                 boolean doIndexing)
   {
-    super(mgr, domSource, dtmIdentity, whiteSpaceFilter, xstringfactory);
+    super(mgr, domSource, dtmIdentity, whiteSpaceFilter, 
+          xstringfactory, doIndexing);
 
     m_root = domSource.getNode();
     m_pos = null;
@@ -279,7 +284,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
     String localName =  (type == Node.PROCESSING_INSTRUCTION_NODE) ? 
                          node.getNodeName() :
                          node.getLocalName();
-    ExpandedNameTable exnt = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
+    ExpandedNameTable exnt = m_expandedNameTable;
 
 
     // %TBD% Nodes created with the old non-namespace-aware DOM

@@ -69,9 +69,9 @@ public class OneStepIterator extends ChildTestIterator
   }
   
   /**
-   * Get a cloned AxesWalker.
+   * Get a cloned iterator.
    *
-   * @return A new AxesWalker that can be used without mutating this one.
+   * @return A new iterator that can be used without mutating this one.
    *
    * @throws CloneNotSupportedException
    */

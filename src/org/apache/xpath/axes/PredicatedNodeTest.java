@@ -37,9 +37,9 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
   }
   
   /**
-   * Get a cloned AxesWalker.
+   * Get a cloned PrdicatedNodeTest.
    *
-   * @return A new AxesWalker that can be used without mutating this one.
+   * @return A new PredicatedNodeTest that can be used without mutating this one.
    *
    * @throws CloneNotSupportedException
    */

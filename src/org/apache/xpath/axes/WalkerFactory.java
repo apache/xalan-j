@@ -1128,7 +1128,7 @@ public class WalkerFactory
           WalkingIterator lpi, int analysis)
   {
 
-    AxesWalker ai;
+    AxesWalker ai = null;
     int stepType = compiler.getOp(opPos);
 
     /*
@@ -1159,205 +1159,55 @@ public class WalkerFactory
       simpleInit = true;
       break;
     case OpCodes.FROM_ROOT :
-      if (0 == (analysis
-                & ~(BIT_ROOT | BIT_CHILD | BIT_ATTRIBUTE | BIT_NAMESPACE
-                    | BIT_PREDICATE | BITS_COUNT)))
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  RootWalkerMultiStep: " + analysis
-                             + ", " + compiler.toString());
-
-        ai = new RootWalkerMultiStep(lpi);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  RootWalker: " + analysis + ", "
-                             + compiler.toString());
-
-        ai = new RootWalker(lpi);
-      }
+      ai = new AxesWalker(lpi, Axis.ROOT);
       break;
     case OpCodes.FROM_ANCESTORS :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AncestorWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      ai = new AncestorWalker(lpi);
+      ai = new ReverseAxesWalker(lpi, Axis.ANCESTOR);
       break;
     case OpCodes.FROM_ANCESTORS_OR_SELF :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AncestorOrSelfWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      ai = new AncestorOrSelfWalker(lpi);
+      ai = new ReverseAxesWalker(lpi, Axis.ANCESTORORSELF);
       break;
     case OpCodes.FROM_ATTRIBUTES :
-      if (1 == totalNumberWalkers)
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  AttributeWalkerOneStep: "
-                             + analysis + ", " + compiler.toString());
-
-        // TODO: We should be able to do this as long as this is 
-        // the last step.
-        ai = new AttributeWalkerOneStep(lpi);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  AttributeWalker: " + analysis
-                             + ", " + compiler.toString());
-
-        ai = new AttributeWalker(lpi);
-      }
+      ai = new AxesWalker(lpi, Axis.ATTRIBUTE);
       break;
     case OpCodes.FROM_NAMESPACE :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  NamespaceWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      ai = new NamespaceWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.NAMESPACE);
       break;
     case OpCodes.FROM_CHILDREN :
-      if (1 == totalNumberWalkers)
-      {
-
-        // I don't think this will ever happen any more.  -sb
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  ChildWalkerOneStep: " + analysis
-                             + ", " + compiler.toString());
-
-        ai = new ChildWalkerOneStep(lpi);
-      }
-      else
-      {
-        if (0 == (analysis
-                  & ~(BIT_ROOT | BIT_CHILD | BIT_ATTRIBUTE | BIT_NAMESPACE
-                      | BIT_PREDICATE | BITS_COUNT)))
-        {
-          if (DEBUG_WALKER_CREATION)
-            System.out.println("new walker:  ChildWalkerMultiStep: "
-                               + analysis + ", " + compiler.toString());
-
-          ai = new ChildWalkerMultiStep(lpi);
-        }
-        else
-        {
-          if (DEBUG_WALKER_CREATION)
-            System.out.println("new walker:  ChildWalker: " + analysis + ", "
-                               + compiler.toString());
-
-          ai = new ChildWalker(lpi);
-        }
-      }
+      ai = new AxesWalker(lpi, Axis.CHILD);
       break;
     case OpCodes.FROM_DESCENDANTS :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  DescendantWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      ai = new DescendantWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.DESCENDANT);
       break;
     case OpCodes.FROM_DESCENDANTS_OR_SELF :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  DescendantOrSelfWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      ai = new DescendantOrSelfWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.DESCENDANTORSELF);
       break;
     case OpCodes.FROM_FOLLOWING :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  FollowingWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      ai = new FollowingWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.FOLLOWING);
       break;
     case OpCodes.FROM_FOLLOWING_SIBLINGS :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  FollowingSiblingWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      ai = new FollowingSiblingWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.FOLLOWINGSIBLING);
       break;
     case OpCodes.FROM_PRECEDING :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  PrecedingWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      ai = new PrecedingWalker(lpi);
+      ai = new ReverseAxesWalker(lpi, Axis.PRECEDING);
       break;
     case OpCodes.FROM_PRECEDING_SIBLINGS :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  PrecedingSiblingWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      ai = new PrecedingSiblingWalker(lpi);
+      ai = new ReverseAxesWalker(lpi, Axis.PRECEDINGSIBLING);
       break;
     case OpCodes.FROM_PARENT :
       prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  ParentWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      ai = new ParentWalker(lpi);
+      ai = new ReverseAxesWalker(lpi, Axis.PARENT);
       break;
     case OpCodes.FROM_SELF :
-      if (1 == totalNumberWalkers)
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  SelfWalkerOneStep: " + analysis
-                             + ", " + compiler.toString());
-
-        ai = new SelfWalkerOneStep(lpi);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  SelfWalker: " + analysis + ", "
-                             + compiler.toString());
-
-        ai = new SelfWalker(lpi);
-      }
-      break;
-    case OpCodes.MATCH_ATTRIBUTE :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AttributeWalker(MATCH_ATTRIBUTE): "
-                           + analysis + ", " + compiler.toString());
-
-      ai = new AttributeWalker(lpi);
-      break;
-    case OpCodes.MATCH_ANY_ANCESTOR :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  ChildWalker(MATCH_ANY_ANCESTOR): "
-                           + analysis + ", " + compiler.toString());
-
-      ai = new ChildWalker(lpi);
-      break;
-    case OpCodes.MATCH_IMMEDIATE_ANCESTOR :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println(
-          "new walker:  ChildWalker(MATCH_IMMEDIATE_ANCESTOR): " + analysis
-          + ", " + compiler.toString());
-
-      ai = new ChildWalker(lpi);
+      ai = new AxesWalker(lpi, Axis.SELF);
       break;
     default :
       throw new RuntimeException("Programmer's assertion: unknown opcode: "

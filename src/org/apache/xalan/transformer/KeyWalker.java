@@ -66,13 +66,14 @@ import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xalan.res.XSLMessages;
 import org.apache.xalan.res.XSLTErrorResources;
 import org.apache.xpath.XPathContext;
-import org.apache.xpath.axes.DescendantOrSelfWalker;
+import org.apache.xpath.axes.AxesWalker;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPath;
 
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.Axis;
 
 import javax.xml.transform.TransformerException;
 
@@ -80,7 +81,7 @@ import javax.xml.transform.TransformerException;
  * <meta name="usage" content="internal"/>
  * Walker for a Key() function.
  */
-public class KeyWalker extends DescendantOrSelfWalker
+public class KeyWalker extends AxesWalker
 {
 
   /**
@@ -90,7 +91,7 @@ public class KeyWalker extends DescendantOrSelfWalker
    */
   public KeyWalker(LocPathIterator locPathIterator)
   {
-    super(locPathIterator);
+    super(locPathIterator, Axis.DESCENDANTORSELF);
   }
 
   /**
@@ -133,7 +134,7 @@ public class KeyWalker extends DescendantOrSelfWalker
       m_foundAttrs = true;
       if (DTM.NULL != m_nextAttr)
         return m_nextAttr;
-    }
+    } 
     else if (DTM.NULL != m_nextAttr)
     {
       m_nextAttr = dtm.getNextAttribute(m_nextAttr);

@@ -359,13 +359,13 @@ public class TransformerImpl extends Transformer
   
   /** Flag to to tell if the tranformer needs to be reset. */
   private boolean m_hasBeenReset = false;
-	
-	private boolean m_shouldReset = true;
+        
+        private boolean m_shouldReset = true;
 
-	public void setShouldReset(boolean shouldReset)
-	{
-		m_shouldReset = shouldReset;
-	}
+        public void setShouldReset(boolean shouldReset)
+        {
+                m_shouldReset = shouldReset;
+        }
   
   /**
    * A stack of current template modes.
@@ -498,7 +498,7 @@ public class TransformerImpl extends Transformer
     try
     {
       DTMManager mgr = this.getXPathContext().getDTMManager();
-      DTM dtm = mgr.getDTM(source, false, this, true);
+      DTM dtm = mgr.getDTM(source, false, this, true, true);
       
       boolean hardDelete = true;  // %REVIEW% I have to think about this. -sb
       try
@@ -557,7 +557,7 @@ public class TransformerImpl extends Transformer
       SAXSourceLocator loc = new SAXSourceLocator(spe);
       
       //m_errorHandler.fatalError(new TransformerException( msg, loc ));
-			m_errorHandler.fatalError(new TransformerException( spe ));
+                        m_errorHandler.fatalError(new TransformerException( spe ));
     }
     catch(org.xml.sax.SAXException se)
     {
@@ -1533,7 +1533,7 @@ public class TransformerImpl extends Transformer
     // in scope, when really only the current stylesheet's 
     // global variables should be in scope.  Have to think on 
     // this more...
-		XObject xobj;
+                XObject xobj;
     XPathContext xctxt = getXPathContext();
     VariableStack vs = xctxt.getVarStack();
     StylesheetRoot sr = getStylesheet();
@@ -1552,7 +1552,7 @@ public class TransformerImpl extends Transformer
         {
           previouslyDeclared.setIsVisible(true);
         }
-				else
+                                else
         {
           xobj = new XUnresolvedVariable(v, contextNode, 
                              this, vs.getSearchStartOrTop(), 0, true);
@@ -1664,7 +1664,7 @@ public class TransformerImpl extends Transformer
   {
     XPathContext xctxt = getXPathContext();
     
-    DTM dtmFrag = xctxt.getDTM(null, true, this, false);
+    DTM dtmFrag = xctxt.getDTM(null, true, this, false, false);
     ContentHandler rtfHandler = dtmFrag.getContentHandler();
 
     // Create a ResultTreeFrag object.
@@ -1865,26 +1865,26 @@ public class TransformerImpl extends Transformer
       {
         template = null;
       }
-			else
-			{
-				// Find the XSL template that is the best match for the 
-				// element.        
-				XPathContext xctxt = getXPathContext();
-				PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
+                        else
+                        {
+                                // Find the XSL template that is the best match for the 
+                                // element.        
+                                XPathContext xctxt = getXPathContext();
+                                PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
 
-				try
-				{
-					xctxt.setNamespaceContext(xslInstruction);
+                                try
+                                {
+                                        xctxt.setNamespaceContext(xslInstruction);
 
-					QName mode = this.getMode();
-					template = m_stylesheetRoot.getTemplateComposed(xctxt, child, mode, maxImportLevel,
-																													m_quietConflictWarnings);
-				}
-				finally
-				{
-					xctxt.setNamespaceContext(savedPrefixResolver);
-				}
-			}
+                                        QName mode = this.getMode();
+                                        template = m_stylesheetRoot.getTemplateComposed(xctxt, child, mode, maxImportLevel,
+                                                                                                                                                                                                                                        m_quietConflictWarnings);
+                                }
+                                finally
+                                {
+                                        xctxt.setNamespaceContext(savedPrefixResolver);
+                                }
+                        }
 
       // If that didn't locate a node, fall back to a default template rule.
       // See http://www.w3.org/TR/xslt#built-in-rule.
@@ -2360,8 +2360,8 @@ public class TransformerImpl extends Transformer
 
     try
     {
-			DTMIterator cnl = getXPathContext().getContextNodeList();
-			return (cnl == null)? null : (DTMIterator)cnl.cloneWithReset();      
+                        DTMIterator cnl = getXPathContext().getContextNodeList();
+                        return (cnl == null)? null : (DTMIterator)cnl.cloneWithReset();      
     }
     catch (CloneNotSupportedException cnse)
     {
@@ -2744,8 +2744,8 @@ public class TransformerImpl extends Transformer
   ////////////////////////
   // Implement Runnable //  
   ////////////////////////
-	
-	/** Base thread controler for xalan. Must be overriden with
+        
+        /** Base thread controler for xalan. Must be overriden with
       a derived class to support thread pooling.
 
       All thread-related stuff is in this class.
@@ -2808,8 +2808,8 @@ public class TransformerImpl extends Transformer
   public void runTransformThread( ) {
     tpool.run( this, -1);
   }
-	
-	/** Used by SourceTreeHandler to wait until the transform
+        
+        /** Used by SourceTreeHandler to wait until the transform
    *   completes
    */
   public void waitTransformThread() throws SAXException {
@@ -2822,17 +2822,17 @@ public class TransformerImpl extends Transformer
     if (null != transformThread)
       {
         try
-	  {
-	    tpool.waitThread( transformThread, this );
-	    
-	    if(!this.hasTransformThreadErrorCatcher())
-	      {
-		Exception e = this.getExceptionThrown();
-		if(null != e)
-		  throw new org.xml.sax.SAXException(e);
-	      }
-	    this.setTransformThread(null);
-	  }
+          {
+            tpool.waitThread( transformThread, this );
+            
+            if(!this.hasTransformThreadErrorCatcher())
+              {
+                Exception e = this.getExceptionThrown();
+                if(null != e)
+                  throw new org.xml.sax.SAXException(e);
+              }
+            this.setTransformThread(null);
+          }
         catch (InterruptedException ie){}
       }
   }
@@ -3023,16 +3023,16 @@ public class TransformerImpl extends Transformer
    * from the snapshot point.
    */
   public void executeFromSnapshot(TransformSnapshot ts)
-		throws TransformerException
+                throws TransformerException
   {
     ElemTemplateElement template = getMatchedTemplate();
-		int child = getMatchedNode();
-		pushElemTemplateElement(template); //needed??
+                int child = getMatchedNode();
+                pushElemTemplateElement(template); //needed??
     m_xcontext.pushCurrentNode(child); //needed??
-		this.executeChildTemplates(template, true); // getResultTreeHandler());
+                this.executeChildTemplates(template, true); // getResultTreeHandler());
   }
-	
-	/**
+        
+        /**
    * This will execute the following XSLT instructions
    * from the snapshot point.
    */

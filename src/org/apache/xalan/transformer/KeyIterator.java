@@ -64,7 +64,6 @@ import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.QName;
 import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xpath.XPathContext;
-import org.apache.xpath.axes.DescendantOrSelfWalker;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPath;
 
