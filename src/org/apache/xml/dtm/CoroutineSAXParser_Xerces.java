@@ -90,9 +90,6 @@ implements CoroutineParser
     // Data
     //
 
-  //private CoroutineManager fCoroutineManager = null;
-  //private int fAppCoroutineID = -1;
-  //private int fParserCoroutineID = -1;
     private boolean fParseInProgress=false;
 
     //
@@ -100,15 +97,17 @@ implements CoroutineParser
     //
 
     public CoroutineSAXParser_Xerces(CoroutineManager co, int appCoroutineID) {
+      this(null,co,appCoroutineID);
+    }
 
+    public CoroutineSAXParser_Xerces(IncrementalXercesSaxParser ixsp, CoroutineManager co, int appCoroutineID) {
+
+      if(ixsp!=null)
+        incrementalParser=ixsp;
+      else
         incrementalParser=new IncrementalXercesSaxParser();
-
-        incrementalParser.initHandlers(true, incrementalParser, incrementalParser);
-	// fCoroutineManager = co;
-	// fAppCoroutineID = appCoroutineID;
-	// fParserCoroutineID = co.co_joinCoroutineSet(-1);
-	// if (fParserCoroutineID == -1)
-	//   throw new RuntimeException("co_joinCoroutineSet() failed");
+      
+      incrementalParser.initHandlers(true, incrementalParser, incrementalParser);
     }
 
     //
