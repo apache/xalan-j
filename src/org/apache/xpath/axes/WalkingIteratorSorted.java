@@ -127,6 +127,7 @@ public class WalkingIteratorSorted extends WalkingIterator
 
     // m_prevReturned = nextNode;
     setNextPosition(0);
+    m_last = m_cachedNodes.size();
     m_lastFetched = DTM.NULL;
     m_currentContextNode = DTM.NULL;
     m_foundLast = true;
