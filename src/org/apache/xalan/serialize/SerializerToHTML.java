@@ -496,7 +496,7 @@ public class SerializerToHTML extends SerializerToXML
         }
 
         accum(">");
-        accum(m_lineSep);
+        outputLineSep();
       }
     }
 
