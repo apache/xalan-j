@@ -2064,6 +2064,18 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 
         public void dispatchToEvents(int nodeHandle, org.xml.sax.ContentHandler ch)
         throws org.xml.sax.SAXException {}
+        
+        /**
+         * Return an DOM node for the given node.
+         *
+         * @param nodeHandle The node ID.
+         *
+         * @return A node representation of the DTM node.
+         */
+        public org.w3c.dom.Node getNode(int nodeHandle)
+        {
+          return null;
+        }
 
         // ==== Construction methods (may not be supported by some implementations!) =====
         // %REVIEW% jjk: These probably aren't the right API. At the very least

@@ -241,8 +241,8 @@ public abstract class DTMDefaultBase implements DTM
       }
       else
         info = m_info.elementAt(base + offsetValue);
-        
-      if(!isMore && NOTPROCESSED == info)
+
+      if (!isMore && NOTPROCESSED == info)
         return DTM.NULL;
     }
 
@@ -593,11 +593,11 @@ public abstract class DTMDefaultBase implements DTM
     return DTM.NULL;
   }
 
-  /** NEEDSDOC Field m_namespaceLists          */
+  /** NEEDSDOC Field m_namespaceLists */
   private Vector m_namespaceLists = null;  // on demand
 
   /**
-   * NEEDSDOC Method getNamespaceList 
+   * NEEDSDOC Method getNamespaceList
    *
    *
    * NEEDSDOC @param baseHandle
@@ -630,7 +630,7 @@ public abstract class DTMDefaultBase implements DTM
   }
 
   /**
-   * NEEDSDOC Method buildNamespaceList 
+   * NEEDSDOC Method buildNamespaceList
    *
    *
    * NEEDSDOC @param baseHandle
@@ -1127,10 +1127,9 @@ public abstract class DTMDefaultBase implements DTM
    */
   public String getDocumentBaseURI()
   {
-
     return m_documentBaseURI;
   }
-  
+
   /**
    * Set the base URI of the document entity.
    *
@@ -1138,10 +1137,8 @@ public abstract class DTMDefaultBase implements DTM
    */
   public void setDocumentBaseURI(String baseURI)
   {
-
     m_documentBaseURI = baseURI;
   }
-
 
   /**
    * Return the system identifier of the document entity. If
@@ -1425,6 +1422,18 @@ public abstract class DTMDefaultBase implements DTM
   public abstract void dispatchToEvents(
     int nodeHandle, org.xml.sax.ContentHandler ch)
       throws org.xml.sax.SAXException;
+
+  /**
+   * Return an DOM node for the given node.
+   *
+   * @param nodeHandle The node ID.
+   *
+   * @return A node representation of the DTM node.
+   */
+  public org.w3c.dom.Node getNode(int nodeHandle)
+  {
+    return new DTMNodeProxy(this, nodeHandle);
+  }
 
   // ==== Construction methods (may not be supported by some implementations!) =====
 

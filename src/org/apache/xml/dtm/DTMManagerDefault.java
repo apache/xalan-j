@@ -190,6 +190,12 @@ public class DTMManagerDefault extends DTMManager
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
         m_dtms.add(dtm);
+        
+        boolean haveXercesParser = null != reader && 
+                        reader instanceof org.apache.xerces.parsers.SAXParser;
+                        
+        if(haveXercesParser)
+          incremental = true;  // No matter what.  %REVIEW%
 
         if (incremental)
         {
@@ -203,7 +209,7 @@ public class DTMManagerDefault extends DTMManager
           int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
           CoroutineParser coParser;
 
-           if(null != reader && reader instanceof org.apache.xerces.parsers.SAXParser)
+           if(haveXercesParser)
           {
             // CoroutineSAXParser_Xerces to avoid threading.
             // System.out.println("Using CoroutineSAXParser_Xerces to avoid threading");
@@ -340,6 +346,28 @@ public class DTMManagerDefault extends DTMManager
         // made a mistake.
         throw new DTMException("Not supported: " + source);
       }
+    }
+  }
+  
+  /**
+   * Given a W3C DOM node, try and return a DTM handle.
+   * Note: calling this may be non-optimal.
+   * 
+   * @param node Non-null reference to a DOM node.
+   * 
+   * @return a valid DTM handle.
+   */
+  public int getDTMHandleFromNode(org.w3c.dom.Node node)
+  {
+    if(node instanceof org.apache.xml.dtm.DTMNodeProxy)
+      return ((org.apache.xml.dtm.DTMNodeProxy)node).getDTMNodeNumber();
+    else
+    {
+      // %REVIEW% Maybe the best I can do??
+      // Or should I first search all the DTMs??
+      DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false, 
+                   null, true);
+      return dtm.getDocument();
     }
   }
 

@@ -207,6 +207,16 @@ public abstract class DTMManager
   public abstract DTM getDTM(int nodeHandle);
   
   /**
+   * Given a W3C DOM node, try and return a DTM handle.
+   * Note: calling this may be non-optimal.
+   * 
+   * @param node Non-null reference to a DOM node.
+   * 
+   * @return a valid DTM handle.
+   */
+  public abstract int getDTMHandleFromNode(org.w3c.dom.Node node);
+  
+  /**
    * Creates a DTM representing an empty <code>DocumentFragment</code> object. 
    * @return a non-null DTM reference.
    */
