@@ -20,7 +20,8 @@ public class UnitTest
   {
   }
   
-  static String s_doc1String = 
+  // No namespaces, only elements & attributes
+  static String s_doc1String1 = 
               "<?xml version=\"1.0\"?>" +
               "<far-north>" +
               " <north>" +
@@ -41,6 +42,64 @@ public class UnitTest
               "  </near-north>" +
               " </north>" +
               "</far-north>";
+
+  // With namespaces
+  static String s_doc1String2 = 
+              "<?xml version=\"1.0\"?>" +
+              "<far-north>" +
+              " <north xmlns:x='http://x.com'>" +
+              "  <near-north>" +
+              "   <far-west xmlns:y='http://y.com'/>" +
+              "   <west/>" +
+              "   <near-west near-west-attr1='near-west-attr1-value'/>" +
+              "   <center xmlns:y='http://y.com'>" +
+              "    <near-south xmlns:z='http://z.com' xmlns:v='http://v.com'>" +
+              "     <south south-attr1='south-attr1-value' south-attr2='south-attr2-value'>" +
+              "      <far-south/>" +
+              "     </south>" +
+              "    </near-south>" +
+              "   </center>" +
+              "   <near-east/>" +
+              "   <east/>" +
+              "   <far-east/>" +
+              "  </near-north>" +
+              " </north>" +
+              "</far-north>";
+              
+    // Reproduces bug where things don't get processed after the last attribute.
+  static String s_doc1String2a = 
+              "<?xml version=\"1.0\"?>" +
+              "<far-north>" +
+                "<center>" +
+                  "<near-south a='a' b='b'>" +
+                    "<south c='c' d='d'/>" +
+                  "</near-south>" +
+                "</center>" +
+                "<near-east/>" +
+              "</far-north>";
+                
+  // namespaces and text
+  static String s_doc1String3 = 
+              "<?xml version=\"1.0\"?>" +
+              "<far-north>a" +
+              " <north xmlns:x='http://x.com'>b" +
+              "  <near-north>c" +
+              "   <far-west xmlns:y='http://y.com'>d</far-west>" +
+              "   <west>e</west>" +
+              "   <near-west near-west-attr1='near-west-attr1-value'>f</near-west>" +
+              "   <center xmlns:y='http://y.com'>g" +
+              "    <near-south xmlns:z='http://z.com' xmlns:v='http://v.com'>h" +
+              "     <south south-attr1='south-attr1-value' south-attr2='south-attr2-value'>i" +
+              "      <far-south>j</far-south>k" +
+              "     </south>l" +
+              "    </near-south>m" +
+              "   </center>n" +
+              "   <near-east>o</near-east>" +
+              "   <east>p</east>" +
+              "   <far-east>q</far-east>r" +
+              "  </near-north>s" +
+              " </north>t" +
+              "</far-north>";
   
   protected int run(String[] args)
     throws Exception
@@ -48,7 +107,7 @@ public class UnitTest
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     dbf.setNamespaceAware(true);
     DocumentBuilder db = dbf.newDocumentBuilder();
-    StringReader sr = new StringReader(s_doc1String);
+    StringReader sr = new StringReader(s_doc1String3);
     
     Document doc = db.parse(new InputSource(sr));
     
@@ -78,8 +137,23 @@ public class UnitTest
         System.out.print(' ');
       }
       
-      System.out.println("node name: "+dtm.getNodeName(handle));
-      outputChildren(handle, dtm, 0 /* indentAmount+2 */);
+      System.out.print("node name: "+dtm.getNodeName(handle));
+      System.out.println(", val: "+dtm.getStringValue(handle));
+      
+      for (int ns = dtm.getFirstNamespaceNode(handle, true); ns != DTM.NULL; 
+           ns = dtm.getNextNamespaceNode(ns, true)) 
+      {
+        System.out.print("ns decl: "+dtm.getNodeName(ns));
+        System.out.println(", val: "+dtm.getStringValue(ns));
+      }
+      for (int attr = dtm.getFirstAttribute(handle); attr != DTM.NULL; 
+           attr = dtm.getNextAttribute(attr)) 
+      {
+        System.out.print("attr: "+dtm.getNodeName(attr));
+        System.out.println(", val: "+dtm.getStringValue(attr));
+      }
+      
+      outputChildren(handle, dtm, indentAmount+1);
     }
   }
   

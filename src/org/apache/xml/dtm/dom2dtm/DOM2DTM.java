@@ -265,6 +265,9 @@ public class DOM2DTM implements DTM
   
   /** Samed element for attribute iteration */
   private Node m_elementForAttrs;
+  
+  /** Samed element index for attribute iteration */
+  private int m_elementForAttrsIndex;
 
   /**
    * This method iterates to the next node that will be added to the table.
@@ -277,7 +280,9 @@ public class DOM2DTM implements DTM
   {
 
     if (m_nodesAreProcessed)
-      return null;
+    {
+      // return null;
+    }
 
     Node top = m_root;  // tells us when to stop.
     Node pos = (null == m_pos) ? m_root : m_pos;
@@ -293,6 +298,7 @@ public class DOM2DTM implements DTM
       int currentIndexHandle = m_nodes.size()-1;
       int posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
       
+      boolean shouldPushLevel = true;
       if (Node.ELEMENT_NODE == type)
       {
         m_attrs = pos.getAttributes();
@@ -303,6 +309,7 @@ public class DOM2DTM implements DTM
           if (m_attrsPos < m_attrs.getLength())
           {
             m_elementForAttrs = pos;
+            m_elementForAttrsIndex = currentIndexHandle;
             nextNode = m_attrs.item(m_attrsPos);
           }
           else
@@ -317,11 +324,16 @@ public class DOM2DTM implements DTM
         m_attrsPos++;
 
         if (m_attrsPos < m_attrs.getLength())
+        {
           nextNode = m_attrs.item(m_attrsPos);
+          shouldPushLevel = false;
+        }
         else
         {
           m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
           pos = m_elementForAttrs;
+          currentIndexHandle = m_elementForAttrsIndex;
+          posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
           nextNode = pos.getFirstChild();
 
           m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
@@ -330,7 +342,7 @@ public class DOM2DTM implements DTM
       else
         nextNode = pos.getFirstChild();        
 
-      if (null != nextNode)
+      if (shouldPushLevel && (null != nextNode))
       {
         m_levelInfo.push(currentIndexHandle); // parent
         m_levelInfo.push(DTM.NULL); // previous sibling
@@ -344,23 +356,31 @@ public class DOM2DTM implements DTM
         }
         
         if (top.equals(pos))
+        {
+          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
           break;
+        }
 
         nextNode = pos.getNextSibling();
 
         if (null == nextNode)
         {
           m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+
+          currentIndexHandle = m_info.elementAt(posInfo + OFFSET_PARENT);
+          posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+          
+          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
           pos = pos.getParentNode();
 
           if ((null == pos) || (top.equals(pos)))
           {
+            m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
             nextNode = null;
-
             break;
           }
 
-          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
+          
         }
       }
 
@@ -605,13 +625,12 @@ public class DOM2DTM implements DTM
 
       while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
-        Node node = lookupNode(identity);
-
         // Assume this can not be null.
-        type = node.getNodeType();
+        type = getNodeType(identity);
 
         if (type == DTM.ATTRIBUTE_NODE)
         {
+          Node node = lookupNode(identity);
           String nodeuri = node.getNamespaceURI();
 
           if (null == nodeuri)
@@ -624,7 +643,7 @@ public class DOM2DTM implements DTM
         }
         else if (DTM.NAMESPACE_NODE != type)
         {
-          break;  // should be no more attribute nodes.
+          // ignore
         }
       }
     }
@@ -643,20 +662,18 @@ public class DOM2DTM implements DTM
 
     int type = getNodeType(nodeHandle);
 
-    while (DTM.ELEMENT_NODE == type)
+    if (DTM.ELEMENT_NODE == type)
     {
 
       // Assume that attributes and namespaces immediately follow the element.
       int identity = nodeHandle & m_mask;
 
-      if (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
-        Node node = lookupNode(identity);
-
         // Assume this can not be null.
-        type = node.getNodeType();
+        type = getNodeType(identity);
 
-        if (node.getNodeType() == DTM.ATTRIBUTE_NODE)
+        if (type == DTM.ATTRIBUTE_NODE)
         {
           return identity | m_dtmIdent;
         }
@@ -688,20 +705,17 @@ public class DOM2DTM implements DTM
 
     int type = getNodeType(nodeHandle);
 
-    while (DTM.ELEMENT_NODE == type)
+    if (DTM.ELEMENT_NODE == type)
     {
 
       // Assume that attributes and namespaces immediately follow the element.
       int identity = nodeHandle & m_mask;
 
-      if (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
-        Node node = lookupNode(identity);
+        type = getNodeType(identity);
 
-        // Assume this can not be null.
-        type = node.getNodeType();
-
-        if (node.getNodeType() == DTM.NAMESPACE_NODE)
+        if (type == DTM.NAMESPACE_NODE)
         {
           return identity | m_dtmIdent;
         }
@@ -772,10 +786,7 @@ public class DOM2DTM implements DTM
 
       while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
-        Node node = lookupNode(identity);
-
-        // Assume this can not be null.
-        type = node.getNodeType();
+        type = getNodeType(identity);
 
         if (type == DTM.ATTRIBUTE_NODE)
         {
@@ -813,10 +824,7 @@ public class DOM2DTM implements DTM
 
       while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
-        Node node = lookupNode(identity);
-
-        // Assume this can not be null.
-        type = node.getNodeType();
+        type = getNodeType(identity);
 
         if (type == DTM.NAMESPACE_NODE)
         {
