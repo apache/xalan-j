@@ -537,7 +537,7 @@ public class XString extends XObject implements XMLString
    */
   public int compareToIgnoreCase(XMLString str)
   {
-    return xstr().compareToIgnoreCase(str);
+    return str().compareToIgnoreCase(str.toString());
   }
 
   /**
