@@ -173,12 +173,7 @@ public class ExpandedNameTable
    */
   public String getLocalName(int ExpandedNameID)
   {
-    int localNameID = (ExpandedNameID & MASK_LOCALNAME);
-    
-    if (0 == localNameID) 
-      return null;
-    else
-      return m_locNamesPool.indexToString(localNameID);
+    return m_locNamesPool.indexToString(ExpandedNameID & MASK_LOCALNAME);
   }
   
   /**
