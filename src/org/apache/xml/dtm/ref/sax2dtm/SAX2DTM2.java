@@ -1820,7 +1820,7 @@ public class SAX2DTM2 extends SAX2DTM
   // DTMStringPool because we can save the cost for hash calculation.
   //
   // %REVISIT% Do we need a custom class (e.g. StringVector) here?
-  private Vector m_values;
+  protected Vector m_values;
   
   // The current index into the m_values Vector.
   private int m_valueIndex = 0;

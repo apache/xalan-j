@@ -1905,12 +1905,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
           }
           break;
         case DTM.ATTRIBUTE_NODE:
-          final String attrURI = getNamespaceName(node);
-          if (attrURI.length() != 0) {
-            final String prefix = getPrefix(node);
-            handler.namespace(prefix, attrURI);
-          }
-          handler.attribute(getNodeName(node), getNodeValue(node));
+          copyAttribute(nodeID, eType, handler);
           break;
         case DTM.NAMESPACE_NODE:
           handler.namespace(getNodeNameX(node), getNodeValue(node));
@@ -1927,16 +1922,12 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
           while (true)
           {
             current++;
-            type = _type2(current);
+            eType = _exptype2(current);
+            type = _exptype2Type(eType);
             
             if (type == DTM.ATTRIBUTE_NODE)
             {
-              final String uri = getNamespaceName(makeNodeHandle(current));
-              if (uri.length() != 0) {
-                final String prefix = getPrefix(makeNodeHandle(current));
-                handler.namespace(prefix, uri);
-              }
-              handler.attribute(getNodeName(makeNodeHandle(current)), getNodeValue(makeNodeHandle(current)));            
+              copyAttribute(current, eType, handler);
             }
             else if (type == DTM.NAMESPACE_NODE)
             {
@@ -2024,12 +2015,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                           getNodeValue(node)); //makeStringValue(node));
         return null;
       case DTM.ATTRIBUTE_NODE:
-        final String uri = getNamespaceName(node);
-        if (uri.length() != 0) {
-            final String prefix = getPrefix(node); // _prefixArray[_prefix[node]];
-            handler.namespace(prefix, uri);
-        }
-        handler.attribute(getNodeName(node), getNodeValue(node)); //makeStringValue(node));
+        copyAttribute(nodeID, exptype, handler);
         return null;  
       default:
           final String uri1 = getNamespaceName(node);
@@ -2086,6 +2072,46 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         handler.namespace(prefix, uri);
         return qName;
       }      
+    }
+    
+    // %REVISIT% This interface can be moved to SAX2DTM2 with the new serializer.
+    private void copyAttribute(int nodeID, int exptype, 
+        TransletOutputHandler handler)
+        throws TransletException
+    {
+        /*
+          final String uri = getNamespaceName(makeNodeHandle(current));
+          if (uri.length() != 0) {
+                final String prefix = getPrefix(makeNodeHandle(current));
+                handler.namespace(prefix, uri);
+          }
+          handler.attribute(getNodeName(makeNodeHandle(current)), getNodeValue(makeNodeHandle(current)));            
+        */
+        final ExtendedType extType = m_extendedTypes[exptype];
+        final String uri = extType.getNamespace();
+        final String localName = extType.getLocalName();
+        
+        String prefix = null;
+        String qname = null;
+        int dataIndex = _dataOrQName(nodeID);
+        int valueIndex = dataIndex;
+        if (uri.length() != 0) {
+            if (dataIndex <= 0) {
+                int prefixIndex = m_data.elementAt(-dataIndex);
+                valueIndex = m_data.elementAt(-dataIndex+1);
+                qname = m_valuesOrPrefixes.indexToString(prefixIndex);
+                int colonIndex = qname.indexOf(':');
+                if (colonIndex > 0) {
+                    prefix = qname.substring(0, colonIndex);
+                }
+            }
+            handler.namespace(prefix, uri);           
+        }
+        
+        String nodeName = (prefix != null) ? qname : localName;
+        String nodeValue = (String)m_values.elementAt(valueIndex);
+        
+        handler.attribute(nodeName, nodeValue);
     }
 
     /**
