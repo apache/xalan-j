@@ -696,8 +696,10 @@ public final class TransformerImpl extends Transformer
             throw new IllegalArgumentException(err.toString());
 	}
         _errorListener = listener;
+        
 	// Register a message handler to report xsl:messages
-	_translet.setMessageHandler(new MessageHandler(_errorListener));
+    if (_translet != null)
+    	_translet.setMessageHandler(new MessageHandler(_errorListener));
     }
 
     /**

@@ -82,8 +82,8 @@ import org.xml.sax.Locator;
 /**
  * Implementation of a JAXP1.1 TemplatesHandler
  */
-public class TemplatesHandlerImpl extends Parser 
-    implements TemplatesHandler, SourceLoader 
+public class TemplatesHandlerImpl extends Parser
+    implements TemplatesHandler, SourceLoader
 {
     /**
      * System ID for this stylesheet.
@@ -109,8 +109,8 @@ public class TemplatesHandlerImpl extends Parser
     /**
      * Default constructor
      */
-    protected TemplatesHandlerImpl(int indentNumber, 
-	TransformerFactoryImpl tfactory) 
+    protected TemplatesHandlerImpl(int indentNumber,
+	TransformerFactoryImpl tfactory)
     {
 	super(null);
 	_indentNumber = indentNumber;
@@ -210,15 +210,19 @@ public class TemplatesHandlerImpl extends Parser
 	    if (!errorsFound() && stylesheet != null) {
 		stylesheet.setMultiDocument(xsltc.isMultiDocument());
 		stylesheet.setHasIdCall(xsltc.hasIdCall());
-		stylesheet.translate();
+
+                // Class synchronization is needed for BCEL
+                synchronized (xsltc.getClass()) {
+                    stylesheet.translate();
+                }
 	    }
 
 	    if (!errorsFound()) {
 		// Check that the transformation went well before returning
 		final byte[][] bytecodes = xsltc.getBytecodes();
 		if (bytecodes != null) {
-		    final TemplatesImpl templates = 
-			new TemplatesImpl(xsltc.getBytecodes(), transletName, 
+		    final TemplatesImpl templates =
+			new TemplatesImpl(xsltc.getBytecodes(), transletName,
 			    getOutputProperties(), _indentNumber, _tfactory);
 
 		    // Set URIResolver on templates object
@@ -238,7 +242,7 @@ public class TemplatesHandlerImpl extends Parser
     /**
      * Recieve an object for locating the origin of SAX document events.
      * Most SAX parsers will use this method to inform content handler
-     * of the location of the parsed document. 
+     * of the location of the parsed document.
      */
     public void setDocumentLocator(Locator locator) {
 	super.setDocumentLocator(locator);
