@@ -118,10 +118,10 @@ public class DOM2DTM extends DTMDefaultBase
   /** NEEDSDOC Field LEVELINFO_NPERLEVEL */
   static final int LEVELINFO_NPERLEVEL = 2;
   
-  /** Samed element for attribute iteration */
+  /** Saved element for attribute iteration */
   private Node m_elementForAttrs;
   
-  /** Samed element index for attribute iteration */
+  /** Saved element index for attribute iteration */
   private int m_elementForAttrsIndex;
 
   /**
@@ -472,6 +472,12 @@ public class DOM2DTM extends DTMDefaultBase
   /**
    * Get the handle from a Node.
    * <p>%OPT% This will be pretty slow.</p>
+   *
+   * <p>%OPT% An XPath-like search (walk up DOM to root, tracking path;
+   * walk down DTM reconstructing path) might be considerably faster
+   * on later nodes in large documents. That might also imply improving
+   * this call to handle nodes which would be in this DTM but
+   * have not yet been built, which might or might not be a Good Thing.</p>
    * 
    * %REVIEW% This relies on being able to test node-identity via
    * object-identity. DTM2DOM proxying is a great example of a case where
@@ -484,6 +490,8 @@ public class DOM2DTM extends DTMDefaultBase
    */
   private int getHandleFromNode(Node node)
   {
+    // %TBD% Will this ever be called with Nodes that haven't yet been built?
+    // Do we need to be prepared to call nextNode()?
     if (null != node)
     {
       int len = m_nodes.size();

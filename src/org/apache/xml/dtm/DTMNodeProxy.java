@@ -237,7 +237,7 @@ public class DTMNodeProxy
    */
   public final void setPrefix(String prefix) throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -260,7 +260,7 @@ public class DTMNodeProxy
    */
   public final boolean supports(String feature, String version)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -273,7 +273,7 @@ public class DTMNodeProxy
    */
   public final boolean isSupported(String feature, String version)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -304,7 +304,7 @@ public class DTMNodeProxy
    */
   public final void setNodeValue(String nodeValue) throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -353,7 +353,7 @@ public class DTMNodeProxy
    */
   public final NodeList getChildNodes()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -436,7 +436,7 @@ public class DTMNodeProxy
   public boolean hasAttribute(String name)
   {
 
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
 
     // return false;
   }
@@ -453,7 +453,7 @@ public class DTMNodeProxy
   public boolean hasAttributeNS(String name, String x)
   {
 
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
 
     // return false;
   }
@@ -481,7 +481,7 @@ public class DTMNodeProxy
   public final Node insertBefore(Node newChild, Node refChild)
           throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -497,7 +497,7 @@ public class DTMNodeProxy
   public final Node replaceChild(Node newChild, Node oldChild)
           throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -511,7 +511,7 @@ public class DTMNodeProxy
    */
   public final Node removeChild(Node oldChild) throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -525,7 +525,7 @@ public class DTMNodeProxy
    */
   public final Node appendChild(Node newChild) throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -547,7 +547,7 @@ public class DTMNodeProxy
    */
   public final Node cloneNode(boolean deep)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -567,7 +567,7 @@ public class DTMNodeProxy
    */
   public final DOMImplementation getImplementation()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -577,7 +577,7 @@ public class DTMNodeProxy
    */
   public final Element getDocumentElement()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -591,7 +591,7 @@ public class DTMNodeProxy
    */
   public final Element createElement(String tagName) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -601,7 +601,7 @@ public class DTMNodeProxy
    */
   public final DocumentFragment createDocumentFragment()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -613,7 +613,7 @@ public class DTMNodeProxy
    */
   public final Text createTextNode(String data)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -625,7 +625,7 @@ public class DTMNodeProxy
    */
   public final Comment createComment(String data)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -640,7 +640,7 @@ public class DTMNodeProxy
   public final CDATASection createCDATASection(String data)
           throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -656,7 +656,7 @@ public class DTMNodeProxy
   public final ProcessingInstruction createProcessingInstruction(
           String target, String data) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -670,7 +670,7 @@ public class DTMNodeProxy
    */
   public final Attr createAttribute(String name) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -685,7 +685,7 @@ public class DTMNodeProxy
   public final EntityReference createEntityReference(String name)
           throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -697,7 +697,7 @@ public class DTMNodeProxy
    */
   public final NodeList getElementsByTagName(String tagname)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -713,7 +713,7 @@ public class DTMNodeProxy
   public final Node importNode(Node importedNode, boolean deep)
           throws DOMException
   {
-    throw new DTMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
+    throw new DTMDOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR);
   }
 
   /**
@@ -729,7 +729,7 @@ public class DTMNodeProxy
   public final Element createElementNS(
           String namespaceURI, String qualifiedName) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -745,7 +745,7 @@ public class DTMNodeProxy
   public final Attr createAttributeNS(
           String namespaceURI, String qualifiedName) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -759,7 +759,7 @@ public class DTMNodeProxy
   public final NodeList getElementsByTagNameNS(String namespaceURI,
           String localName)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -771,7 +771,7 @@ public class DTMNodeProxy
    */
   public final Element getElementById(String elementId)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -785,7 +785,7 @@ public class DTMNodeProxy
    */
   public final Text splitText(int offset) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -809,7 +809,7 @@ public class DTMNodeProxy
    */
   public final void setData(String data) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -836,7 +836,7 @@ public class DTMNodeProxy
    */
   public final String substringData(int offset, int count) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -848,7 +848,7 @@ public class DTMNodeProxy
    */
   public final void appendData(String arg) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -861,7 +861,7 @@ public class DTMNodeProxy
    */
   public final void insertData(int offset, String arg) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -874,7 +874,7 @@ public class DTMNodeProxy
    */
   public final void deleteData(int offset, int count) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -889,7 +889,7 @@ public class DTMNodeProxy
   public final void replaceData(int offset, int count, String arg)
           throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -928,7 +928,7 @@ public class DTMNodeProxy
   public final void setAttribute(String name, String value)
           throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -940,7 +940,7 @@ public class DTMNodeProxy
    */
   public final void removeAttribute(String name) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -968,7 +968,7 @@ public class DTMNodeProxy
    */
   public final Attr setAttributeNode(Attr newAttr) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -982,7 +982,7 @@ public class DTMNodeProxy
    */
   public final Attr removeAttributeNode(Attr oldAttr) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -992,13 +992,13 @@ public class DTMNodeProxy
    */
   public boolean hasAttributes()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /** @see org.w3c.dom.Element */
   public final void normalize()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1011,7 +1011,7 @@ public class DTMNodeProxy
    */
   public final String getAttributeNS(String namespaceURI, String localName)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1027,7 +1027,7 @@ public class DTMNodeProxy
           String namespaceURI, String qualifiedName, String value)
             throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1041,7 +1041,7 @@ public class DTMNodeProxy
   public final void removeAttributeNS(String namespaceURI, String localName)
           throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1054,7 +1054,7 @@ public class DTMNodeProxy
    */
   public final Attr getAttributeNodeNS(String namespaceURI, String localName)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1068,7 +1068,7 @@ public class DTMNodeProxy
    */
   public final Attr setAttributeNodeNS(Attr newAttr) throws DOMException
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1110,7 +1110,7 @@ public class DTMNodeProxy
    */
   public final void setValue(String value)
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
   /**
@@ -1121,36 +1121,7 @@ public class DTMNodeProxy
    */
   public final Element getOwnerElement()
   {
-    throw new DTMException(DOMException.NOT_SUPPORTED_ERR);
+    throw new DTMDOMException(DOMException.NOT_SUPPORTED_ERR);
   }
 
-  /**
-   * <meta name="usage" content="internal"/>
-   * Simple implementation of DOMException.
-   */
-  public class DTMException extends org.w3c.dom.DOMException
-  {
-
-    /**
-     * Constructs a DOM/DTM exception.
-     *
-     * @param code
-     * @param message
-     */
-    public DTMException(short code, String message)
-    {
-      super(code, message);
-    }
-
-    /**
-     * Constructor DTMException
-     *
-     *
-     * @param code
-     */
-    public DTMException(short code)
-    {
-      super(code, "");
-    }
-  }
 }

@@ -234,13 +234,18 @@ public abstract class DTMDefaultBase implements DTM
 
     if (capacity <= index)
     {
+      int newcapacity = capacity + m_blocksize;
+
+      // %OPT% Compilers might be happier if we operated on one array
+      // at a time, though the parallel code might be a trifle less
+      // obvious.
+      
       int[] exptype = m_exptype;
       byte[] level = m_level;
       int[] firstch = m_firstch;
       int[] nextsib = m_nextsib;
       short[] prevsib = m_prevsib;
       short[] parent = m_parent;
-      int newcapacity = capacity + m_blocksize;
 
       m_exptype = new int[newcapacity];
       m_level = new byte[newcapacity];
