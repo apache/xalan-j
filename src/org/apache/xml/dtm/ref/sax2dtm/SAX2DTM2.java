@@ -294,7 +294,7 @@ public class SAX2DTM2 extends SAX2DTM
           node = _nextsib2(node);
         }
       }
-      // %OPT% If the nodeType is element (matching child:*), we only
+      // %OPT% If the nodeType is element (matching child::*), we only
       // need to compare the expType with DTM.NTYPES. A child node of 
       // an element can be either an element, text, comment or
       // processing instruction node. Only element node has an extended
@@ -844,26 +844,25 @@ public class SAX2DTM2 extends SAX2DTM
         int parent, index;
 
        if (_type2(node) == DTM.ATTRIBUTE_NODE)
-        node = _parent2(node);
+         node = _parent2(node);
 
         _startNode = node;
         _stack[index = 0] = node;
         
-       
-
-		parent=node;
-		while ((parent = _parent2(parent)) != NULL)
-		{
-			if (++index == _stack.length)
-			{
-				final int[] stack = new int[index + 4];
-				System.arraycopy(_stack, 0, stack, 0, index);
-				_stack = stack;
-			}
-			_stack[index] = parent;
+       	parent=node;
+	while ((parent = _parent2(parent)) != NULL)
+	{
+	  if (++index == _stack.length)
+	  {
+	    final int[] stack = new int[index*2];
+	    System.arraycopy(_stack, 0, stack, 0, index);
+	    _stack = stack;
+	  }
+	  _stack[index] = parent;
         }
+        
         if(index>0)
-	        --index; // Pop actual root node (if not start) back off the stack
+	  --index; // Pop actual root node (if not start) back off the stack
 
         _currentNode=_stack[index]; // Last parent before root node
 
@@ -885,20 +884,18 @@ public class SAX2DTM2 extends SAX2DTM
     	// Bugzilla 8324: We were forgetting to skip Attrs and NS nodes.
     	// Also recoded the loop controls for clarity and to flatten out
     	// the tail-recursion.
-   		for(++_currentNode; 
-   			_sp>=0; 
-   			++_currentNode)
-   		{
-   			if(_currentNode < _stack[_sp])
-   			{
-   				if(_type2(_currentNode) != ATTRIBUTE_NODE &&
-   					_type2(_currentNode) != NAMESPACE_NODE)
-   					return returnNode(makeNodeHandle(_currentNode));
-   			}
-   			else
-   				--_sp;
-   		}
-   		return NULL;
+   	for(++_currentNode; _sp>=0; ++_currentNode)
+   	{
+   	  if(_currentNode < _stack[_sp])
+   	  {
+   	    int type = _type2(_currentNode);
+   	    if(type != ATTRIBUTE_NODE && type != NAMESPACE_NODE)
+   	      return returnNode(makeNodeHandle(_currentNode));
+   	  }
+   	  else
+   	    --_sp;
+   	}
+   	return NULL;
     }
 
     // redefine DTMAxisIteratorBase's reset
@@ -959,45 +956,51 @@ public class SAX2DTM2 extends SAX2DTM
     public int next()
     {
       int node = _currentNode;
-      int nodeType = _nodeType;
+      final int nodeType = _nodeType;
 
       if (nodeType >= DTM.NTYPES) {
         while (true) {
-          node = node + 1;
+          node++;
 
           if (_sp < 0) {
             node = NULL;
             break;
-          } else if (node >= _stack[_sp]) {
+          } 
+          else if (node >= _stack[_sp]) {
             if (--_sp < 0) {
               node = NULL;
               break;
             }
-          } else if (_exptype2(node) == nodeType) {
+          } 
+          else if (_exptype2(node) == nodeType) {
             break;
           }
         }
-      } else {
+      }
+      else {
         int expType;
 
         while (true) {
-          node = node + 1;
+          node++;
 
           if (_sp < 0) {
             node = NULL;
             break;
-          } else if (node >= _stack[_sp]) {
+          }
+          else if (node >= _stack[_sp]) {
             if (--_sp < 0) {
               node = NULL;
               break;
             }
-          } else {
+          }
+          else {
             expType = _exptype2(node);
             if (expType < DTM.NTYPES) {
               if (expType == nodeType) {
                 break;
               }
-            } else {
+            }
+            else {
               if (m_extendedTypes[expType].getNodeType() == nodeType) {
                 break;
               }
@@ -1120,9 +1123,15 @@ public class SAX2DTM2 extends SAX2DTM
    */
   public class AncestorIterator extends InternalAxisIteratorBase
   {
-    org.apache.xml.utils.NodeVector m_ancestors = 
-         new org.apache.xml.utils.NodeVector();
-         
+    // The initial size of the ancestor array
+    private static final int m_blocksize = 32;
+    
+    // The array for ancestor nodes. This array will grow dynamically.
+    int[] m_ancestors = new int[m_blocksize];
+    
+    // Number of ancestor nodes in the array    
+    int m_size = 0;
+    
     int m_ancestorsPos;
 
     int m_markedPos;
@@ -1193,8 +1202,16 @@ public class SAX2DTM2 extends SAX2DTM
       if (_isRestartable)
       {
         int nodeID = makeNodeIdentity(node);
+        
+        if (nodeID == DTM.NULL) {
+          _currentNode = DTM.NULL;
+          m_ancestorsPos = 0;
+          return this;
+        }
 
-        if (!_includeSelf && node != DTM.NULL) {
+        // Start from the current node's parent if 
+        // _includeSelf is false.
+        if (!_includeSelf) {
           nodeID = _parent2(nodeID);
           node = makeNodeHandle(nodeID);
         }
@@ -1202,14 +1219,23 @@ public class SAX2DTM2 extends SAX2DTM
         _startNode = node;
 
         while (nodeID != END) {
-          m_ancestors.addElement(node);
+          //m_ancestors.addElement(node);
+          if (m_size >= m_ancestors.length)
+          {
+            int[] newAncestors = new int[m_size * 2];
+            System.arraycopy(m_ancestors, 0, newAncestors, 0, m_ancestors.length);
+            m_ancestors = newAncestors;
+          }
+          
+          m_ancestors[m_size++] = node;
           nodeID = _parent2(nodeID);
           node = makeNodeHandle(nodeID);
         }
-        m_ancestorsPos = m_ancestors.size()-1;
+        
+        m_ancestorsPos = m_size - 1;
 
         _currentNode = (m_ancestorsPos>=0)
-                               ? m_ancestors.elementAt(m_ancestorsPos)
+                               ? m_ancestors[m_ancestorsPos]
                                : DTM.NULL;
 
         return resetPosition();
@@ -1227,9 +1253,9 @@ public class SAX2DTM2 extends SAX2DTM
     public DTMAxisIterator reset()
     {
 
-      m_ancestorsPos = m_ancestors.size()-1;
+      m_ancestorsPos = m_size - 1;
 
-      _currentNode = (m_ancestorsPos>=0) ? m_ancestors.elementAt(m_ancestorsPos)
+      _currentNode = (m_ancestorsPos >= 0) ? m_ancestors[m_ancestorsPos]
                                          : DTM.NULL;
 
       return resetPosition();
@@ -1247,7 +1273,7 @@ public class SAX2DTM2 extends SAX2DTM
       
       int pos = --m_ancestorsPos;
 
-      _currentNode = (pos >= 0) ? m_ancestors.elementAt(m_ancestorsPos)
+      _currentNode = (pos >= 0) ? m_ancestors[m_ancestorsPos]
                                 : DTM.NULL;
       
       return returnNode(next);
@@ -1259,7 +1285,7 @@ public class SAX2DTM2 extends SAX2DTM
 
     public void gotoMark() {
         m_ancestorsPos = m_markedPos;
-        _currentNode = m_ancestorsPos>=0 ? m_ancestors.elementAt(m_ancestorsPos)
+        _currentNode = m_ancestorsPos>=0 ? m_ancestors[m_ancestorsPos]
                                          : DTM.NULL;
     }
   }  // end of AncestorIterator
@@ -1302,10 +1328,18 @@ public class SAX2DTM2 extends SAX2DTM
       if (_isRestartable)
       {
         int nodeID = makeNodeIdentity(node);
+        
+        if (nodeID == DTM.NULL) {
+          _currentNode = DTM.NULL;
+          m_ancestorsPos = 0;
+          return this;
+        }
+        
         final int nodeType = _nodeType;
 
-        if (!_includeSelf && node != DTM.NULL) {
+        if (!_includeSelf) {
           nodeID = _parent2(nodeID);
+          node = makeNodeHandle(nodeID);
         }
 
         _startNode = node;
@@ -1315,7 +1349,13 @@ public class SAX2DTM2 extends SAX2DTM
             int eType = _exptype2(nodeID);
 
             if (eType == nodeType) {
-              m_ancestors.addElement(makeNodeHandle(nodeID));
+              if (m_size >= m_ancestors.length)
+              {
+              	int[] newAncestors = new int[m_size * 2];
+              	System.arraycopy(m_ancestors, 0, newAncestors, 0, m_ancestors.length);
+              	m_ancestors = newAncestors;
+              }
+              m_ancestors[m_size++] = makeNodeHandle(nodeID);
             }
             nodeID = _parent2(nodeID);
           }
@@ -1324,18 +1364,24 @@ public class SAX2DTM2 extends SAX2DTM
           while (nodeID != END) {
             int eType = _exptype2(nodeID);
 
-            if ((eType >= DTM.NTYPES
-                    && m_extendedTypes[eType].getNodeType() == nodeType)
-                || (eType < DTM.NTYPES && eType == nodeType)) {
-              m_ancestors.addElement(makeNodeHandle(nodeID));
+            if ((eType < DTM.NTYPES && eType == nodeType)
+                || (eType >= DTM.NTYPES
+                    && m_extendedTypes[eType].getNodeType() == nodeType)) {
+              if (m_size >= m_ancestors.length)
+              {
+              	int[] newAncestors = new int[m_size * 2];
+              	System.arraycopy(m_ancestors, 0, newAncestors, 0, m_ancestors.length);
+              	m_ancestors = newAncestors;
+              }
+              m_ancestors[m_size++] = makeNodeHandle(nodeID);
             }
             nodeID = _parent2(nodeID);
           }
         }
-        m_ancestorsPos = m_ancestors.size()-1;
+        m_ancestorsPos = m_size - 1;
 
         _currentNode = (m_ancestorsPos>=0)
-                               ? m_ancestors.elementAt(m_ancestorsPos)
+                               ? m_ancestors[m_ancestorsPos]
                                : DTM.NULL;
 
         return resetPosition();
