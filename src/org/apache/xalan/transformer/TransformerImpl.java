@@ -502,7 +502,16 @@ public class TransformerImpl extends Transformer
     {
       DTMManager mgr = this.getXPathContext().getDTMManager();
       DTM dtm = mgr.getDTM(source, false, this);
-      this.transformNode(dtm.getDocument());
+      
+      boolean hardDelete = true;  // %REVIEW% I have to think about this. -sb
+      try
+      {
+        this.transformNode(dtm.getDocument());
+      }
+      finally
+      {
+        mgr.release(dtm, hardDelete);
+      }
 
       // Kick off the parse.  When the ContentHandler gets 
       // the startDocument event, it will call transformNode( node ).
