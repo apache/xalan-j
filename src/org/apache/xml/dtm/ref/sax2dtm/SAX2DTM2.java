@@ -1727,7 +1727,7 @@ public class SAX2DTM2 extends SAX2DTM
   private int[][] m_parent_map;
 
   // %OPT% Cache the array of extended types in this class
-  private ExtendedType[] m_extendedTypes;
+  protected ExtendedType[] m_extendedTypes;
   
   // Cache the shift and mask values for the SuballocatedIntVectors.
   protected int m_SHIFT;
@@ -1852,6 +1852,17 @@ public class SAX2DTM2 extends SAX2DTM
       return m_extendedTypes[eType].getNodeType();
     else
       return NULL;
+  }
+  
+  /**
+   * Return the node type from the expanded type
+   */
+  public final int _exptype2Type(int exptype)
+  {
+    if (NULL != exptype)
+      return m_extendedTypes[exptype].getNodeType();
+    else
+      return NULL;    
   }
 
   /**
@@ -2659,7 +2670,7 @@ public class SAX2DTM2 extends SAX2DTM
 
 	  if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
 	  {
-	    int dataIndex = _dataOrQName(identity);
+	    int dataIndex = m_dataOrQName.elementAt(identity);
 
 	    if (-1 == offset)
 	    {
@@ -2684,7 +2695,7 @@ public class SAX2DTM2 extends SAX2DTM
     } 
     else if (DTM.TEXT_NODE == type || DTM.CDATA_SECTION_NODE == type)
     {
-      int dataIndex = _dataOrQName(identity);
+      int dataIndex = m_dataOrQName.elementAt(identity);
       int offset = m_data.elementAt(dataIndex);
       int length = m_data.elementAt(dataIndex + 1);
 
@@ -2692,7 +2703,7 @@ public class SAX2DTM2 extends SAX2DTM
     }
     else
     {
-      int dataIndex = _dataOrQName(identity);
+      int dataIndex = m_dataOrQName.elementAt(identity);
 
       if (dataIndex < 0)
       {
@@ -2701,6 +2712,26 @@ public class SAX2DTM2 extends SAX2DTM
       }
       return m_valuesOrPrefixes.indexToString(dataIndex);
     }
+  }
+
+  /**
+   * Returns the string value of the entire tree
+   */
+  public String getStringValue()
+  {
+    int child = _firstch2(ROOTNODE);
+    if (child == DTM.NULL) return EMPTY_STR;
+      
+    // optimization: only create StringBuffer if > 1 child      
+    if ((_exptype2(child) == DTM.TEXT_NODE) && (_nextsib2(child) == DTM.NULL))
+    {
+      int dataIndex = m_dataOrQName.elementAt(child);
+      return m_chars.getString(m_data.elementAt(dataIndex), 
+                               m_data.elementAt(dataIndex + 1));      
+    }
+    else
+      return getStringValueX(getDocument());
+    
   }
 
   /**
@@ -2751,7 +2782,7 @@ public class SAX2DTM2 extends SAX2DTM
 
 	  if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
 	  {
-	    int dataIndex = _dataOrQName(identity);
+	    int dataIndex = m_dataOrQName.elementAt(identity);
 
 	    if (-1 == offset)
 	    {
@@ -2772,14 +2803,14 @@ public class SAX2DTM2 extends SAX2DTM
     } 
     else if (DTM.TEXT_NODE == type || DTM.CDATA_SECTION_NODE == type)
     {
-      int dataIndex = _dataOrQName(identity);
+      int dataIndex = m_dataOrQName.elementAt(identity);
 
       m_chars.sendSAXcharacters(ch, m_data.elementAt(dataIndex), 
                                 m_data.elementAt(dataIndex + 1));
     }
     else
     {
-      int dataIndex = _dataOrQName(identity);
+      int dataIndex = m_dataOrQName.elementAt(identity);
 
       if (dataIndex < 0)
       {

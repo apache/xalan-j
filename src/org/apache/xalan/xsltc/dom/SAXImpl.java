@@ -65,9 +65,6 @@
 
 package org.apache.xalan.xsltc.dom;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Enumeration;
 
 import javax.xml.transform.Source;
@@ -1759,7 +1756,10 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     public void copy(final int node, TransletOutputHandler handler)
 	throws TransletException
     {
-      final int type = getNodeType(node); //_type[node];
+      //final int type = getNodeType(node); //_type[node];
+      int nodeID = makeNodeIdentity(node);
+      int exptype = _exptype2(nodeID);
+      int type = _exptype2Type(exptype);
 
       switch(type)
       {
@@ -1797,10 +1797,10 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         shallowCopy(node, handler);
         break;
       default:
-        if (isElement(node)) 
+        if (type == DTM.ELEMENT_NODE) 
         {
           // Start element definition
-          final String name = copyElement(node, type, handler);
+          final String name = copyElement(nodeID, exptype, handler);
           // Copy element attribute
           for(int a=getFirstAttribute(node); a!=DTM.NULL; a=getNextAttribute(a))
             {
@@ -1869,11 +1869,17 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       throws TransletException
     {
 
-      final int type = getNodeType(node);
+      //final int type = getNodeType(node);
+      int nodeID = makeNodeIdentity(node);
+      int exptype = _exptype2(nodeID);
+      int type = _exptype2Type(exptype);
+      
       switch(type)
       {
+      case DTM.ELEMENT_NODE:
+        return(copyElement(nodeID, exptype, handler));
       case DTM.ROOT_NODE: // do nothing
-     case DTM.DOCUMENT_NODE:
+      case DTM.DOCUMENT_NODE:
         return EMPTYSTRING;
       case DTM.TEXT_NODE:
         characters(node, handler);      
@@ -1897,12 +1903,6 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       handler.attribute(getNodeName(node), getNodeValue(node)); //makeStringValue(node));
           return null;  
       default:
-        if (type == DTM.ELEMENT_NODE) //isElement(node))
-        {
-          return(copyElement(node, type, handler));
-        }
-        else
-        {
           final String uri1 = getNamespaceName(node);
           if (uri1.length() != 0) {
             final String prefix = getPrefix(node); // _prefixArray[_prefix[node]];
@@ -1910,32 +1910,59 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
           }
           handler.attribute(getNodeName(node), getNodeValue(node)); //makeStringValue(node));
           return null;
-        }
       }
     }
 
-    private String copyElement(int node, int type,
+    // %REVISIT% We can move this interface into SAX2DTM2 with the serializer changes.
+    private String copyElement(int nodeID, int exptype,
                                TransletOutputHandler handler)
       throws TransletException
     {
-      final String name = getNodeName(node);
-      final String localName = getLocalName(node);
-      final String uri = getNamespaceName(node);
-
-      handler.startElement(name);
-
-      if (name.length() != localName.length()) {
-        handler.namespace(getPrefix(node), uri);
-      } else if (uri.length() != 0) {
-        handler.namespace(EMPTYSTRING, uri);
+      final ExtendedType extType = m_extendedTypes[exptype];
+      String uri = extType.getNamespace();
+      String name = extType.getLocalName();
+      
+      if (uri.length() == 0)
+      {
+      	handler.startElement(name);
+      	return name;
       }
+      else
+      {
+        int qnameIndex = m_dataOrQName.elementAt(nodeID);
 
-      return name;
+        if (qnameIndex == 0)
+        {
+          handler.startElement(name);
+          handler.namespace(EMPTYSTRING, uri);
+          return name;
+        }
+      
+        if (qnameIndex < 0)
+        {
+	  qnameIndex = -qnameIndex;
+	  qnameIndex = m_data.elementAt(qnameIndex);
+        }
+
+        String qName = m_valuesOrPrefixes.indexToString(qnameIndex);
+        handler.startElement(qName);
+        
+        int prefixIndex = qName.indexOf(':');
+        String prefix;
+        if (prefixIndex > 0)
+          prefix = qName.substring(0, prefixIndex);
+        else
+          prefix = null;
+        
+        handler.namespace(prefix, uri);
+        return qName;
+      }      
     }
 
     /**
      * Returns the string value of the entire tree
      */
+    /*
     public String getStringValue()
     {
       final int doc = getDocument();
@@ -1948,6 +1975,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       else
         return stringValueAux(new StringBuffer(), doc).toString();
     }
+    */
 
     /**
      * Returns the string value of any element
@@ -1964,6 +1992,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Helper to getStringValue() above
      */
+    /*
     private StringBuffer stringValueAux(StringBuffer buffer, final int element)
     {
       for (int child = getFirstChild(element);
@@ -1984,6 +2013,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       }
       return buffer;
     }
+    */
     
     public String getTreeString() {
 	StringBuffer buf = new StringBuffer();
