@@ -398,5 +398,32 @@ public abstract class DTMManager
 
         return defaultFactory;
     }
+    
+    /** %TBD% Doc */
+    static final int IDENT_DTM_DEFAULT = 0xFFF00000;
+    
+    /** %TBD% Doc */
+    static final int IDENT_NODE_DEFAULT = 0x000FFFFF;
+    
+    /**
+     * %TBD% Doc
+     */
+    public abstract int getDTMIdentity(DTM dtm);
+    
+    /**
+     * %TBD% Doc
+     */
+    public int getDTMIdentityMask()
+    {
+      return IDENT_DTM_DEFAULT;
+    }
+
+    /**
+     * %TBD% Doc
+     */
+    public int getNodeIdentityMask()
+    {
+      return IDENT_NODE_DEFAULT;
+    }
 
 }
