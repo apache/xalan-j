@@ -355,12 +355,18 @@ public class TransformerHandlerImpl
       
     m_insideParse = true;
 
-    Thread listener = new Thread(m_transformer);
+   // Thread listener = new Thread(m_transformer);
 
-    m_transformer.setTransformThread(listener);
+    //m_transformer.setTransformThread(listener);
     m_transformer.setSourceTreeDocForThread(m_dtm.getDocument());
-    listener.setDaemon(false);
-    listener.start();
+		int cpriority = Thread.currentThread().getPriority();
+	    
+		// runTransformThread is equivalent with the 2.0.1 code,
+		// except that the Thread may come from a pool.
+		m_transformer.runTransformThread( cpriority );
+	
+   //listener.setDaemon(false);
+   //listener.start();
 
     if (m_contentHandler != null)
     {
@@ -388,7 +394,8 @@ public class TransformerHandlerImpl
       m_contentHandler.endDocument();
     }
     
-    Thread transformThread = m_transformer.getTransformThread();
+		m_transformer.waitTransformThread();
+   /* Thread transformThread = m_transformer.getTransformThread();
 
     if (null != transformThread)
     {
@@ -409,7 +416,7 @@ public class TransformerHandlerImpl
         m_transformer.setTransformThread(null);
       }
       catch (InterruptedException ie){}
-    }
+    }*/
   }
 
   /**

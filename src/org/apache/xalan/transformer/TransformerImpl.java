@@ -2947,6 +2947,17 @@ public class TransformerImpl extends Transformer
   {
     tpool.run(this, -1);
   }
+  
+  /**
+   * Called by CoRoutineSAXParser. Launches the CoroutineSAXParser
+   * in a thread, and prepares it to invoke the parser from that thread
+   * upon request. 
+   *  
+   */
+  public static void runTransformThread(Runnable runnable)
+  {
+    tpool.run(runnable, -1);
+  }
 
   /**
    * Used by SourceTreeHandler to wait until the transform
