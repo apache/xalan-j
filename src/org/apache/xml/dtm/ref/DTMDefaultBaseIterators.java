@@ -1753,8 +1753,8 @@ public abstract class DTMDefaultBaseIterators extends DTMDefaultBaseTraversers
   private class SingletonIterator extends InternalAxisIteratorBase
   {
 
-    /** (not sure yet what this is.  -sb) */
-    private final boolean _isConstant;
+    /** (not sure yet what this is.  -sb)  (sc & sb remove final to compile in JDK 1.1.8) */
+    private boolean _isConstant;
 
     /**
      * Constructor SingletonIterator

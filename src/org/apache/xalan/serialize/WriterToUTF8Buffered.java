@@ -67,13 +67,14 @@ import java.io.*;
 public final class WriterToUTF8Buffered extends Writer
 {
 
-  /** The byte stream to write to. */
-  private final OutputStream m_os;
+  /** The byte stream to write to. (sc & sb remove final to compile in JDK 1.1.8) */
+  private OutputStream m_os;
 
   /**
-   * The internal buffer where data is stored.
+   * The internal buffer where data is stored. 
+   * (sc & sb remove final to compile in JDK 1.1.8)
    */
-  private final byte buf[];
+  private byte buf[];
 
   /**
    * The number of valid bytes in the buffer. This value is always
