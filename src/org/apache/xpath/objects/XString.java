@@ -535,7 +535,7 @@ public class XString extends XObject implements XMLString
    * @see     java.text.Collator#compare(String, String)
    * @since   1.2
    */
-  public int compareToIgnoreCase1(XMLString str)
+  public int compareToIgnoreCase(XMLString str)
   {
 	// %REVIEW%  Like it says, @since 1.2. Doesn't exist in earlier
 	// versions of Java, hence we can't yet shell out to it. We can implement
