@@ -284,15 +284,19 @@ public class SAX2DTM2 extends SAX2DTM
      */
     public int next()
     {
-      int eType;
       int node = _currentNode;
+      if (node == DTM.NULL)
+        return DTM.NULL;
 
-      int nodeType = _nodeType;
+      final int nodeType = _nodeType;
 
       if (nodeType >= DTM.NTYPES) {
+        /*
         while (node != DTM.NULL && _exptype2(node) != nodeType) {
           node = _nextsib2(node);
         }
+        */
+        node = getTypedSelfAndFollowingSibling(node, nodeType);
       }
       // %OPT% If the nodeType is element (matching child::*), we only
       // need to compare the expType with DTM.NTYPES. A child node of 
@@ -300,6 +304,7 @@ public class SAX2DTM2 extends SAX2DTM
       // processing instruction node. Only element node has an extended
       // type greater than or equal to DTM.NTYPES.
       else if (nodeType == DTM.ELEMENT_NODE) {
+      	int eType;
       	while (node != DTM.NULL) {
       	  eType = _exptype2(node);
       	  if (eType >= DTM.NTYPES)
@@ -309,6 +314,7 @@ public class SAX2DTM2 extends SAX2DTM
       	}
       }
       else {
+        int eType;
         while (node != DTM.NULL) {
           eType = _exptype2(node);
           if (eType < DTM.NTYPES) {
@@ -1777,7 +1783,7 @@ public class SAX2DTM2 extends SAX2DTM
    * which have access to the SuballocatedIntVector internal arrays to
    * achieve the best performance.
    */
-  public final int getTypedFollowingSibling(int node, int nodeType)
+  public final int getTypedFollowingSibling(int node, int exptype)
   {
     /*
     do {
@@ -1788,10 +1794,31 @@ public class SAX2DTM2 extends SAX2DTM
       node = (node < m_blocksize) ? m_nextsib_map0[node]
              : m_nextsib_map[node>>>m_SHIFT][node&m_MASK];
     } while (node != DTM.NULL && ((node < m_blocksize) ? m_exptype_map0[node] 
-             : m_exptype_map[node>>>m_SHIFT][node&m_MASK]) != nodeType);
+             : m_exptype_map[node>>>m_SHIFT][node&m_MASK]) != exptype);
     return node;
   }
-    
+
+  /**
+   * Given a node identity and an expanded type, return a node which is
+   * the following-sibling of the given node or the given node itself and
+   * whose expanded type is the given exptype.
+   */
+  public final int getTypedSelfAndFollowingSibling(int node, int exptype)
+  {
+    /*
+        while (node != DTM.NULL && _exptype2(node) != nodeType) {
+          node = _nextsib2(node);
+        }
+    */
+    while (node != DTM.NULL && ((node < m_blocksize) ? m_exptype_map0[node]
+           : m_exptype_map[node>>>m_SHIFT][node&m_MASK]) != exptype)
+    {
+      node = (node < m_blocksize) ? m_nextsib_map0[node]
+             : m_nextsib_map[node>>>m_SHIFT][node&m_MASK];
+    }
+    return node;
+  }
+ 
   /**
    * Receive notification of the end of the document.
    *
