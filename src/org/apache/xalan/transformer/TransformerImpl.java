@@ -540,8 +540,8 @@ public class TransformerImpl extends Transformer
   {
     return m_hasTransformThreadErrorCatcher;
   }
-	
-	/**
+        
+        /**
    * Process the source tree to SAX parse events.
    * @param source  The input for the source tree.
    *
@@ -549,8 +549,8 @@ public class TransformerImpl extends Transformer
    */
   public void transform(Source source) throws TransformerException
   {
-		transform(source, true); 
-	}
+                transform(source, true); 
+        }
 
   /**
    * Process the source tree to SAX parse events.
@@ -574,8 +574,8 @@ public class TransformerImpl extends Transformer
       }
       finally
       {
-				if (shouldRelease)
-					mgr.release(dtm, hardDelete);
+                                if (shouldRelease)
+                                        mgr.release(dtm, hardDelete);
       }
 
       // Kick off the parse.  When the ContentHandler gets 
@@ -1128,8 +1128,8 @@ public class TransformerImpl extends Transformer
 
     return handler;
   }
-	
-	/**
+        
+        /**
    * Process the source tree to the output result.
    * @param xmlSource  The input for the source tree.
    * @param outputTarget The output source target.
@@ -1139,8 +1139,8 @@ public class TransformerImpl extends Transformer
   public void transform(Source xmlSource, Result outputTarget)
           throws TransformerException
   {
-		transform(xmlSource, outputTarget, true);
-	}
+                transform(xmlSource, outputTarget, true);
+        }
 
   /**
    * Process the source tree to the output result.
@@ -2056,238 +2056,6 @@ public class TransformerImpl extends Transformer
     return true;
   }
   
-// Experemental... but causes bugs that I don't want to track down 
-// right now. -sb
-//  /**
-//   * <meta name="usage" content="advanced"/>
-//   * Perform a query if needed, and call transformNode for each child.
-//   *
-//   * @param caller The calling for-each template.
-//   * @param template The owning template context.
-//   *
-//   * @throws TransformerException Thrown in a variety of circumstances.
-//   */
-//  public void transformSelectedNodes(
-//          ElemForEach caller, ElemTemplateElement template)
-//            throws TransformerException
-//  {
-//
-//    final XPathContext xctxt = m_xcontext;
-//    final int sourceNode = xctxt.getCurrentNode();
-//    DTMIterator sourceNodes = caller.getSelect().asIterator(xctxt, sourceNode);
-//
-//    try
-//    {
-//
-//      //      if (TransformerImpl.S_DEBUG)
-//      //        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-//      //                          "test", m_selectExpression,
-//      //                          new org.apache.xpath.objects.XNodeSet(sourceNodes));
-//      final Vector keys = (caller.getSortElemCount() > 0)
-//                          ? null
-//                          : processSortKeys(caller, sourceNode);
-//
-//      // Sort if we need to.
-//      if (null != keys)
-//        sourceNodes = caller.sortNodes(xctxt, keys, sourceNodes);
-//
-//      final ResultTreeHandler rth = getResultTreeHandler();
-//      ContentHandler chandler = rth.getContentHandler();
-//      final TemplateList tl = m_stylesheetRoot.getTemplateListComposed();
-//      final boolean needToFindTemplate = (null == template);
-//      final boolean quiet = m_quietConflictWarnings;
-//      
-//      xctxt.pushCurrentNode(DTM.NULL);
-//      int[] currentNodes = xctxt.getCurrentNodeStack();
-//      int currentNodePos = xctxt.getCurrentNodeFirstFree() - 1;
-//      
-//      xctxt.pushCurrentExpressionNode(DTM.NULL);
-//      int[] currentExpressionNodes = xctxt.getCurrentExpressionNodeStack();
-//      int currentExpressionNodePos = xctxt.getCurrentExpressionNodesFirstFree() - 1;
-//
-//      // StylesheetComposed stylesheet = getStylesheetComposed();
-//      boolean didSetVars = false;
-//      SourceLocator savedLocator = null;
-//      boolean check = false;
-//      int savedSearchStart = 0;
-//
-//      try
-//      {
-//        // Should be able to get this from the iterator but there must be a bug.
-//        DTM dtm = xctxt.getDTM(sourceNode);
-//        int docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
-//        
-//        int child;
-//        while (DTM.NULL != (child = sourceNodes.nextNode()))
-//        {
-//          currentNodes[currentNodePos] = child;
-//          currentExpressionNodes[currentExpressionNodePos] = child;
-//
-//          if((child & DTMManager.IDENT_DTM_DEFAULT) != docID)
-//          {
-//            dtm = xctxt.getDTM(child);
-//            docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
-//          }
-//          
-//          final int exNodeType = dtm.getExpandedTypeID(child);
-//          final int nodeType = (exNodeType >> ExpandedNameTable.ROTAMOUNT_TYPE);
-//
-//          if (needToFindTemplate)
-//          {
-//            final QName mode = getMode();
-//
-//            template = tl.getTemplateFast(xctxt, child, exNodeType, mode, 
-//                                          -1, quiet, dtm);
-//
-//            // If that didn't locate a node, fall back to a default template rule.
-//            // See http://www.w3.org/TR/xslt#built-in-rule.
-//            if (null == template)
-//            {
-//              switch (nodeType)
-//              {
-//              case DTM.DOCUMENT_FRAGMENT_NODE :
-//              case DTM.ELEMENT_NODE :
-//                template = m_stylesheetRoot.getDefaultRule();
-//                break;
-//              case DTM.ATTRIBUTE_NODE :
-//              case DTM.CDATA_SECTION_NODE :
-//              case DTM.TEXT_NODE :
-//                rth.flushPending(true);
-//                dtm.dispatchCharactersEvents(child, chandler, false);
-//                continue;
-//              case DTM.DOCUMENT_NODE :
-//                template = m_stylesheetRoot.getDefaultRootRule();
-//                break;
-//              default :
-//
-//                // No default rules for processing instructions and the like.
-//                continue;
-//              }
-//            }
-//          }
-//
-//          if (!didSetVars)
-//          {
-//            didSetVars = true;
-//            check = (m_stackGuard.m_recursionLimit > -1);
-//
-//            savedLocator = xctxt.getSAXLocator();
-//
-//            xctxt.pushContextNodeList(sourceNodes);
-//            pushElemTemplateElement(null);
-//
-//            savedSearchStart = caller.pushParams(this, xctxt);
-//          }
-//
-//          ElemTemplateElement t = template.getFirstChildElem();
-//
-//          // If we are processing the default text rule, then just clone 
-//          // the value directly to the result tree.
-//          try
-//          {
-//            if (needToFindTemplate)
-//              pushPairCurrentMatched(template, child);
-//
-//            if (check)
-//              m_stackGuard.push(caller, child);
-//
-//            // Fire a trace event for the template.
-//            if (TransformerImpl.S_DEBUG)
-//              getTraceManager().fireTraceEvent(template);
-//
-//            // And execute the child templates.
-//            // Loop through the children of the template, calling execute on 
-//            // each of them.
-//            for (; t != null; t = t.getNextSiblingElem())
-//            {
-//              xctxt.setSAXLocator(t);
-//              setCurrentElement(t);
-//
-//              switch (t.getXSLToken())
-//              {
-//              case Constants.ELEMNAME_COPY :
-//              
-//                if ((DTM.DOCUMENT_NODE != nodeType)
-//                        && (DTM.DOCUMENT_FRAGMENT_NODE != nodeType))
-//                {
-//                  // TODO: Process the use-attribute-sets stuff
-//
-//                  if (DTM.ELEMENT_NODE == nodeType)
-//                  {
-//                    String ns = dtm.getNamespaceURI(child);
-//                    String localName = dtm.getLocalName(child);
-//                    String qname = dtm.getNodeNameX(child);
-//          
-//                    rth.startElement(ns, localName, qname, null);
-//
-//                    if(null != ((ElemUse)t).getUseAttributeSets())
-//                      ((ElemUse)t).applyAttrSets(this, m_stylesheetRoot);
-//                      
-//                    rth.processNSDecls(child, nodeType, dtm);
-//                    executeChildTemplates(t, true);
-//
-//                    rth.endElement(ns, localName, qname);
-//                  }
-//                  else
-//                  {
-//                    ClonerToResultTree.cloneToResultTree(child, nodeType, 
-//                                                         dtm, rth, false);
-//                    if (TransformerImpl.S_DEBUG)
-//                      getTraceManager().fireTraceEvent(t);
-//                  }
-//                }
-//                else
-//                {
-//                  if (TransformerImpl.S_DEBUG)
-//                    getTraceManager().fireTraceEvent(t);
-//
-//                  if(null != ((ElemUse)t).getUseAttributeSets())
-//                    ((ElemUse)t).applyAttrSets(this, m_stylesheetRoot);
-//                  executeChildTemplates(t, true);
-//                }
-//                break;
-//              default :
-//                t.execute(this);
-//              }
-//            }
-//            if(savedSearchStart > 0)
-//              caller.reMarkParams(xctxt);
-//          }
-//          finally
-//          {
-//            if (needToFindTemplate)
-//              popCurrentMatched();
-//
-//            if (check)
-//              m_stackGuard.pop();
-//          }
-//        }
-//      }
-//      finally
-//      {
-//        if (didSetVars)
-//        {
-//          xctxt.setSAXLocator(savedLocator);
-//          xctxt.popContextNodeList();
-//          popElemTemplateElement();
-//          caller.popParams(xctxt, savedSearchStart);
-//        }
-//
-//        // if(null != sourceNodes)
-//        //  sourceNodes.detach();                
-//      }
-//    }
-//    catch (SAXException se)
-//    {
-//      getErrorListener().fatalError(new TransformerException(se));
-//    }
-//    finally
-//    {
-//      xctxt.popCurrentExpressionNode();
-//      xctxt.popCurrentNode();
-//      sourceNodes.detach();
-//    }
-//  }
   
   /**
    * <meta name="usage" content="advanced"/>

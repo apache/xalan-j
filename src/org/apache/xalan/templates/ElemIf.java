@@ -190,9 +190,10 @@ public class ElemIf extends ElemTemplateElement
         transformer.executeChildTemplates(this, true);
       }
 
-      if (TransformerImpl.S_DEBUG)
-        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-                "endTest", m_test, test);
+      // I don't think we want this.  -sb
+      //  if (TransformerImpl.S_DEBUG)
+      //    transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+      //            "endTest", m_test, test);
     }
     else if (m_test.bool(xctxt, sourceNode, this))
     {

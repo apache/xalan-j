@@ -74,7 +74,7 @@ import org.apache.xpath.XPath;
 public class TraceManager
 {
 
-  /** A transformer instance          */
+  /** A transformer instance */
   private TransformerImpl m_transformer;
 
   /**
@@ -164,13 +164,14 @@ public class TraceManager
    */
   public void fireTraceEvent(ElemTemplateElement styleNode)
   {
-  
+
     if (hasTraceListeners())
     {
-			int sourceNode = m_transformer.getXPathContext().getCurrentNode();
-			Node source = m_transformer.getXPathContext().getDTM(sourceNode).getNode(sourceNode);
-    
-      fireTraceEvent(new TracerEvent(m_transformer, source, null, /*sourceNode, mode,*/
+      int sourceNode = m_transformer.getXPathContext().getCurrentNode();
+      Node source = m_transformer.getXPathContext().getDTM(
+        sourceNode).getNode(sourceNode);
+
+      fireTraceEvent(new TracerEvent(m_transformer, source, null,  /*sourceNode, mode,*/
                                      styleNode));
     }
   }
@@ -201,25 +202,78 @@ public class TraceManager
    *
    * @param sourceNode Current source node
    * @param styleNode node in the style tree reference for the event.
-   * @param attributeName The attribute name from which the selection is made. 
+   * @param attributeName The attribute name from which the selection is made.
    * @param xpath The XPath that executed the selection.
    * @param selection The result of the selection.
    *
    * @throws javax.xml.transform.TransformerException
    */
   public void fireSelectedEvent(
-          int sourceNode, ElemTemplateElement styleNode, String attributeName, XPath xpath, XObject selection)
+          int sourceNode, ElemTemplateElement styleNode, String attributeName, 
+          XPath xpath, XObject selection)
             throws javax.xml.transform.TransformerException
   {
 
     if (hasTraceListeners())
-		{
-			Node source = m_transformer.getXPathContext().getDTM(sourceNode).getNode(sourceNode);
-    
-      fireSelectedEvent(new SelectionEvent(m_transformer, source,
-                                           styleNode, attributeName, xpath,
-                                           selection));
-		}
+    {
+      Node source = m_transformer.getXPathContext().getDTM(
+        sourceNode).getNode(sourceNode);
+
+      fireSelectedEvent(new SelectionEvent(m_transformer, source, styleNode,
+                                           attributeName, xpath, selection));
+    }
+  }
+  
+  /**
+   * Fire a selection event.
+   *
+   * @param sourceNode Current source node
+   * @param styleNode node in the style tree reference for the event.
+   * @param attributeName The attribute name from which the selection is made.
+   * @param xpath The XPath that executed the selection.
+   * @param selection The result of the selection.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public void fireSelectedEndEvent(
+          int sourceNode, ElemTemplateElement styleNode, String attributeName, 
+          XPath xpath, XObject selection)
+            throws javax.xml.transform.TransformerException
+  {
+
+    if (hasTraceListeners())
+    {
+      Node source = m_transformer.getXPathContext().getDTM(
+        sourceNode).getNode(sourceNode);
+
+      fireSelectedEndEvent(new EndSelectionEvent(m_transformer, source, styleNode,
+                                           attributeName, xpath, selection));
+    }
+  }
+  
+  /**
+   * Fire a selection event.
+   *
+   * @param se Selection event to fire
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public void fireSelectedEndEvent(EndSelectionEvent se)
+          throws javax.xml.transform.TransformerException
+  {
+
+    if (hasTraceListeners())
+    {
+      int nListeners = m_traceListeners.size();
+
+      for (int i = 0; i < nListeners; i++)
+      {
+        TraceListener tl = (TraceListener) m_traceListeners.elementAt(i);
+
+        if(tl instanceof TraceListenerEx)
+          ((TraceListenerEx)tl).selectEnd(se);
+      }
+    }
   }
 
   /**

@@ -116,15 +116,15 @@ public class ElemForEach extends ElemTemplateElement
    * @serial
    */
   protected Expression m_selectExpression = null;
-        
-         /**
+
+  /**
    * Set the "select" attribute.
    *
    * @param xpath The XPath expression for the "select" attribute.
    */
   public void setSelect(XPath xpath)
   {
-                m_selectExpression = xpath.getExpression();
+    m_selectExpression = xpath.getExpression();
   }
 
   /**
@@ -136,52 +136,62 @@ public class ElemForEach extends ElemTemplateElement
   {
     return m_selectExpression;
   }
-  
+
   /**
    * This function is called after everything else has been
    * recomposed, and allows the template to set remaining
    * values that may be based on some other property that
    * depends on recomposition.
+   *
+   * NEEDSDOC @param sroot
+   *
+   * @throws TransformerException
    */
   public void compose(StylesheetRoot sroot) throws TransformerException
   {
+
     super.compose(sroot);
+
     int length = getSortElemCount();
-    for (int i = 0; i < length; i++) 
+
+    for (int i = 0; i < length; i++)
     {
       getSortElem(i).compose(sroot);
     }
+
     java.util.Vector vnames = sroot.getComposeState().getVariableNames();
-    if(null != m_selectExpression)
-      m_selectExpression.fixupVariables(vnames, sroot.getComposeState().getGlobalsSize());
+
+    if (null != m_selectExpression)
+      m_selectExpression.fixupVariables(
+        vnames, sroot.getComposeState().getGlobalsSize());
     else
     {
-                        m_selectExpression =
+      m_selectExpression =
         getStylesheetRoot().m_selectDefault.getExpression();
     }
   }
 
-//  /**
-//   * This function is called after everything else has been
-//   * recomposed, and allows the template to set remaining
-//   * values that may be based on some other property that
-//   * depends on recomposition.
-//   *
-//   * @throws TransformerException
-//   */
-//  public void compose() throws TransformerException
-//  {
-//
-//    if (null == m_selectExpression)
-//    {
-//      m_selectExpression =
-//        getStylesheetRoot().m_selectDefault.getExpression();
-//    }
-//  }
+  //  /**
+  //   * This function is called after everything else has been
+  //   * recomposed, and allows the template to set remaining
+  //   * values that may be based on some other property that
+  //   * depends on recomposition.
+  //   *
+  //   * @throws TransformerException
+  //   */
+  //  public void compose() throws TransformerException
+  //  {
+  //
+  //    if (null == m_selectExpression)
+  //    {
+  //      m_selectExpression =
+  //        getStylesheetRoot().m_selectDefault.getExpression();
+  //    }
+  //  }
 
   /**
    * Vector containing the xsl:sort elements associated with this element.
-   *  @serial         
+   *  @serial
    */
   protected Vector m_sortElems = null;
 
@@ -323,63 +333,67 @@ public class ElemForEach extends ElemTemplateElement
    * @throws TransformerException Thrown in a variety of circumstances.
    */
   public void transformSelectedNodes(TransformerImpl transformer)
-            throws TransformerException
+          throws TransformerException
   {
 
     final XPathContext xctxt = transformer.getXPathContext();
     final int sourceNode = xctxt.getCurrentNode();
-    DTMIterator sourceNodes = m_selectExpression.asIterator(xctxt, sourceNode);
+    DTMIterator sourceNodes = m_selectExpression.asIterator(xctxt,
+                                sourceNode);
 
     try
     {
 
-      if (TransformerImpl.S_DEBUG)
-              transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-              "test", new XPath(m_selectExpression),
-                                                                                                                                                                                                              new org.apache.xpath.objects.XNodeSet(sourceNodes));
       final Vector keys = (m_sortElems == null)
-            ? null
-            : transformer.processSortKeys(this, sourceNode);
+                          ? null
+                          : transformer.processSortKeys(this, sourceNode);
 
       // Sort if we need to.
       if (null != keys)
         sourceNodes = sortNodes(xctxt, keys, sourceNodes);
 
+      if (TransformerImpl.S_DEBUG)
+        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+                "select", new XPath(m_selectExpression),
+                new org.apache.xpath.objects.XNodeSet(sourceNodes));
+
       final ResultTreeHandler rth = transformer.getResultTreeHandler();
       ContentHandler chandler = rth.getContentHandler();
-      
+
       xctxt.pushCurrentNode(DTM.NULL);
+
       int[] currentNodes = xctxt.getCurrentNodeStack();
       int currentNodePos = xctxt.getCurrentNodeFirstFree() - 1;
-      
+
       xctxt.pushCurrentExpressionNode(DTM.NULL);
+
       int[] currentExpressionNodes = xctxt.getCurrentExpressionNodeStack();
-      int currentExpressionNodePos = xctxt.getCurrentExpressionNodesFirstFree() - 1;
+      int currentExpressionNodePos =
+        xctxt.getCurrentExpressionNodesFirstFree() - 1;
 
       xctxt.pushSAXLocatorNull();
       xctxt.pushContextNodeList(sourceNodes);
       transformer.pushElemTemplateElement(null);
-      // pushParams(transformer, xctxt);
 
+      // pushParams(transformer, xctxt);
       // Should be able to get this from the iterator but there must be a bug.
       DTM dtm = xctxt.getDTM(sourceNode);
       int docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
-      
       int child;
+
       while (DTM.NULL != (child = sourceNodes.nextNode()))
       {
         currentNodes[currentNodePos] = child;
         currentExpressionNodes[currentExpressionNodePos] = child;
 
-        if((child & DTMManager.IDENT_DTM_DEFAULT) != docID)
+        if ((child & DTMManager.IDENT_DTM_DEFAULT) != docID)
         {
           dtm = xctxt.getDTM(child);
           docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
         }
-        
+
         final int exNodeType = dtm.getExpandedTypeID(child);
         final int nodeType = (exNodeType >> ExpandedNameTable.ROTAMOUNT_TYPE);
-
 
         // Fire a trace event for the template.
         if (TransformerImpl.S_DEBUG)
@@ -388,8 +402,8 @@ public class ElemForEach extends ElemTemplateElement
         // And execute the child templates.
         // Loop through the children of the template, calling execute on 
         // each of them.
-        for (ElemTemplateElement t = this.m_firstChild; 
-             t != null; t = t.m_nextSibling)
+        for (ElemTemplateElement t = this.m_firstChild; t != null;
+                t = t.m_nextSibling)
         {
           xctxt.setSAXLocator(t);
           transformer.setCurrentElement(t);
@@ -399,6 +413,11 @@ public class ElemForEach extends ElemTemplateElement
     }
     finally
     {
+      if (TransformerImpl.S_DEBUG)
+        transformer.getTraceManager().fireSelectedEndEvent(sourceNode, this,
+                "select", new XPath(m_selectExpression),
+                new org.apache.xpath.objects.XNodeSet(sourceNodes));
+
       xctxt.popSAXLocator();
       xctxt.popContextNodeList();
       transformer.popElemTemplateElement();

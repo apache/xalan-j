@@ -280,10 +280,6 @@ public class ElemValueOf extends ElemTemplateElement
         try
         {
           dtm.dispatchCharactersEvents(child, rth, false);
-
-          //if (TransformerImpl.S_DEBUG)
-          //  transformer.getTraceManager().fireSelectedEvent(child, this,
-          //          "select", m_selectExpression, value);
         }
         finally
         {
@@ -314,9 +310,10 @@ public class ElemValueOf extends ElemTemplateElement
           {
             XObject obj = expr.execute(xctxt);
 
-            obj.dispatchCharactersEvents(rth);
             transformer.getTraceManager().fireSelectedEvent(current, this,
                     "select", m_selectExpression, obj);
+
+            obj.dispatchCharactersEvents(rth);
           }
           else
           {

@@ -257,10 +257,6 @@ public class ElemApplyTemplates extends ElemCallTemplate
     try
     {
 
-      //      if (TransformerImpl.S_DEBUG)
-      //        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-      //                          "test", m_selectExpression,
-      //                          new org.apache.xpath.objects.XNodeSet(sourceNodes));
       final Vector keys = (m_sortElems == null)
                           ? null
                           : transformer.processSortKeys(this, sourceNode);
@@ -268,6 +264,11 @@ public class ElemApplyTemplates extends ElemCallTemplate
       // Sort if we need to.
       if (null != keys)
         sourceNodes = sortNodes(xctxt, keys, sourceNodes);
+
+      if (TransformerImpl.S_DEBUG)
+        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+                "select", new XPath(m_selectExpression),
+                new org.apache.xpath.objects.XNodeSet(sourceNodes));
 
       final ResultTreeHandler rth = transformer.getResultTreeHandler();
       ContentHandler chandler = rth.getContentHandler();
@@ -428,6 +429,11 @@ public class ElemApplyTemplates extends ElemCallTemplate
     }
     finally
     {
+      if (TransformerImpl.S_DEBUG)
+        transformer.getTraceManager().fireSelectedEndEvent(sourceNode, this,
+                "select", new XPath(m_selectExpression),
+                new org.apache.xpath.objects.XNodeSet(sourceNodes));
+
       if(nParams > 0)
         vars.unlink();
       xctxt.popSAXLocator();
