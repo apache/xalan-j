@@ -565,7 +565,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
         int identity = getSubtreeRoot(context);
         int firstPotential = getFirstPotential(identity);
 
-        return getNextIndexed(identity, firstPotential, extendedTypeID);
+        return getNextIndexed(identity, firstPotential, extendedTypeID)|m_dtmIdent;
       }
 
       return next(context, context, extendedTypeID);
@@ -617,7 +617,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
 
       if (isIndexed(extendedTypeID))
       {
-        return getNextIndexed(subtreeRootIdent, current, extendedTypeID);
+        return getNextIndexed(subtreeRootIdent, current, extendedTypeID)|m_dtmIdent;
       }
 
       for (; ; current++)
