@@ -71,7 +71,6 @@ import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
 import org.apache.xml.utils.XMLCharacterRecognizer;
 import org.apache.xml.utils.SystemIDResolver;
-import org.apache.xml.dtm.*;
 import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.XMLStringFactory;
 import org.apache.xml.utils.WrappedRuntimeException;
@@ -84,7 +83,6 @@ public class SAX2DTM extends DTMDefaultBaseIterators
         implements EntityResolver, DTDHandler, ContentHandler, ErrorHandler,
                    DeclHandler, LexicalHandler
 {
-
   /** simple DEBUG flag, for dumping diagnostics info. */
   private static final boolean DEBUG = false;
 
@@ -858,10 +856,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     m_prevsib[nodeIndex] = previousSibling;
     m_parent[nodeIndex] = parentIndex;
     m_exptype[nodeIndex] = expandedTypeID;
-    m_dataOrQName[nodeIndex] = dataOrPrefix;
-    
-    if(DTM.NAMESPACE_NODE == type)
-      m_haveSeenNamespace = true;
+    m_dataOrQName[nodeIndex] = dataOrPrefix;    
 
     if (DTM.NULL != parentIndex && type != DTM.ATTRIBUTE_NODE
             && type != DTM.NAMESPACE_NODE)
@@ -874,6 +869,9 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     // charactersFlush() is called.
     if (DTM.NULL != previousSibling)
       m_nextsib[previousSibling] = nodeIndex;
+
+    if(type == DTM.NAMESPACE_NODE)
+                declareNamespaceInContext(parentIndex,nodeIndex);
 
     return nodeIndex;
   }
@@ -1666,6 +1664,10 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     for (int i = startDecls; i < nDecls; i += 2)
     {
+      // %TBD% JJK OUCH! We're explicitly reasserting the prefixes on every
+      // element. That is NOT USEFUL given that both Scott and Joe implemented
+      // search-the-parents logic and we're supposedly trying to distinguish
+      // inherited from local.
       prefix = (String) m_prefixMappings.elementAt(i);
 
       if (prefix == null)
