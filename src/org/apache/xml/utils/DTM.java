@@ -91,6 +91,10 @@ package org.apache.xml.utils;
  */
 public interface DTM
 {
+  /**
+   * Null node handles are represented by this value.
+   */
+  public static final int NULL = -1;
 
   // These are the same as the DOM on purpose.
   /**
@@ -433,7 +437,7 @@ public interface DTM
    * @param nodeHandle The node id.
    * @return int Node type, as per the DOM's Node._NODE constants.
    */
-  public int getNodeType(int nodeHandle);
+  public short getNodeType(int nodeHandle);
   
   /**
    * <meta name="usage" content="internal"/>
@@ -444,6 +448,20 @@ public interface DTM
    * @return the number of ancestors, plus one
    */
   public short getLevel(int nodeHandle);
+    
+  /**
+   * Tests whether DTM DOM implementation implements a specific feature and 
+   * that feature is supported by this node.
+   * @param feature The name of the feature to test.
+   * @param versionThis is the version number of the feature to test.
+   *   If the version is not 
+   *   specified, supporting any version of the feature will cause the 
+   *   method to return <code>true</code>.
+   * @return Returns <code>true</code> if the specified feature is 
+   *   supported on this node, <code>false</code> otherwise.
+   */
+  public boolean isSupported(String feature, 
+                             String version);
   
   // ============== Document query functions ============== 
   
@@ -534,6 +552,12 @@ public interface DTM
   public int getDocumentTypeDeclarationPublicIdentifier();
 
   // ============== Boolean methods ================
+  
+  /**
+   * Return true if the xsl:strip-space or xsl:preserve-space was processed 
+   * at the construction level.
+   */
+  boolean supportsPreStripping();
   
   /**
    * Figure out whether nodeHandle2 should be considered as being later
