@@ -120,29 +120,6 @@ public interface DTMIterator
    * @param environment The environment object.
    */
   public void setEnvironment(Object environment);
-<<<<<<< DTMIterator.java
-
-  /**
-   * Get an instance of a DTM that "owns" a node handle.  Since a node 
-   * iterator may be passed without a DTMManager, this allows the 
-   * caller to easily get the DTM using just the iterator.
-   *
-   * @param nodeHandle the nodeHandle.
-   *
-   * @return a non-null DTM reference.
-   */
-  public DTM getDTM(int nodeHandle);
-  
-  /**
-   * Get an instance of the DTMManager.  Since a node 
-   * iterator may be passed without a DTMManager, this allows the 
-   * caller to easily get the DTMManager using just the iterator.
-   *
-   * @return a non-null DTMManager reference.
-   */
-  public DTMManager getDTMManager();
-
-=======
   
   /**
    * Get an instance of a DTM that "owns" a node handle.  Since a node 
@@ -166,8 +143,6 @@ public interface DTMIterator
    */
   public DTMManager getDTMManager();
 
-
->>>>>>> 1.1.2.3
   /**
    * The root node of the <code>DTMIterator</code>, as specified when it
    * was created.  Note the root node is not the root node of the 

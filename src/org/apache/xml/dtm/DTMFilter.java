@@ -153,13 +153,6 @@ public interface DTMFilter
    */
   public static final int SHOW_NOTATION = 0x00000800;
   
-<<<<<<< DTMFilter.java
-  /**
-   * This bit specifies a namespace, and extends the SHOW_XXX stuff
-   *  in {@link org.w3c.dom.traversal.NodeFilter}.
-   * Make sure this does not conflict with those values.
-   */
-=======
   /**
 
    * This bit instructs the iterator to show namespace nodes, which
@@ -170,16 +163,9 @@ public interface DTMFilter
    * to leave room for the DOM to expand its set of constants... Or,
    * possibly, to create a DTM-specific field for these additional bits.
    */
->>>>>>> 1.1.2.3
   public static final int SHOW_NAMESPACE = 0x00001000;
 
   /**
-<<<<<<< DTMFilter.java
-   * Special bitmap for match patterns starting with a function.
-   * This extends the SHOW_XXX stuff
-   *  in {@link org.w3c.dom.traversal.NodeFilter}.
-   * Make sure this does not conflict with those values.
-=======
    * Special bit for filters implementing match patterns starting with
    * a function.  Make sure this does not conflict with
    * {@link org.w3c.dom.traversal.NodeFilter}.
@@ -187,7 +173,6 @@ public interface DTMFilter
    * ISSUE: Might be safer to start from higher bits and work down,
    * to leave room for the DOM to expand its set of constants... Or,
    * possibly, to create a DTM-specific field for these additional bits.
->>>>>>> 1.1.2.3
    */
   public static final int SHOW_BYFUNCTION = 0x00010000;
 
