@@ -81,6 +81,11 @@ public interface DOM {
     public final static int RETURN_CURRENT = 0;
     public final static int RETURN_PARENT  = 1;
     
+    // Constants used by getResultTreeFrag to indicate the types of the RTFs.
+    public final static int SIMPLE_RTF   = 0;
+    public final static int ADAPTIVE_RTF = 1;
+    public final static int TREE_RTF     = 2;
+    
     /** returns singleton iterator containg the document root */
     public DTMAxisIterator getIterator();
     public String getStringValue();
@@ -126,7 +131,7 @@ public interface DOM {
 	throws TransletException;
     public int getNodeIdent(final int nodehandle);
     public int getNodeHandle(final int nodeId);
-    public DOM getResultTreeFrag(int initialSize, boolean isSimple);
+    public DOM getResultTreeFrag(int initialSize, int rtfType);
     public TransletOutputHandler getOutputDomBuilder();
     public int getNSType(int node);
     public int getDocument();

@@ -2122,14 +2122,23 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Return a instance of a DOM class to be used as an RTF
      */ 
-    public DOM getResultTreeFrag(int initSize, boolean isSimple)
+    public DOM getResultTreeFrag(int initSize, int rtfType)
     {
-    	if (isSimple) {
+    	if (rtfType == DOM.SIMPLE_RTF) {
             int dtmPos = _dtmManager.getFirstFreeDTMID();
     	    SimpleResultTreeImpl rtf = new SimpleResultTreeImpl(_dtmManager,
     	                               dtmPos << DTMManager.IDENT_DTM_NODE_BITS);
     	    _dtmManager.addDTM(rtf, dtmPos, 0);
     	    return rtf;
+    	}
+    	else if (rtfType == DOM.ADAPTIVE_RTF) {
+            int dtmPos = _dtmManager.getFirstFreeDTMID();
+    	    AdaptiveResultTreeImpl rtf = new AdaptiveResultTreeImpl(_dtmManager,
+    	                               dtmPos << DTMManager.IDENT_DTM_NODE_BITS,
+    	                               m_wsfilter, initSize, m_buildIdIndex);
+    	    _dtmManager.addDTM(rtf, dtmPos, 0);
+    	    return rtf;
+    	
     	}
     	else
     	    return (SAXImpl) _dtmManager.getDTM(null, true, m_wsfilter,

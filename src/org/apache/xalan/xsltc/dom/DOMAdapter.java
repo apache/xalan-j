@@ -115,6 +115,14 @@ public final class DOMAdapter implements DOM {
         _namespaceArray = namespaces;
     }
     
+    public String[] getNamesArray() {
+        return _namesArray;
+    }
+    
+    public String[] getNamespaceArray() {
+        return _namespaceArray;
+    }
+    
     public DOM getDOMImpl() {
     	//return (_domImpl != null) ? (DOM)_domImpl : (DOM)_saxImpl;
     	return _dom;
@@ -488,13 +496,13 @@ public final class DOMAdapter implements DOM {
     /**
      * Return a instance of a DOM class to be used as an RTF
      */ 
-    public DOM getResultTreeFrag(int initSize, boolean isSimple)
+    public DOM getResultTreeFrag(int initSize, int rtfType)
     {
     	if (_saxImpl != null) {
-    	    return _saxImpl.getResultTreeFrag(initSize, isSimple);
+    	    return _saxImpl.getResultTreeFrag(initSize, rtfType);
     	}
     	else {
-    	    return _dom.getResultTreeFrag(initSize, isSimple);
+    	    return _dom.getResultTreeFrag(initSize, rtfType);
     	}
     }
     

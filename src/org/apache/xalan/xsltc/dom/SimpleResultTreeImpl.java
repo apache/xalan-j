@@ -285,13 +285,13 @@ public class SimpleResultTreeImpl implements DOM, DTM, TransletOutputHandler
     // The array of Text items, which is built by the characters() call.
     // The characters() interface can be called multiple times. Each character item
     // can have different escape settings.
-    private String[] _textArray;
+    protected String[] _textArray;
     
     // The DTMManager
-    private XSLTCDTMManager _dtmManager;
+    protected XSLTCDTMManager _dtmManager;
     
     // Number of character items
-    private int _size = 0;
+    protected int _size = 0;
     
     // The document ID
     private int _documentID;
@@ -594,7 +594,7 @@ public class SimpleResultTreeImpl implements DOM, DTM, TransletOutputHandler
     /**
      * Return the node identity from a node handle.
      */
-    public final int getNodeIdent(final int nodehandle)
+    public int getNodeIdent(final int nodehandle)
     {
         return (nodehandle != DTM.NULL) ? (nodehandle - _documentID) : DTM.NULL;
     }
@@ -602,12 +602,12 @@ public class SimpleResultTreeImpl implements DOM, DTM, TransletOutputHandler
     /**
      * Return the node handle from a node identity.
      */
-    public final int getNodeHandle(final int nodeId)
+    public int getNodeHandle(final int nodeId)
     {
         return (nodeId != DTM.NULL) ? (nodeId + _documentID) : DTM.NULL;
     }
     
-    public DOM getResultTreeFrag(int initialSize, boolean isSimple)
+    public DOM getResultTreeFrag(int initialSize, int rtfType)
     {
         return null;
     }

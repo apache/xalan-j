@@ -300,16 +300,13 @@ public final class MultiDOM implements DOM {
         DOM dom = adapter.getDOMImpl();
         
         DTMManager dtmManager = null;
-        if (dom instanceof DTMDefaultBase)
+        if (dom instanceof DTMDefaultBase) {
             dtmManager = ((DTMDefaultBase)dom).m_mgr;
-        else if (dom instanceof SimpleResultTreeImpl)
+        }
+        else if (dom instanceof SimpleResultTreeImpl) {
             dtmManager = ((SimpleResultTreeImpl)dom).getDTMManager();
-        
-        /*
-        DTMManager dtmManager =
-                      ((DTMDefaultBase)((DOMAdapter)dom).getDOMImpl()).m_mgr;
-        */
-        
+        }
+                
         final int domNo =
              dtmManager.getDTMIdentity((DTM)dom)
                    >>> DTMManager.IDENT_DTM_NODE_BITS;
@@ -330,6 +327,20 @@ public final class MultiDOM implements DOM {
         if (indexByURI) {
             String uri = adapter.getDocumentURI(0);
             _documents.put(uri, new Integer(domNo));
+        }
+        
+        // If the dom is an AdaptiveResultTreeImpl, we need to create a
+        // DOMAdapter around its nested dom object (if it is non-null) and
+        // add the DOMAdapter to the list.
+        if (dom instanceof AdaptiveResultTreeImpl) {
+            AdaptiveResultTreeImpl adaptiveRTF = (AdaptiveResultTreeImpl)dom;
+            DOM nestedDom = adaptiveRTF.getNestedDOM();
+            if (nestedDom != null) {
+                DOMAdapter newAdapter = new DOMAdapter(nestedDom, 
+                                                       adapter.getNamesArray(),
+                                                       adapter.getNamespaceArray());
+                addDOMAdapter(newAdapter);  
+            } 
         }
         
         // Store mask in DOMAdapter
@@ -599,9 +610,9 @@ public final class MultiDOM implements DOM {
         return _adapters[nodeId>>>24].getNodeHandle(nodeId & CLR);
     }
     
-    public DOM getResultTreeFrag(int initSize, boolean isSimple)
+    public DOM getResultTreeFrag(int initSize, int rtfType)
     {
-        return _adapters[0].getResultTreeFrag(initSize, isSimple);
+        return _adapters[0].getResultTreeFrag(initSize, rtfType);
     }
     
     public DOM getMain()
