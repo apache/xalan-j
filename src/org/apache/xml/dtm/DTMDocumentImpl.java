@@ -147,13 +147,19 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         // passed in from outside? Scott want to be able to share
         // pools across multiple documents, so setting them here is
         // probably not the right default.
-        // %TBD% If we use an ExpandedNameTable mapper, it needs to be bound
-        // to the NS and local name pools. Which means it needs to attach
-        // to them AFTER we've resolved their startup. Or it needs to attach
-        // to this document and retieve them each time...?
         private DTMStringPool m_localNames = new DTMStringPool();
         private DTMStringPool m_nsNames = new DTMStringPool();
         private DTMStringPool m_prefixNames = new DTMStringPool();
+
+        // %TBD% If we use the current ExpandedNameTable mapper, it
+        // needs to be bound to the NS and local name pools. Which
+        // means it needs to attach to them AFTER we've resolved their
+        // startup. Or it needs to attach to this document and
+        // retrieve them each time. Or this needs to be
+	// an interface _implemented_ by this class... which might be simplest!
+	private ExpandedNameTable m_expandedNames=
+		new ExpandedNameTable(m_localNames,m_nsNames);
+  
 
         /**
          * Construct a DTM.
@@ -381,6 +387,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
       prefix=qName.substring(0,colon);
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
+    /**/System.out.println("Prefix="+prefix+" index="+m_prefixNames.stringToIndex(prefix));
     appendStartElement(m_nsNames.stringToIndex(namespaceURI),
                      m_localNames.stringToIndex(localName),
                      m_prefixNames.stringToIndex(prefix)); /////// %TBD%
@@ -403,7 +410,8 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
               }
             else
               {
-                prefix=""; // Default prefix
+		// %REVEIW% Null or ""?
+                prefix=null; // Default prefix
               }
             
 
@@ -914,15 +922,16 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 short type = (short) (gotslot[0] & 0xFFFF);
 
                 // Check to see if Element or Document node
-		//
-		// %REVIEW% This says child of Document is child of
-		// root element. That's not DOM-like. How does it compare
-		// to XPath's model? (For DOM-like behavior, Doc.getFirstChild
-		// is always going to be nodeHandle 1 (if that node exists).
                 if ((type == ELEMENT_NODE) || (type == DOCUMENT_NODE) || 
                                 (type == ENTITY_REFERENCE_NODE)) {
+
                         // In case when Document root is given
-                        if (nodeHandle == 0) nodeHandle = 1;
+		        //	if (nodeHandle == 0) nodeHandle = 1;
+			// %TBD% Probably was a mistake.
+			// If someone explicitly asks for first child
+			// of Document, I would expect them to want
+			// that and only that.
+
                         int kid = nodeHandle + 1;
                         nodes.readSlot(kid, gotslot);
                         while (ATTRIBUTE_NODE == (gotslot[0] & 0xFFFF)) {
@@ -1042,9 +1051,11 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         /**
          * Given a node handle, advance to its next sibling.
 	 *
-	 * %TBD% This currently uses the DTM-internal definition of sibling;
-	 * eg, the last attr's next sib is the first child. If we're rewriting
-	 * for XPath emulation, that needs to be corrected.
+	 * %TBD% This currently uses the DTM-internal definition of
+	 * sibling; eg, the last attr's next sib is the first
+	 * child. In the old DTM, the DOM proxy layer provided the
+	 * additional logic for the public view.  If we're rewriting
+	 * for XPath emulation, that test must be done here.
 	 *
          * %TBD% CODE INTERACTION WITH COROUTINE PARSE - If not yet
          * resolved, should wait for more nodes to be added to the document
@@ -1483,11 +1494,14 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 nodes.readSlot(nodeHandle, gotslot);
                 short type = (short) (gotslot[0] & 0xFFFF);
                 String name = fixednames[type];
-                if (null == name) { 
-                        if (type == ELEMENT_NODE) 
-                                name = m_localNames.indexToString(gotslot[3]);
-                        else if (type == ATTRIBUTE_NODE)
-                                name = m_localNames.indexToString(gotslot[3]);
+                if (null == name) {
+		  int i=gotslot[3];
+		  /**/System.out.println("got i="+i+" "+(i>>16)+"/"+(i&0xffff));
+		  
+		  name=m_localNames.indexToString(i & 0xFFFF);
+		  String prefix=m_prefixNames.indexToString(i >>16);
+		  if(prefix!=null && prefix.length()>0)
+		    name=prefix+":"+name;
                 }
                 return name;
         }
@@ -1507,16 +1521,22 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * (As defined in Namespaces, this is the portion of the name after any
          * colon character)
          *
+         * %REVIEW% What's the local name of something other than Element/Attr?
+	 * Should this be DOM-style (undefined unless namespaced), or other?
+         *
          * @param nodeHandle the id of the node.
          * @return String Local name of this node.
          */
         public String getLocalName(int nodeHandle) {
-                String name = getNodeName(nodeHandle);
-                if (null != name) {
-                        int colonpos = name.indexOf(":");
-                        return (colonpos < 0) ? name : name.substring(colonpos+1);
+                nodes.readSlot(nodeHandle, gotslot);
+                short type = (short) (gotslot[0] & 0xFFFF);
+                String name = "";
+		if ((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
+		  int i=gotslot[3];
+		  name=m_localNames.indexToString(i & 0xFFFF);
+		  if(name==null) name="";
                 }
-                return null;
+                return name;
         }
 
         /**
@@ -1526,14 +1546,23 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          *
          * <p> %REVIEW% Are you sure you want "" for no prefix?  </p>
          *
+         * %REVIEW%  Should this be DOM-style (undefined unless namespaced),
+	 * or other?
+	 *
          * @param nodeHandle the id of the node.
          * @return String prefix of this node's name, or "" if no explicit
          * namespace prefix was given.
          */
         public String getPrefix(int nodeHandle) {
-                String name = getNodeName(nodeHandle);
-                int colonpos = name.indexOf(":");
-                return (colonpos < 0) ? "" : name.substring(0, colonpos);
+                nodes.readSlot(nodeHandle, gotslot);
+                short type = (short) (gotslot[0] & 0xFFFF);
+		String name = "";
+		if((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
+		  int i=gotslot[3];
+		  name=m_prefixNames.indexToString(i >>16);
+		  if(name==null) name="";
+                }
+                return name;
         }
 
         /**
@@ -1991,21 +2020,16 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 // name indexes to the nodes array, keep track of the current node and parent
                 // element used
 
-    // %TBD% PREFIX NEEDS TO BE STORED SOMEWHERE ... If we're using
-    // the 6type+10ns+16local ExpandedName index, that all fits into a
-    // single word. Put all of that in W0 and do a treatment of qname
-    // in W3? Or do we really want a qname table (I hope not!)? Or
-    // should W3 just hold the prefix, leaving us with most of that
-    // word unused?
-
                 // W0  High:  Namespace  Low:  Node Type
                 int w0 = (namespaceIndex << 16) | ELEMENT_NODE;
                 // W1: Parent
                 int w1 = currentParent;
                 // W2: Next  (initialized as 0)
                 int w2 = 0;
-                // W3: Tagname
-                int w3 = localNameIndex;
+		// W3: Tagname high: prefix Low: local name
+		int w3 = localNameIndex | prefixIndex<<16;
+		/**/System.out.println("set w3="+w3+" "+(w3>>16)+"/"+(w3&0xffff));
+
                 //int ourslot = nodes.appendSlot(w0, w1, w2, w3);
                 int ourslot = appendNode(w0, w1, w2, w3);
                 currentParent = ourslot;
@@ -2077,14 +2101,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                        boolean isID,
                        int m_char_current_start, int contentLength)
   {
-
-    // %TBD% PREFIX NEEDS TO BE STORED SOMEWHERE ... If we're using
-    // the 6type+10ns+16local ExpandedName index, that all fits into a
-    // single word. Put all of that in W0 and do a treatment of qname
-    // in W3? Or do we really want a qname table (I hope not!)? Or
-    // should W3 just hold the prefix, leaving us with most of that
-    // word unused?
-
     // %TBD% isID is not currently honored.
 
     // W0  High:  Namespace  Low:  Node Type
@@ -2094,8 +2110,9 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
     int w1 = currentParent;
     // W2:  Next (not yet resolved)
     int w2 = 0;
-    // W3:  Attr name
-    int w3 = localNameIndex;
+    // W3:  Tagname high: prefix Low: local name
+    int w3 = localNameIndex | prefixIndex<<16;
+    /**/System.out.println("set w3="+w3+" "+(w3>>16)+"/"+(w3&0xffff));
     // Add node
     int ourslot = appendNode(w0, w1, w2, w3);
     previousSibling = ourslot;	// Should attributes be previous siblings

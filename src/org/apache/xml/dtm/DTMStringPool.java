@@ -118,6 +118,7 @@ public class DTMStringPool
   public String indexToString(int i)
     throws java.lang.ArrayIndexOutOfBoundsException
     {
+      if(i==NULL) return null;
       return (String) m_intToString.elementAt(i);
     }
 
