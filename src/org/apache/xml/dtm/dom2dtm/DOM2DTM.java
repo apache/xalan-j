@@ -102,18 +102,20 @@ public class DOM2DTM extends DTMDefaultBase
    * of our progress as we incrementally build the DTM from the DOM. */
   transient private Node m_pos;
 
-  /** true if all the nodes have been processed; false if our
-   * incremental build has not yet finished scanning the root DOM
-   * Node's entire subtree.  */
+  /** true if ALL the nodes in the m_root subtree have been processed;
+   * false if our incremental build has not yet finished scanning the
+   * DOM tree.  */
   transient private boolean m_nodesAreProcessed;
 
   /** We use this stack to keep track of some of the context
-   * information as we build the DTM tables. Each time we enter a new
-   * level of DTM hierarchy -- basically, each time we enter a new
-   * element -- we push a two-integer stack frame:
+   * information as we build the DTM tables. Each time nextNode()
+   * enters a new level of DTM hierarchy -- basically, each time we
+   * enter a new element -- we push a two-integer stack frame:
    *
    * <ul>
-   * <li>The DTM nodeHandle index of the previous parent</li> and
+
+   * <li>The DTM nodeHandle index of this element, which is now the
+   * parent to which children are being appended</li> and
    * <li>DTM.NULL, meaning no known previous sibling
    * (next node will be first-child)</li>
    * </ul>
@@ -136,36 +138,48 @@ public class DOM2DTM extends DTMDefaultBase
    * */
   transient private IntStack m_levelInfo = new IntStack();
 
-  /**
-   * %TBD% Doc
-   */
-  transient private NamedNodeMap m_attrs;
-
-  /**
-   * %TBD% Doc
-   */
-  transient private int m_attrsPos;
-
-  /** NEEDSDOC Field LEVELINFO_PARENT */
+  /** Field LEVELINFO_PARENT can be used as an offset into m_levelInfo
+   * to retrieve the DTM nodeHandle for the current Parent Node.
+   * */
   static final int LEVELINFO_PARENT = 1;
 
-  /** NEEDSDOC Field LEVELINFO_PREVSIB */
+  /** Field LEVELINFO_PREVSIB can be used as an offset into m_levelInfo
+   * to retrieve the DTM nodeHandle for the current Previous Sibling Node.
+   * */
   static final int LEVELINFO_PREVSIB = 0;
 
-  /** NEEDSDOC Field LEVELINFO_NPERLEVEL */
+  /** Field LEVELINFO_NPERLEVEL is the number of integers used in each
+   * m_levelInfo stack frame -- currently 2. This is used both to do a
+   * "quickPop" of an entire stack frame, and to calculate the current DTM
+   * "level" (as m_levelInfo.size()/LEVELINDO_NPERPLEVEL).
+   * */
   static final int LEVELINFO_NPERLEVEL = 2;
   
-  /** Saved element for attribute iteration */
+  /** m_attrs points to the attributes belonging to the last DOM
+   * Element entered by nextNode(). It's used together with m_attrsPos
+   * to incrementally build the DTM nodes for those attributes.
+   * */
+  transient private NamedNodeMap m_attrs;
+
+  /** m_attrsPos indicates how far nextNode() has progressed through
+   * the set of Attributes contained in m_attrs. It's used together
+   * with m_attrsPos to incrementally build the DTM nodes for those
+   * attributes.
+   * */
+  transient private int m_attrsPos;
+
+  /** Saved element for attribute iteration. */
   private Node m_elementForAttrs;
   
   /** Saved element index for attribute iteration */
   private int m_elementForAttrsIndex;
 
-  /**
-   * The node objects.  The instance part of the handle indexes directly
-   * into this vector.  Each DTM node may actually be composed of several
-   * DOM nodes.
-   */
+  /** The node objects.  The instance part of the handle indexes
+   * directly into this vector.  Each DTM node may actually be
+   * composed of several DOM nodes (for example, if logically-adjacent
+   * Text/CDATASection nodes in the DOM have been coalesced into a
+   * single DTM Text node); this table points only to the first in
+   * that sequence. */
   protected Vector m_nodes = new Vector();
 
   /**
@@ -211,8 +225,26 @@ public class DOM2DTM extends DTMDefaultBase
     m_nodes.addElement(node);
     
     // Do casts here so that if we change the sizes, the changes are localized.
+    // %REVIEW% Remember to change this cast if we change
+    // m_level's type, or we may truncate values without warning!
     m_level[nodeIndex] = (byte)level;
 
+    // %REVIEW% This test is reliable only because the Namespace Spec
+    // currently says -- probably erroneously -- that Namespaces are
+    // processed in a non-namespace-aware manner, by matching the
+    // QName. If and when that changes, we will have to consider
+    // whether we check the namespace-for-namespaces (which the DOM
+    // already defines, and which the Namespace authors have agreed to
+    // eventually adopt) in addition to, or instead of, the prefix.
+    //
+    // %REVIEW% Note too that the DOM does not necessarily declare all
+    // the namespaces it uses. DOM Level 3 will introduce a
+    // namespace-normalization operation which reconciles that, and we
+    // can request that users invoke it or otherwise ensure that the
+    // tree is namespace-well-formed before passing the DOM to Xalan.
+    // But if they don't, what should we do about it? Run our own repair,
+    // synthesizing additional DTM Namespace Nodes that don't correspond
+    // to DOM Attr Nodes?
     if (Node.ATTRIBUTE_NODE == type)
     {
       String name = node.getNodeName();
@@ -232,16 +264,24 @@ public class DOM2DTM extends DTMDefaultBase
        type != DTM.ATTRIBUTE_NODE && 
        type != DTM.NAMESPACE_NODE)
     {
+      // If the DTM parent had no children, this becomes its first child.
       if(NOTPROCESSED == m_firstch[parentIndex])
         m_firstch[parentIndex] = (short)nodeIndex;
     }
     
     String nsURI = node.getNamespaceURI();
+
+    // Deal with the difference between Namespace spec and XSLT definitions
+    // of local name. (The former says PIs don't have QNames; the latter
+    // says they do.)
     String localName =  (type == Node.PROCESSING_INSTRUCTION_NODE) ? 
                          node.getNodeName() :
                          node.getLocalName();
     ExpandedNameTable exnt = m_mgr.getExpandedNameTable(this);
 
+    // %REVIEW% WARNING: This will not handle a Level 1 DOM node
+    // successfully; the nodes returned by createElement and
+    // createAttribute never have localNames.
     int expandedNameID = (null != localName) 
        ? exnt.getExpandedTypeID(nsURI, localName, type) :
          exnt.getExpandedTypeID(type);
