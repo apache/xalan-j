@@ -1181,6 +1181,7 @@ public abstract class DTMDefaultBaseIterators extends DTMDefaultBaseTraversers
 
       if (_isRestartable)
       {
+        node = node & m_mask;
 
         // iterator is not a clone
         int parent, index;
