@@ -230,22 +230,23 @@ public class DOM2DTM extends DTMDefaultBaseIterators
     // m_level's type, or we may truncate values without warning!
     m_level[nodeIndex] = (byte)level;
 
-    // %REVIEW% This test is reliable only because the Namespace Spec
-    // currently says -- probably erroneously -- that Namespaces are
+    // %REVIEW% The Namespace Spec currently says that Namespaces are
     // processed in a non-namespace-aware manner, by matching the
-    // QName. If and when that changes, we will have to consider
-    // whether we check the namespace-for-namespaces (which the DOM
-    // already defines, and which the Namespace authors have agreed to
-    // eventually adopt) in addition to, or instead of, the prefix.
+    // QName, even though there is in fact a namespace assigned to
+    // these nodes in the DOM. If and when that changes, we will have
+    // to consider whether we check the namespace-for-namespaces
+    // rather than the node name.
     //
-    // %REVIEW% Note too that the DOM does not necessarily declare all
-    // the namespaces it uses. DOM Level 3 will introduce a
+    // %TBD% Note that the DOM does not necessarily explicitly declare
+    // all the namespaces it uses. DOM Level 3 will introduce a
     // namespace-normalization operation which reconciles that, and we
     // can request that users invoke it or otherwise ensure that the
     // tree is namespace-well-formed before passing the DOM to Xalan.
-    // But if they don't, what should we do about it? Run our own repair,
-    // synthesizing additional DTM Namespace Nodes that don't correspond
-    // to DOM Attr Nodes?
+    // But if they don't, what should we do about it? We probably
+    // don't want to alter the source DOM (and may not be able to do
+    // so if it's read-only). The best available answer might be to
+    // synthesize additional DTM Namespace Nodes that don't correspond
+    // to DOM Attr Nodes.
     if (Node.ATTRIBUTE_NODE == type)
     {
       String name = node.getNodeName();
@@ -272,17 +273,29 @@ public class DOM2DTM extends DTMDefaultBaseIterators
     
     String nsURI = node.getNamespaceURI();
 
-    // Deal with the difference between Namespace spec and XSLT definitions
-    // of local name. (The former says PIs don't have QNames; the latter
-    // says they do.)
+    // Deal with the difference between Namespace spec and XSLT
+    // definitions of local name. (The former says PIs don't have
+    // localnames; the latter says they do.)
     String localName =  (type == Node.PROCESSING_INSTRUCTION_NODE) ? 
                          node.getNodeName() :
                          node.getLocalName();
     ExpandedNameTable exnt = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
 
-    // %REVIEW% WARNING: This will not handle a Level 1 DOM node
-    // successfully; the nodes returned by createElement and
-    // createAttribute never have localNames.
+
+    // %TBD% Nodes created with the old non-namespace-aware DOM
+    // calls createElement() and createAttribute() will never have a
+    // localname. That will cause their expandedNameID to be just the
+    // nodeType... which will keep them from being matched
+    // successfully by name. Since the DOM makes no promise that
+    // those will participate in namespace processing, this is
+    // officially accepted as Not Our Fault. But it might be nice to
+    // issue a diagnostic message!
+    if(node.getLocalName()==null &&
+       (type==Node.ELEMENT_NODE || type==Node.ATTRIBUTE_NODE))
+      {
+        // warning("DOM 'level 1' node "+node.getNodeName()+" won't be mapped properly in DOM2DTM.");
+      }
+    
     int expandedNameID = (null != localName) 
        ? exnt.getExpandedTypeID(nsURI, localName, type) :
          exnt.getExpandedTypeID(type);
