@@ -140,11 +140,10 @@ public interface DTMFilter
    * it is not normally called directly from
    * user code.
    * <p>
-   * Issue: Is 0xFFFF really better than '*'? 
+   * TODO: Is 0xFFFF really better than '*'? 
    * <p>
-   * Issue: Should this be setNameMatch(expandedName) followed by
-   * normal accept()? Or will we really be testing a different name at
-   * every invocation?
+   * TODO: Should this be setNameMatch(expandedName) followed by accept()?
+   * Or will we really be testing a different name at every invocation?
    * 
    * @param nodeHandle int Handle of the node.
    * @param whatToShow one of SHOW_XXX values.
