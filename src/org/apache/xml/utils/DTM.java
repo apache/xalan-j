@@ -280,13 +280,31 @@ public interface DTM
 
   /**
    * Given a node handle, find its parent node.
-   * @param postition int Handle of the node..
    *
    * @param nodeHandle the id of the node.
    * @return int Node-number of parent,
    * or -1 to indicate none exists.
    */
   public int getParent(int nodeHandle);
+
+  /**
+   * Given a node handle, find the owning document node.
+   *
+   * @param nodeHandle the id of the node.
+   * @return int Node handle of document, which should always be valid.
+   */
+  public int getDocument();
+  
+  /**
+   * Given a node handle, find the owning document node.  This has the exact 
+   * same semantics as the DOM Document method of the same name, in that if 
+   * the nodeHandle is a document node, it will return NULL.
+   *
+   * @param nodeHandle the id of the node.
+   * @return int Node handle of owning document, or -1 if the nodeHandle is 
+   *             a document.
+   */
+  public int getOwnerDocument(int nodeHandle);
 
   /**
    * Get the string-value of a node as a String object
@@ -386,9 +404,11 @@ public interface DTM
   public String getLocalName(int nodeHandle);
 
   /**
-   * Given a node handle, return its DOM-style name prefix.
+   * Given a namespace handle, return the prefix that the namespace decl is 
+   * mapping.
+   * Given a node handle, return the prefix used to map to the namespace.
    * (As defined in Namespaces, this is the portion of the name before any
-   * colon character)
+   * colon character).
    * @param postition int Handle of the node..
    *
    * @param nodeHandle the id of the node.
@@ -648,5 +668,26 @@ public interface DTM
   public void dispatchToEvents(
     int nodeHandle, org.xml.sax.ContentHandler ch)
       throws org.xml.sax.SAXException;
+      
+  // ==== Construction methods (may not be supported by some implementations!) =====
+  
+  /**
+   * Append a child to the end of the document. Please note that the node 
+   * is always cloned if it is owned by another document.
+   * 
+   * @param newChild Must be a valid new node handle.
+   * @param clone true if the child should be cloned into the document.
+   * @param cloneDepth if the clone argument is true, specifies that the 
+   *                   clone should include all it's children.
+   */
+  public void appendChild(int newChild, boolean clone, boolean cloneDepth);
+
+  /**
+   * Append a text node child that will be constructed from a string, 
+   * to the end of the document.
+   * 
+   * @param str Non-null reverence to a string.
+   */
+  public void appendTextChild(String str);
 
 }
