@@ -116,4 +116,4 @@ public interface CoroutineParser extends Runnable {
      */
     public void run();
 
-} // class CoroutineSAXParser_Xerces
+} // class CoroutineParser
