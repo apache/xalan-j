@@ -91,17 +91,21 @@ public class FuncCurrent extends Function
    */
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
-
     // If we're in a predicate, then this will return non-null.
-    //PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
-		SubContextList iter = xctxt.getSubContextList();
+    Object subContextList = xctxt.getSubContextList();
     int currentNode;
 
-    if (null != iter && iter instanceof PredicatedNodeTest)
+    // %TBD% Hack city...
+    if (null != subContextList && subContextList instanceof PredicatedNodeTest)
     {
-      LocPathIterator lpi = ((PredicatedNodeTest)iter).getLocPathIterator();
+      PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
+      LocPathIterator lpi = iter.getLocPathIterator();
 
       currentNode = lpi.getCurrentContextNode();
+    }
+    else if(xctxt.getIteratorRoot() != DTM.NULL)
+    {
+      currentNode = xctxt.getIteratorRoot();
     }
     else
     {
