@@ -485,10 +485,10 @@ public abstract class DTMManager
   }
 
   /** %TBD% Doc */
-  static final int IDENT_DTM_DEFAULT = 0xFFF00000;
+  public static final int IDENT_DTM_DEFAULT = 0xFFF00000;
 
   /** %TBD% Doc */
-  static final int IDENT_NODE_DEFAULT = 0x000FFFFF;
+  public static final int IDENT_NODE_DEFAULT = 0x000FFFFF;
 
   /**
    * %TBD% Doc
