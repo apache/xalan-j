@@ -204,23 +204,18 @@ public interface DTM
   public int getLastChild(int nodeHandle);
 
   /**
-   * Retrieves an attribute node by name.
-   * <br>To retrieve an attribute node by qualified name and namespace URI, 
-   * use the <code>getAttributeNodeNS</code> method.
+   * Retrieves an attribute node by by qualified name and namespace URI.
    *
-   * <p> %REVIEW% The API described here actually _is_
-   * <code>getAttributeNodeNS</code>, since it takes a
-   * namespaceURI. Fix the function name, or fix the parameters?</p>
-   *
-   * @param name The namespace URI of the attribute to 
+   * @param nodeHandle int Handle of the node.
+   * @param namespaceURI The namespace URI of the attribute to
    *   retrieve, or null.
-   * @param name The local name of the attribute to 
+   * @param name The local name of the attribute to
    *   retrieve.
    * @return The attribute node handle with the specified name (
-   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
+   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such
    *   attribute.
    */
-  public int getAttributeNode(String namespaceURI, String name);
+  public int getAttributeNode(int nodeHandle, String namespaceURI, String name);
 
   /**
    * Given a node handle, get the index of the node's first attribute.
@@ -529,7 +524,7 @@ public interface DTM
    *   supported on this node, <code>false</code> otherwise.
    */
   public boolean isSupported(String feature, 
-			     String version);
+                             String version);
 
   /**
    * Return the base URI of the document entity. If it is not known
@@ -682,7 +677,7 @@ public interface DTM
    * <p>%REVEIW% Presumes a 1:1 mapping from DTM to Document, since
    * we aren't saying which Document to query...?</p>
    */
-  boolean supportsPreStripping();
+  public boolean supportsPreStripping();
 
   /**
    * Figure out whether nodeHandle2 should be considered as being later
