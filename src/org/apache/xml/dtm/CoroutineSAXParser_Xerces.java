@@ -107,7 +107,7 @@ implements CoroutineParser
       if(ixsp!=null)
         incrementalParser=ixsp;
       else
-        incrementalParser=new IncrementalXercesSaxParser();
+        incrementalParser=new SAXParser();
       
       // incrementalParser.initHandlers(true, incrementalParser, incrementalParser);
     }
