@@ -225,6 +225,48 @@ implements CoroutineParser, Runnable
 
 
   //================================================================
+  /** doMore() is a simple API which tells the coroutine parser
+   * that we need more nodes.  This is intended to be called from one
+   * of our partner coroutines, and serves both to encapsulate the
+   * communication protocol and to avoid having to explicitly use the
+   * CoroutineParser's coroutine ID number.
+   *
+   * %TBD% doParse(uri)?
+   *
+   * @param parsemore If true, tells the incremental parser to generate
+   * another chunk of output. If false, tells the parser that we're
+   * satisfied and it can terminate parsing of this document.
+   * @param appCoroutine The coroutine ID number of the coroutine invoking
+   * this method, so it can be resumed after the parser has responded to the
+   * request.
+   * @return True if the CoroutineParser believes more data may be available
+   * for further parsing. False means either parsemore=false or end of document
+   * caused parsing to stop.
+   * */
+  public boolean doMore(boolean parsemore, int appCoroutine)
+  {
+    return false;    //%TBD%
+  }
+  
+  
+  /** doTerminate() is a simple API which tells the coroutine
+   * parser to terminate itself.  This is intended to be called from
+   * one of our partner coroutines, and serves both to encapsulate the
+   * communication protocol and to avoid having to explicitly use the
+   * CoroutineParser's coroutine ID number.
+   *
+   * Returns only after the CoroutineParser has acknowledged the request.
+   *
+   * @param appCoroutine The coroutine ID number of the coroutine invoking
+   * this method, so it can be resumed after the parser has responded to the
+   * request.
+   * */
+  public void doTerminate(int appCoroutine)
+  {
+    //%TBD%
+  }
+
+  //================================================================
   /** Simple unit test. Attempt coroutine parsing of document indicated
    * by first argument (as a URI), report progress.
    */
