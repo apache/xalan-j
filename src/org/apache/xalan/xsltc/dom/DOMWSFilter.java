@@ -62,6 +62,7 @@ package org.apache.xalan.xsltc.dom;
 import org.apache.xalan.xsltc.DOM;
 import org.apache.xalan.xsltc.StripFilter;
 import org.apache.xalan.xsltc.runtime.AbstractTranslet;
+import org.apache.xalan.xsltc.runtime.Hashtable;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMWSFilter;
 
@@ -74,6 +75,9 @@ public class DOMWSFilter implements DTMWSFilter {
 
     private AbstractTranslet m_translet;
     private StripFilter m_filter;
+    
+    // The Hashtable for DTM to mapping array
+    private Hashtable m_mappings;
 
     /**
      * Construct an adapter connecting the <code>DTMWSFilter</code> interface
@@ -87,6 +91,7 @@ public class DOMWSFilter implements DTMWSFilter {
      */
     public DOMWSFilter(AbstractTranslet translet) {
         m_translet = translet;
+        m_mappings = new Hashtable();
 
         if (translet instanceof StripFilter) {
             m_filter = (StripFilter) translet;
@@ -106,20 +111,44 @@ public class DOMWSFilter implements DTMWSFilter {
      * <code>INHERIT</code>.
      */
     public short getShouldStripSpace(int node, DTM dtm) {
-        if (m_filter != null && m_translet != null && dtm instanceof DOM) {
+        if (m_filter != null && dtm instanceof DOM) {
             DOM dom = (DOM)dtm;
             int type = 0;
 
             if (dtm instanceof SAXImpl) {
                 SAXImpl saxImpl = (SAXImpl)dtm;
-                short[] mapping =
-                              saxImpl.getMapping(m_translet.getNamesArray());
-                type = mapping[saxImpl.getExpandedTypeID(node)];
+                
+                short[] mapping = (short[])m_mappings.get(dtm);
+                if (mapping == null) {
+                    mapping = saxImpl.getMapping(m_translet.getNamesArray());
+                    m_mappings.put(dtm, mapping);
+                }
+                
+                int expType = saxImpl.getExpandedTypeID(node);
+                
+                // %OPT% The mapping array does not have information about all the
+                // exptypes. However it does contain enough information about all names
+                // in the translet's namesArray. If the expType does not fall into the
+                // range of the mapping array, it means that the expType is not for one
+                // of the recognized names. In this case we can just set the type to -1.
+                if (expType >= 0 && expType < mapping.length)
+                  type = mapping[expType];
+                else
+                  type = -1;
+                
             } else if (dtm instanceof DOMImpl) {
                 DOMImpl domImpl = (DOMImpl)dtm;
-                short[] mapping =
-                              domImpl.getMapping(m_translet.getNamesArray());
-                type = mapping[domImpl.getExpandedTypeID(node)];
+                short[] mapping = (short[])m_mappings.get(dtm);
+                if (mapping == null) {
+                    mapping = domImpl.getMapping(m_translet.getNamesArray());
+                    m_mappings.put(dtm, mapping);
+                }
+                
+                int expType = domImpl.getExpandedTypeID(node);
+                if (expType >= 0 && expType < mapping.length)
+                  type = mapping[expType];
+                else
+                  type = -1;
             } else {
                 return INHERIT;
             }

@@ -120,9 +120,7 @@ public final class DOMAdapter implements DOM {
     }
 
     private short[] getMapping() {
-        if (_mapping == null
-            || (_saxImpl != null && _saxImpl.getNamesArray() == null)
-            || (_domImpl != null && _domImpl.getNamesArray() == null)) {
+        if (_mapping == null) {
             if (_domImpl != null) {
                 _mapping = _domImpl.getMapping(_namesArray);
             } else {
