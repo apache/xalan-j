@@ -146,8 +146,13 @@ public class SAX2DTM extends DTMDefaultBase
   /** Namespace support, only relevent at construction time. */
   transient private IntStack m_contextIndexes = new IntStack();
 
-  /** Type of text event. */
+  /** Type of next characters() event within text block in prgress. */
   transient private int m_textType = DTM.TEXT_NODE;
+
+  /** Type of coalesced text block. See logic in the characters()
+   * method.
+   * */
+  transient private int m_coalescedTextType = DTM.TEXT_NODE;
 
   /** The SAX Document locator */
   transient private Locator m_locator = null;
@@ -217,10 +222,11 @@ public class SAX2DTM extends DTMDefaultBase
   private static final int ENTITY_FIELDS_PER = 4;
 
   /**
-   * Flag tells if text is pending that we need to
-   *  check for whitespace stripping. 
+   * The starting offset within m_chars for the text or
+   * CDATA_SECTION node currently being acumulated,
+   * or -1 if there is no text node in progress
    */
-  private boolean m_textPending = false;
+  private int m_textPendingStart = -1;
 
   /**
    * Construct a SAX2DTM object ready to be constructed from SAX2
@@ -799,9 +805,8 @@ public class SAX2DTM extends DTMDefaultBase
     m_info.setElementAt(expandedTypeID, startInfo + OFFSET_EXPANDEDNAMEID);
     m_info.setElementAt(dataOrPrefix, startInfo + OFFSET_DATA_OR_QNAME);
 
-    // Note that we don't want firstChild or nextSibling to be processed until
-    // charactersFlush() is called.
-    if (!m_textPending)
+    // Text nodes no longer need special handling, because we
+    // don't add them until they're complete
     {
       if (DTM.NULL != parentIndex && type != DTM.ATTRIBUTE_NODE
               && type != DTM.NAMESPACE_NODE)
@@ -1278,63 +1283,37 @@ public class SAX2DTM extends DTMDefaultBase
   }
 
   /**
-   * Check the last text node to see if it should be stripped.
+   * Check whether accumulated text should be stripped; if not,
+   * append the appropriate flavor of text/cdata node.
    */
   protected void charactersFlush()
   {
-
-    if (m_textPending)
+    if (m_textPendingStart >= 0 ) // -1 indicates no-text-in-progress
     {
-      m_textPending = false;
+      int length=m_chars.size()-m_textPendingStart;
 
-      boolean didStrip = false;
-      int lastNodeIdentity = m_size;
-
+      boolean doStrip = false;
       if (getShouldStripWhitespace())
-      {
-        int dataIndex = getNodeInfoNoWait(lastNodeIdentity,
-                                          OFFSET_DATA_OR_QNAME);
-        int offset = m_data.elementAt(dataIndex);
-        int length = m_data.elementAt(dataIndex + 1);
+	{
+	  doStrip=m_chars.isWhitespace(m_textPendingStart, length);
+	}
 
-        if (m_chars.isWhitespace(offset, length))
-        {
-          m_chars.setLength(m_chars.size() - length);
-          m_info.setSize(m_info.size() - getNodeInfoBlockSize());
+      if(doStrip)
+	m_chars.setLength(m_textPendingStart); // Discard accumulated text
+      else
+	{
+	  int exName = m_ent.getExpandedNameID(DTM.TEXT_NODE);
 
-          didStrip = true;
-        }
-      }
-
-      if (!didStrip)
-      {
-        m_size++;
-
-        int parentIndex = getNodeInfoNoWait(lastNodeIdentity, OFFSET_PARENT);
-
-        if (DTM.NULL != parentIndex)
-        {
-          int startParentInfo = parentIndex * NODEINFOBLOCKSIZE;
-
-          if (NOTPROCESSED
-                  == m_info.elementAt(startParentInfo + OFFSET_FIRSTCHILD))
-          {
-            m_info.setElementAt(lastNodeIdentity,
-                                startParentInfo + OFFSET_FIRSTCHILD);
-          }
-        }
-
-        int prev = getNodeInfoNoWait(lastNodeIdentity, OFFSET_PREVSIBLING);
-
-        if (DTM.NULL != prev)
-        {
-          m_info.setElementAt(lastNodeIdentity,
-                              (prev * getNodeInfoBlockSize())
-                              + OFFSET_NEXTSIBLING);
-        }
-
-        m_previous = lastNodeIdentity;
-      }
+	  int nodeIndex= addNode(m_coalescedTextType,exName,m_level,
+				 m_parents.peek(),m_previous,
+				 m_textPendingStart,false);
+	  // %REVIEW% I _think_ I've got this right...
+	  m_data.setElementAt(nodeIndex,length);
+	}
+      
+      // Reset for next text block
+      m_textPendingStart=-1;
+      m_textType=m_coalescedTextType=DTM.TEXT_NODE;
     }
   }
 
@@ -1814,32 +1793,19 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void characters(char ch[], int start, int length) throws SAXException
   {
+    if(m_textPendingStart==-1)	// First one in this block
+      {
+	m_textPendingStart=m_chars.size();
+	m_coalescedTextType=m_textType;
+      }
+    m_chars.append(ch,start,length);
 
-    int exName = m_ent.getExpandedNameID(DTM.TEXT_NODE);
-    int dataIndex = m_data.size();
-
-    m_data.addElement(m_chars.length());
-    m_data.addElement(length);
-    m_chars.append(ch, start, length);
-
-    if (m_textPending)
-    {
-      int lastNodeIdentity = m_size;
-
-      dataIndex = getNodeInfoNoWait(lastNodeIdentity, OFFSET_DATA_OR_QNAME)
-                  + 1;
-
-      m_data.setElementAt(m_data.elementAt(dataIndex) + length, dataIndex);
-    }
-    else
-    {
-      m_textPending = true;
-
-      addNode(m_textType, exName, m_level, m_parents.peek(), m_previous,
-              dataIndex, false);
-
-      m_size--;  // doesn't really exist until charactersFlush.
-    }
+    // Type logic: If all adjacent text is CDATASections, the
+    // concatentated text is treated as a single CDATASection (see
+    // initialization above).  If any were ordinary Text, the whole
+    // thing is treated as Text. This may be worth %REVIEW%ing.
+    if(m_textType==DTM.TEXT_NODE)
+	m_coalescedTextType=DTM.TEXT_NODE;
   }
 
   /**
