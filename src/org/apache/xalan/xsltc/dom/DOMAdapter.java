@@ -285,7 +285,11 @@ public final class DOMAdapter implements DOM {
     }
     
     public int getExpandedTypeID(final int node) {
-      return getMapping()[_dom.getExpandedTypeID(node)];
+      if (_saxImpl != null) {
+        return getMapping()[_saxImpl.getExpandedTypeID(node)];
+      }
+      else
+        return getMapping()[_dom.getExpandedTypeID(node)];
     }
 
     public int getNamespaceType(final int node) {

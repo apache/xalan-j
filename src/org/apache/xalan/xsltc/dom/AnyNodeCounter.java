@@ -88,18 +88,21 @@ public abstract class AnyNodeCounter extends NodeCounter {
 	    int next = _node; 
             final int root = _document.getDocument();
 	    result = 0;
-	    while (next >=0 && !matchesFrom(next)) {
+	    while (next >= root && !matchesFrom(next)) {
 		if (matchesCount(next)) {
 		    ++result;	
 		}
+		next--;
 //%HZ%:  Is this the best way of finding the root?  Is it better to check
 //%HZ%:  parent(next)?
+		/*
 		if (next == root) {
 		    break;
                 }
 		else {
 		    --next;		
                 }
+                */
 	    }
 	}
 	return formatNumbers(result);

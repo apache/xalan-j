@@ -1865,6 +1865,15 @@ public class SAX2DTM2 extends SAX2DTM
     else
       return NULL;    
   }
+  
+  /**
+   * Return the expanded type id from the node handle
+   */
+  public final int getExpandedTypeID(int nodeHandle)
+  {
+    int nodeID = makeNodeIdentity(nodeHandle);
+    return (nodeID != NULL) ? _exptype2(nodeID) : NULL;
+  }
 
   /**
    * Given a node identity and an expanded type, return a node in the
