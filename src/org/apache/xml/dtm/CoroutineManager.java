@@ -60,7 +60,7 @@ import java.util.*;
 
 /**
  * <meta name="usage" content="internal"/>
- * Encapsulate the coroutine design pattern.
+ * Support the coroutine design pattern.
  * <p>
  * A coroutine set is a very simple cooperative non-preemptive
  * multitasking model, where the switch from one task to another is
@@ -127,7 +127,9 @@ import java.util.*;
  * more abstract -- but since coroutine _is_ an abstraction I'm not really
  * worried about that; folks should be able to switch this code without
  * concern.)
- * 
+ * <p>
+ * %TBD% THIS SHOULD BE AN INTERFACE. Arguably Coroutine itself should be an
+ * interface much like Runnable, but I think that can be built on top of this.
  */
 public class CoroutineManager
 {
@@ -137,7 +139,7 @@ public class CoroutineManager
   static final int m_unreasonableId=1024;
 
   /** %TBD% */
-  Object m_yeild=null;
+  Object m_yield=null;
   /** %TBD% */
   int m_nextCoroutine=-1;
 
@@ -164,7 +166,7 @@ public class CoroutineManager
    * an error occurred -- the ID requested was already in use, or we
    * couldn't assign one without going over the "unreasonable value" mark
    * */
-  synchronized int co_joinCoroutineSet(int coroutineID)
+  public synchronized int co_joinCoroutineSet(int coroutineID)
   {
     if(coroutineID>=0)
       {
@@ -223,7 +225,7 @@ public class CoroutineManager
 	  }
       }
     
-    return m_yeild;
+    return m_yield;
   }
 
   /** Transfer control to another coroutine which has already been started and
@@ -242,7 +244,7 @@ public class CoroutineManager
   {
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
-    m_yeild=arg_object;
+    m_yield=arg_object;
     m_nextCoroutine=toCoroutine;
 
     notify();
@@ -259,7 +261,7 @@ public class CoroutineManager
 	  }
       }
     
-    return m_yeild;
+    return m_yield;
   }
   
   /** Make the ID available for reuse and terminate this coroutine,
@@ -287,7 +289,7 @@ public class CoroutineManager
   {
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
-    m_yeild=arg_object;
+    m_yield=arg_object;
     m_nextCoroutine=toCoroutine;
 
     activeIDs.clear(thisCoroutine);
