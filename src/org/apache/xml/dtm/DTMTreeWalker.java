@@ -67,7 +67,9 @@ import org.apache.xml.utils.XMLString;
 /**
  * <meta name="usage" content="advanced"/>
  * This class does a pre-order walk of the DTM tree, calling a ContentHandler
- * interface as it goes.
+ * interface as it goes. As such, it's more like the Visitor design pattern
+ * than like the DOM's TreeWalker.
+ *
  * I think normally this class should not be needed, because 
  * of DTM#dispatchToEvents.
  */
@@ -196,7 +198,8 @@ public class DTMTreeWalker
   {
     // %OPT% Can we simplify the loop conditionals by adding:
     //		if(top==DTM.NULL) top=0
-    // ?
+    // -- or by simply ignoring this case and relying on the fact that
+    // pos will never equal DTM.NULL until we're ready to exit?
 
     while (DTM.NULL != pos)
     {
