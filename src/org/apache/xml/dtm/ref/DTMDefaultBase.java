@@ -155,7 +155,7 @@ public abstract class DTMDefaultBase implements DTM
 
   /** The document identity number(s). If we have overflowed the addressing
    * range of the first that was assigned to us, we may add others. */
-  protected SuballocatedIntVector m_dtmIdent=new SuballocatedIntVector(32);
+  protected SuballocatedIntVector m_dtmIdent;
 
   /** The mask for the identity.
       %REVIEW% Should this really be set to the _DEFAULT? What if
@@ -206,7 +206,7 @@ public abstract class DTMDefaultBase implements DTM
   			XMLStringFactory xstringfactory, boolean doIndexing)
   {
     this(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
-         doIndexing, DEFAULT_BLOCKSIZE);
+         doIndexing, DEFAULT_BLOCKSIZE, true);
   }
 
   /**
@@ -222,21 +222,39 @@ public abstract class DTMDefaultBase implements DTM
    * @param doIndexing true if the caller considers it worth it to use
    *                   indexing schemes.
    * @param blocksize The block size of the DTM.
+   * @param usePrevsib true if we want to build the previous sibling node array.
    */
   public DTMDefaultBase(DTMManager mgr, Source source, int dtmIdentity,
                         DTMWSFilter whiteSpaceFilter,
                         XMLStringFactory xstringfactory, boolean doIndexing,
-                        int blocksize)
+                        int blocksize, boolean usePrevsib)
   {
     //m_blocksize = blocksize;
-    int numblocks = (blocksize <= 64) ? DEFAULT_NUMBLOCKS_SMALL : 
-                     DEFAULT_NUMBLOCKS;
+    
+    // Use smaller sizes for the internal node arrays if the block size
+    // is small.
+    int numblocks;    
+    if (blocksize <= 64)
+    {
+      numblocks = DEFAULT_NUMBLOCKS_SMALL;
+      m_dtmIdent= new SuballocatedIntVector(4, 1);
+    }
+    else
+    {
+      numblocks = DEFAULT_NUMBLOCKS;
+      m_dtmIdent= new SuballocatedIntVector(32);
+    }
     
     m_exptype = new SuballocatedIntVector(blocksize, numblocks);
     m_firstch = new SuballocatedIntVector(blocksize, numblocks);
     m_nextsib = new SuballocatedIntVector(blocksize, numblocks);
-    m_prevsib = new SuballocatedIntVector(blocksize, numblocks);
     m_parent  = new SuballocatedIntVector(blocksize, numblocks);
+    
+    // Only create the m_prevsib array if the usePrevsib flag is true.
+    // Some DTM implementations (e.g. SAXImpl) do not need this array.
+    // We can save the time to build it in those cases.
+    if (usePrevsib)
+      m_prevsib = new SuballocatedIntVector(blocksize, numblocks);
 
     m_mgr = mgr;
     if(mgr instanceof DTMManagerDefault)
@@ -750,14 +768,17 @@ public abstract class DTMDefaultBase implements DTM
         else
           ps.println("First child: " + firstChild);
 
-        int prevSibling = _prevsib(index);
+        if (m_prevsib != null)
+        {
+          int prevSibling = _prevsib(index);
 
-        if (DTM.NULL == prevSibling)
-          ps.println("Prev sibling: DTM.NULL");
-        else if (NOTPROCESSED == prevSibling)
-          ps.println("Prev sibling: NOTPROCESSED");
-        else
-          ps.println("Prev sibling: " + prevSibling);
+          if (DTM.NULL == prevSibling)
+            ps.println("Prev sibling: DTM.NULL");
+          else if (NOTPROCESSED == prevSibling)
+            ps.println("Prev sibling: NOTPROCESSED");
+          else
+            ps.println("Prev sibling: " + prevSibling);
+        }
 
         int nextSibling = _nextsib(index);
 
@@ -1192,9 +1213,27 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getPreviousSibling(int nodeHandle)
   {
-  	if (nodeHandle == DTM.NULL)
-  	return DTM.NULL;
-    return makeNodeHandle(_prevsib(makeNodeIdentity(nodeHandle)));
+    if (nodeHandle == DTM.NULL)
+      return DTM.NULL;
+    
+    if (m_prevsib != null)
+      return makeNodeHandle(_prevsib(makeNodeIdentity(nodeHandle)));
+    else
+    {
+      // If the previous sibling array is not built, we get at
+      // the previous sibling using the parent, firstch and 
+      // nextsib arrays. 
+      int nodeID = makeNodeIdentity(nodeHandle);
+      int parent = _parent(nodeID);
+      int node = _firstch(parent);
+      int result = DTM.NULL;
+      while (node != nodeID)
+      {
+        result = node;
+        node = _nextsib(node);
+      }
+      return result;
+    }
   }
 
   /**

@@ -263,7 +263,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   {
 
     this(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE);
+          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE, true);
   }
   
   /**
@@ -279,16 +279,18 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * @param doIndexing true if the caller considers it worth it to use
    *                   indexing schemes.
    * @param blocksize The block size of the DTM.
+   * @param usePrevsib true if we want to build the previous sibling node array.
    */
   public SAX2DTM(DTMManager mgr, Source source, int dtmIdentity,
                  DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing,
-                 int blocksize)
+                 int blocksize,
+                 boolean usePrevsib)
   {
 
     super(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, blocksize);
+          xstringfactory, doIndexing, blocksize, usePrevsib);
 
     // %OPT% Use smaller sizes for all internal storage units when
     // the blocksize is small. This reduces the cost of creating an RTF.
@@ -919,10 +921,13 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     m_firstch.addElement(canHaveFirstChild ? NOTPROCESSED : DTM.NULL);
     m_nextsib.addElement(NOTPROCESSED);
-    m_prevsib.addElement(previousSibling);
     m_parent.addElement(parentIndex);
     m_exptype.addElement(expandedTypeID);
     m_dataOrQName.addElement(dataOrPrefix);
+
+    if (m_prevsib != null) {
+      m_prevsib.addElement(previousSibling);
+    }
 
     if (DTM.NULL != previousSibling) {
       m_nextsib.setElementAt(nodeIndex,previousSibling);

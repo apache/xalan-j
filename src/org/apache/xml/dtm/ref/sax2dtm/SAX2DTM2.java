@@ -1728,7 +1728,7 @@ public class SAX2DTM2 extends SAX2DTM
   protected int m_SHIFT;
   protected int m_MASK;
   protected int m_blocksize;
-    
+      
   // A constant for empty string
   private static final String EMPTY_STR = "";
 
@@ -1742,7 +1742,7 @@ public class SAX2DTM2 extends SAX2DTM
   {
 
     this(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE);
+          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE, true);
   }
  
   /**
@@ -1752,11 +1752,12 @@ public class SAX2DTM2 extends SAX2DTM
                  DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing,
-                 int blocksize)
+                 int blocksize,
+                 boolean usePrevsib)
   {
 
     super(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, blocksize);
+          xstringfactory, doIndexing, blocksize, usePrevsib);
         
     // Initialize the values of m_SHIFT and m_MASK.
     int shift;
@@ -2217,10 +2218,13 @@ public class SAX2DTM2 extends SAX2DTM
 
     m_firstch.addElement(DTM.NULL);
     m_nextsib.addElement(DTM.NULL);
-    m_prevsib.addElement(previousSibling);
     m_parent.addElement(parentIndex);
     m_exptype.addElement(expandedTypeID);
     m_dataOrQName.addElement(dataOrPrefix);
+
+    if (m_prevsib != null) {
+      m_prevsib.addElement(previousSibling);
+    }
 
     if (DTM.NULL != previousSibling) {
       m_nextsib.setElementAt(nodeIndex,previousSibling);

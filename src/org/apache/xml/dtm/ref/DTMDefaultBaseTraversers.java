@@ -113,16 +113,18 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
    * @param doIndexing true if the caller considers it worth it to use
    *                   indexing schemes.
    * @param blocksize The block size of the DTM.
+   * @param usePrevsib true if we want to build the previous sibling node array.
    */
   public DTMDefaultBaseTraversers(DTMManager mgr, Source source,
                                   int dtmIdentity,
                                   DTMWSFilter whiteSpaceFilter,
                                   XMLStringFactory xstringfactory,
                                   boolean doIndexing,
-                                  int blocksize)
+                                  int blocksize,
+                                  boolean usePrevsib)
   {
     super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
-          doIndexing, blocksize);
+          doIndexing, blocksize, usePrevsib);
   }
 
   /**

@@ -116,6 +116,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     private static final String XMLSPACE_STRING = "xml:space";
     private static final String PRESERVE_STRING = "preserve";
     private static final String XMLNS_PREFIX = "xmlns";
+    private static final String XML_URI = "http://www.w3.org/XML/1998/namespace";
 
     private boolean _escaping = true;
     private boolean _disableEscaping = false;
@@ -1054,7 +1055,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                  boolean doIndexing, int blocksize)
     {
       super(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
-            doIndexing, blocksize);
+            doIndexing, blocksize, false);
+      
       _size = blocksize;
       
       // Use a smaller size for the space stack if the blocksize is small
@@ -1225,8 +1227,14 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         //_parentStack[0] = DTMDefaultBase.ROOTNODE;  // root
         //_currentAttributeNode = 1;
 
-        definePrefixAndUri(EMPTYSTRING, EMPTYSTRING);
-        startPrefixMapping(XML_PREFIX, "http://www.w3.org/XML/1998/namespace");
+        //definePrefixAndUri(EMPTYSTRING, EMPTYSTRING);
+        Integer eType = new Integer(0);
+        _nsIndex.put(eType, eType);
+        _uriCount++;
+        
+        super.startPrefixMapping(XML_PREFIX, XML_URI);
+        eType = new Integer(getIdForNamespace(XML_URI));
+        _nsIndex.put(eType, new Integer(_uriCount++));
     }
 
     /**
