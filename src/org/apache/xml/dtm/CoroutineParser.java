@@ -63,117 +63,31 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import org.apache.xml.dtm.CoroutineManager;
 
-/** <p>CoroutineParser illustrates how to run Xerces's incremental
- * parsing feature (parseSome()) in a coroutine. Output from Xerces
- * will still be issued via callbacks, which will need to be recieved
- * and acted upon by an appopriate handler.</p>
+/** <p>CoroutineParser is an API for parser threads that operate as
+ * coroutines. See CoroutineSAXParser and CoroutineSAXParser_Xerces
+ * for examples.</p>
  *
- * Usage is something like this:
- * <code>
- *      CoroutineManager co = new CoroutineManager()
- *      int appCoroutine = co.co_joinCoroutineSet(-1);
- *      if (appCoroutine == -1) { [[error handling]] }
- *      CoroutineParser parser = new CoroutineParser(co, appCoroutine);
- *      int parserCoroutine = parser.getParserCoroutine();
- *      [[register typical SAX handlers with the parser]]
+ * <p>&lt;grumble&gt; I'd like the interface to require a specific form
+ * for either the base constructor or a static factory method. Java
+ * doesn't allow us to specify either, so I'll just document them
+ * here:
  *
- *      ...
+ * <ul>
+ * <li>public CoroutineParser(CoroutineManager co, int appCoroutine);</li>
+ * <li>public CoroutineParser createCoroutineParser(CoroutineManager co, int appCoroutine);</li>
+ * </ul>
  *
- *      InputSource source = [[document source]];
- *      Object result = co.co_resume_to(source, appCoroutine, parserCoroutine);
- *      if (result == null) {
- *          [[cannot happen here, only if we ask parser to terminate]]
- *      }
- *      else if (result instanceof Boolean) {
- *          if (((Boolean)result).booleanValue()) {
- *              [[document open, ready to proceed]]
- *          }
- *          else {
- *              [[document not open, but no exception?  I think that this might
- *               relate to the continue-on-fatal-error feature, but obviously
- *               we cannot continue in this case...]]
- *          }
- *      }
- *      else if (result instanceof Exception) {
- *          [[process error]]
- *      }
- *
- *      ...
- *
- *      [[nothing in queue to process, so run the parser coroutine]]
- *      Object result = co.co_resume_to(Boolean.TRUE, appCoroutine, parserCoroutine);
- *      if (result == null) {
- *          [[cannot happen here, only if we ask parser to terminate]]
- *      }
- *      else if (result instanceof Boolean) {
- *          if (((Boolean)result).booleanValue()) {
- *              [[some parsing has been performed and
- *                the end of the document has not been seen]]
- *          }
- *          else {
- *              [[some parsing might have been performed and
- *                the end of the document has been seen]]
- *          }
- *      }
- *      else if (result instanceof Exception) {
- *          [[process error during parsing]]
- *      }
- *
- *      ...
- *
- *      [[reset the parser coroutine]]
- *      Object result = co.co_resume_to(Boolean.FALSE, appCoroutine, parserCoroutine);
- *      [[returns Boolean.FALSE, expect next InputSource]]
- *
- *      ...
- *
- *      [[terminate the parser coroutine]]
- *      Object result = co.co_resume_to(null, appCoroutine, parserCoroutine);
- *      [[returns null]]
- * </code>
+ * &lt;/grumble&gt;</p>
  *
  * <p>Status: In progress</p>
  * */
-public class CoroutineParser
-extends org.apache.xerces.parsers.SAXParser
-implements Runnable {
+public interface CoroutineParser extends Runnable {
 
-    //
-    // Data
-    //
-
-    private CoroutineManager fCoroutineManager = null;
-    private int fAppCoroutine = -1;
-    private int fParserCoroutine = -1;
-    private boolean fParseInProgress=false;
-
-    //
-    // Constructors
-    //
-
-    public CoroutineParser(CoroutineManager co, int appCoroutine) {
-
-        initHandlers(true, this, this);
-
-        fCoroutineManager = co;
-        fAppCoroutine = appCoroutine;
-        fParserCoroutine = co.co_joinCoroutineSet(-1);
-        if (fParserCoroutine == -1)
-            throw new RuntimeException("co_joinCoroutineSet() failed");
-        Thread t = new Thread(this);
-        t.setDaemon(false);
-        t.start();
-    }
-
-    //
-    // Public methods
-    //
-
-    // coroutine support
-
-    public int getParserCoroutine() {
-        return fParserCoroutine;
-    }
+    /** @return the coroutine ID number for this CoroutineParser object.
+     * Note that this isn't useful unless you know which CoroutineManager
+     * you're talking to.
+     * */
+    public int getParserCoroutine();
 
     /**
      * This coroutine (thread) can be resumed with the following arguments:
@@ -200,48 +114,6 @@ implements Runnable {
      *                      resumes with:
      *                          co_resume(Boolean.FALSE, ...) always.
      */
-    public void run() {
-        Object arg = null;
-        while (true) {
-            arg = fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine);
-            if (arg == null) {
-                fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
-                break;
-            }
-            if (arg instanceof InputSource) {
-                if (fParseInProgress) {
-                    arg = new SAXException("parse may not be called while parsing.");
-                }
-                else {
-                    try {
-                        boolean ok = parseSomeSetup((InputSource)arg);
-                        arg = ok ? Boolean.TRUE : Boolean.FALSE;
-                    }
-                    catch (Exception ex) {
-                        arg = ex;
-                    }
-                }
-            }
-            else if (arg instanceof Boolean) {
-                boolean keepgoing = ((Boolean)arg).booleanValue();
-                if (!keepgoing) {
-                    fParseInProgress = false;
-                    arg = Boolean.FALSE;
-                }
-                else {
-                    try {
-                        keepgoing = parseSome();
-                        arg = keepgoing ? Boolean.TRUE : Boolean.FALSE;
-                    } catch (SAXException ex) {
-                        arg = ex;
-                    } catch (IOException ex) {
-                        arg = ex;
-                    } catch (Exception ex) {
-                        arg = new SAXException(ex);
-                    }
-                }
-            }
-        }
-    }
+    public void run();
 
-} // class CoroutineParser
+} // class CoroutineSAXParser_Xerces

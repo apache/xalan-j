@@ -60,12 +60,13 @@ import java.util.*;
 
 /**
  * <meta name="usage" content="internal"/>
- * Support the coroutine design pattern.
- * <p>
- * A coroutine set is a very simple cooperative non-preemptive
+ * <p>Support the coroutine design pattern.</p>
+ * 
+ * <p>A coroutine set is a very simple cooperative non-preemptive
  * multitasking model, where the switch from one task to another is
  * performed via an explicit request. Coroutines interact according to
- * the following rules:
+ * the following rules:</p>
+ *
  * <ul>
  * <li>One coroutine in the set has control, which it retains until it
  * either exits or resumes another coroutine.</li>
@@ -76,13 +77,14 @@ import java.util.*;
  * -- so that if/when it is resumed, it will proceed from the point at which
  * it last gave up control.</li>
  * </ul>
- * Coroutines can be thought of as falling somewhere between pipes and
+ *
+ * <p>Coroutines can be thought of as falling somewhere between pipes and
  * subroutines. Like call/return, there is an explicit flow of control
  * from one coroutine to another. Like pipes, neither coroutine is
  * actually "in charge", and neither must exit in order to transfer
- * control to the other. 
- * <p>
- * One classic application of coroutines is in compilers, where both
+ * control to the other. </p>
+ * 
+ * <p>One classic application of coroutines is in compilers, where both
  * the parser and the lexer are maintaining complex state
  * information. The parser resumes the lexer to process incoming
  * characters into lexical tokens, and the lexer resumes the parser
@@ -94,55 +96,100 @@ import java.util.*;
  * can optimize the coroutine metaphor), isn't necessarily as clear in
  * intent, may have trouble handling cases where data flows in both
  * directions, and may not handle some of the more complex cases where
- * more than two coroutines are involved.
- * <p>
- * Most coroutine systems also provide a way to pass data between the
+ * more than two coroutines are involved.</p>
+ * 
+ * <p>Most coroutine systems also provide a way to pass data between the
  * source and target of a resume operation; this is sometimes referred
  * to as "yielding" a value.  Others rely on the fact that, since only
  * one member of a coroutine set is running at a time and does not
  * lose control until it chooses to do so, data structures may be
- * directly shared between them with only minimal precautions.
- * <p>
- * "Note: This should not be taken to mean that producer/consumer
+ * directly shared between them with only minimal precautions.</p>
+ * 
+ * <p>"Note: This should not be taken to mean that producer/consumer
  * problems should be always be done with coroutines." Queueing is
  * often a better solution when only two threads of execution are
  * involved and full two-way handshaking is not required. It's a bit
  * difficult to find short pedagogical examples that require
- * coroutines for a clear solution.
- * <p>
- * The fact that only one of a group of coroutines is running at a
+ * coroutines for a clear solution.</p>
+ * 
+ * <p>The fact that only one of a group of coroutines is running at a
  * time, and the control transfer between them is explicit, simplifies
  * their possible interactions, and in some implementations permits
  * them to be implemented more efficiently than general multitasking.
  * In some situations, coroutines can be compiled out entirely;
  * in others, they may only require a few instructions more than a
- * simple function call.
- * <p>
- * This version is built on top of standard Java threading, since
+ * simple function call.</p>
+ *
+ * <p>This version is built on top of standard Java threading, since
  * that's all we have available right now. It's been encapsulated for
- * code clarity and possible future optimization.
- * <p>
- * (Two possible approaches: wait-notify based and queue-based. Some
+ * code clarity and possible future optimization.</p>
+ * 
+ * <p>(Two possible approaches: wait-notify based and queue-based. Some
  * folks think that a one-item queue is a cleaner solution because it's
  * more abstract -- but since coroutine _is_ an abstraction I'm not really
  * worried about that; folks should be able to switch this code without
- * concern.)
- * <p>
- * %TBD% THIS SHOULD BE AN INTERFACE. Arguably Coroutine itself should be an
- * interface much like Runnable, but I think that can be built on top of this.
- */
+ * concern.)</p>
+ * 
+ * <p>%TBD% THIS SHOULD BE AN INTERFACE, to facilitate building other
+ * implementations... perhaps including a true coroutine system
+ * someday, rather than controlled threading. Arguably Coroutine
+ * itself should be an interface much like Runnable, but I think that
+ * can be built on top of this.</p>
+ * */
 public class CoroutineManager
 {
-  /** %TBD% */
-  BitSet activeIDs=new BitSet();
-  /** %TBD% */
-  static final int m_unreasonableId=1024;
+  /** "Is this coroutine ID number already in use" lookup table.
+   * Currently implemented as a bitset as a compromise between
+   * compactness and speed of access, but obviously other solutions
+   * could be applied.
+   * */
+  BitSet m_activeIDs=new BitSet();
 
-  /** %TBD% */
+  /** Limit on the coroutine ID numbers accepted. I didn't want the
+   * in-use table to grow without bound. If we switch to a more efficient
+   * sparse-array mechanism, it may be possible to raise or eliminate
+   * this boundary.
+   */
+  static int m_unreasonableId=1024;
+
+  /** Internal field used to hold the data being explicitly passed
+   * from one coroutine to another during a co_resume() operation.
+   * (Of course implicit data sharing may also occur; one of the reasons
+   * for using coroutines is that you're guaranteed that none of the
+   * other coroutines in your set are using shared structures at the time
+   * you access them.)
+   *
+   * %REVIEW% It's been proposed that we be able to pass types of data
+   * other than Object -- more specific object types, or
+   * lighter-weight primitives.  This would seem to create a potential
+   * explosion of "pass x recieve y back" methods (or require
+   * fracturing resume into two calls, resume-other and
+   * wait-to-be-resumed), and the weight issue could be managed by
+   * reusing a mutable buffer object to contain the primitive
+   * (remember that only one coroutine runs at a time, so once the
+   * buffer's set it won't be walked on). Typechecking objects is
+   * interesting from a code-robustness point of view, but it's
+   * unclear whether it makes sense to encapsulate that in the
+   * coroutine code or let the callers do it, since it depends on RTTI
+   * either way. Restricting the parameters to objects implementing a
+   * specific CoroutineParameter interface does _not_ seem to be a net
+   * win; applications can do so if they want via front-end code, but
+   * there seem to be too many use cases involving passing an existing
+   * object type that you may not have the freedom to alter and may
+   * not want to spend time wrapping another object around.
+   * */
   Object m_yield=null;
-  /** %TBD% */
-  int m_nextCoroutine=-1;
 
+  // Expose???
+  final static int NOBODY=-1;
+  final static int ANYBODY=-1;
+
+  /** Internal field used to confirm that the coroutine now waking up is
+   * in fact the one we intended to resume. Some such selection mechanism
+   * is needed when more that two coroutines are operating within the same
+   * group.
+   */
+  int m_nextCoroutine=NOBODY;
   
   /** <p>Each coroutine in the set managed by a single
    * CoroutineManager is identified by a small positive integer. This
@@ -170,7 +217,7 @@ public class CoroutineManager
   {
     if(coroutineID>=0)
       {
-	if(coroutineID>=m_unreasonableId || activeIDs.get(coroutineID))
+	if(coroutineID>=m_unreasonableId || m_activeIDs.get(coroutineID))
 	  return -1;
       }
     else
@@ -180,7 +227,7 @@ public class CoroutineManager
 	coroutineID=0;
 	while(coroutineID<m_unreasonableId)
 	  {
-	    if(activeIDs.get(coroutineID))
+	    if(m_activeIDs.get(coroutineID))
 	      ++coroutineID;
 	    else
 	      break;
@@ -189,29 +236,30 @@ public class CoroutineManager
 	  return -1;
       }
 
-    activeIDs.set(coroutineID);
+    m_activeIDs.set(coroutineID);
     return coroutineID;
-  }
-
-  /** Internal subroutine: Check whether an ID is active. In fact I'll
-   * probably inline this test, but...
-   */
-  private boolean idExists(int coroutineID)
-  {
-    return (coroutineID>=m_unreasonableId || activeIDs.get(coroutineID));
   }
 
   /** In the standard coroutine architecture, coroutines are
    * identified by their method names and are launched and run up to
    * their first yield by simply resuming them; its's presumed that
    * this recognizes the not-already-running case and does the right
-   * thing. We need a way to achieve that same threadsafe run-up...
-   * start the coroutine with a wait or some such.
+   * thing. We seem to need a way to achieve that same threadsafe
+   * run-up...  eg, start the coroutine with a wait.
    *
    * %TBD% whether this makes any sense...
+   *
+   * @param thisCoroutine the identifier of this coroutine, so we can
+   * recognize when we are being resumed.
+   * @exception java.lang.NoSuchMethodException if thisCoroutine isn't
+   * a registered member of this group. %REVIEW% whether this is the
+   * best choice.
    * */
-  Object co_entry_pause(int thisCoroutine)
+  Object co_entry_pause(int thisCoroutine) throws java.lang.NoSuchMethodException
   {
+    if(!m_activeIDs.get(thisCoroutine))
+      throw new java.lang.NoSuchMethodException();
+
     while(m_nextCoroutine != thisCoroutine)
       {
 	try 
@@ -221,7 +269,7 @@ public class CoroutineManager
 	catch(java.lang.InterruptedException e)
 	  {
 	    // %TBD% -- Declare? Encapsulate? Ignore? Or
-	    // dance deasil and widdershins about the instruction cache?
+	    // dance widdershins about the instruction cache?
 	  }
       }
     
@@ -239,16 +287,21 @@ public class CoroutineManager
    * ID we watch for to see if we're the ones being resumed.
    * @param toCoroutine. Integer identifier for the coroutine we wish to
    * invoke. 
+   * @exception java.lang.NoSuchMethodException if toCoroutine isn't a
+   * registered member of this group. %REVIEW% whether this is the best choice.
    * */
-  public synchronized Object co_resume(Object arg_object,int thisCoroutine,int toCoroutine)
+  public synchronized Object co_resume(Object arg_object,int thisCoroutine,int toCoroutine) throws java.lang.NoSuchMethodException
   {
+    if(!m_activeIDs.get(toCoroutine))
+      throw new java.lang.NoSuchMethodException("Coroutine not available, id="+toCoroutine);
+
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
     m_yield=arg_object;
     m_nextCoroutine=toCoroutine;
 
     notify();
-    while(m_nextCoroutine != thisCoroutine)
+    while(m_nextCoroutine != thisCoroutine || m_nextCoroutine==ANYBODY || m_nextCoroutine==NOBODY)
       {
 	try 
 	  {
@@ -257,45 +310,64 @@ public class CoroutineManager
 	catch(java.lang.InterruptedException e)
 	  {
 	    // %TBD% -- Declare? Encapsulate? Ignore? Or
-	    // dance deasil and widdershins about the instruction cache?
+	    // dance deasil about the program counter?
 	  }
+      }
+
+    if(m_nextCoroutine==NOBODY)
+      {
+	// Pass it along
+	co_exit(thisCoroutine);
+	// And inform this coroutine that its partners are Going Away
+	// %REVIEW% Should this throw/return something more useful?
+	throw new java.lang.NoSuchMethodException("CoroutineManager recieved co_exit() request");
       }
     
     return m_yield;
   }
   
-  /** Make the ID available for reuse and terminate this coroutine,
-   * transferring control to... %TBD%
+  /** Terminate this entire set of coroutines. The others will be
+   * deregistered and have exceptions thrown at them. Note that this
+   * is intended as a panic-shutdown operation; under normal
+   * circumstances a coroutine should always end with co_exit_to() in
+   * order to politely inform at least one of its partners that it is
+   * going away.
    *
-   * %TBD% What should we do if toCoroutine isn't registered? Exception?
+   * %TBD% This may need significantly more work. 
    *
-   * %TBD% who gets control, or do we just release one at random?
-   * What does yield get set to? Or does this cause _all_ coroutines
-   * in this set to exit -- that actually sounds more useful.
-   */
+   * %TBD% Should this just be co_exit_to(,,CoroutineManager.PANIC)?
+   *
+   * @param thisCoroutine Integer identifier for the coroutine requesting exit.
+   * */
   public synchronized void co_exit(int thisCoroutine)
   {
-    activeIDs.clear(thisCoroutine);
-    m_nextCoroutine=-1; // %REVIEW% Someone said Exit!    
+    m_activeIDs.clear(thisCoroutine);
+    m_nextCoroutine=NOBODY; // %REVIEW%
     notify();
   }
 
   /** Make the ID available for reuse and terminate this coroutine,
    * transferring control to the specified coroutine.
    *
-   * %TBD% What should we do if toCoroutine isn't registered? Exception?
-   */
-  public synchronized void co_exit_to(Object arg_object,int thisCoroutine,int toCoroutine)
+   * @param arg_object A value to be passed to the other coroutine.
+   * @param thisCoroutine Integer identifier for the coroutine leaving the set.
+   * @param toCoroutine. Integer identifier for the coroutine we wish to
+   * invoke. 
+   * @exception java.lang.NoSuchMethodException if toCoroutine isn't a
+   * registered member of this group. %REVIEW% whether this is the best choice.
+   * */
+  public synchronized void co_exit_to(Object arg_object,int thisCoroutine,int toCoroutine) throws java.lang.NoSuchMethodException
   {
+    if(!m_activeIDs.get(toCoroutine))
+      throw new java.lang.NoSuchMethodException("Coroutine not available, id="+toCoroutine);
+    
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
     m_yield=arg_object;
     m_nextCoroutine=toCoroutine;
 
-    activeIDs.clear(thisCoroutine);
+    m_activeIDs.clear(thisCoroutine);
 
     notify();
   }
 }
-
-
