@@ -504,5 +504,5 @@ public interface Constants extends InstructionConstants {
     public static final String FALLBACK_CLASS
 	= "org.apache.xalan.xsltc.compiler.Fallback";
 
-    public static final int RTF_INITIAL_SIZE = 64;
+    public static final int RTF_INITIAL_SIZE = 32;
 }

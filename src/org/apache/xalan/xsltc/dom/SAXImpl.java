@@ -92,7 +92,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /* ------------------------------------------------------------------- */
     /* DOMBuilder fields BEGIN                                             */
     /* ------------------------------------------------------------------- */
-    private final static int INIT_STACK_LENGTH = 64;
+    //private final static int INIT_STACK_LENGTH = 64;
 
     //private int       _parentStackLength    = INIT_STACK_LENGTH;
     //private int[]     _parentStack          = new int[INIT_STACK_LENGTH];
@@ -107,7 +107,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
     // Stack used to keep track of what whitespace text nodes are protected
     // by xml:space="preserve" attributes and which nodes that are not.
-    private int[]   _xmlSpaceStack = new int[64];
+    private int[]   _xmlSpaceStack;
     private int     _idx = 1;
     private boolean _preserve = false;
 
@@ -1029,9 +1029,9 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      * These init sizes have been tuned for the average case. Do not
      * change these values unless you know exactly what you're doing.
      */
-    static private final int SMALL_TEXT_SIZE   = 1024;
-    static private final int DEFAULT_INIT_SIZE = 1024;
-    static private final int DEFAULT_TEXT_FACTOR = 10;
+    //static private final int SMALL_TEXT_SIZE   = 1024;
+    //static private final int DEFAULT_INIT_SIZE = 1024;
+    //static private final int DEFAULT_TEXT_FACTOR = 10;
 
     /**
      * Construct a SAXImpl object using the default block size.
@@ -1042,7 +1042,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                  boolean doIndexing)
     {
       this(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
-           doIndexing, m_initialblocksize);
+           doIndexing, DEFAULT_BLOCKSIZE);
     }
 
     /**
@@ -1056,6 +1056,9 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       super(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
             doIndexing, blocksize);
       _size = blocksize;
+      
+      // Use a smaller size for the space stack if the blocksize is small
+      _xmlSpaceStack = new int[blocksize <= 64 ? 4 : 64];
       //initialize(size, size < 128 ? SMALL_TEXT_SIZE
       //                            : size * DEFAULT_TEXT_FACTOR);
                                   

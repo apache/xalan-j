@@ -1737,7 +1737,7 @@ public class SAX2DTM2 extends SAX2DTM
   {
 
     this(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, m_initialblocksize);
+          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE);
   }
  
   /**

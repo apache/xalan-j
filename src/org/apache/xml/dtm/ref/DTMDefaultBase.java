@@ -123,11 +123,17 @@ public abstract class DTMDefaultBase implements DTM
    */
   protected int[][][] m_elemIndexes;
 
-  /** The default initial block size of the node arrays */
-  protected static final int m_initialblocksize = 512;  // favor small docs.
-
+  /** The default block size of the node arrays */
+  protected static final int DEFAULT_BLOCKSIZE = 512;  // favor small docs.
+  
+  /** The number of blocks for the node arrays */
+  protected static final int DEFAULT_NUMBLOCKS = 32;
+  
+  /** The number of blocks used for small documents & RTFs */
+  protected static final int DEFAULT_NUMBLOCKS_SMALL = 4;
+  
   /** The block size of the node arrays */
-  protected final int m_blocksize;
+  //protected final int m_blocksize;
 
   /**
    * The value to use when the information has not been built yet.
@@ -200,7 +206,7 @@ public abstract class DTMDefaultBase implements DTM
   			XMLStringFactory xstringfactory, boolean doIndexing)
   {
     this(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
-         doIndexing, m_initialblocksize);
+         doIndexing, DEFAULT_BLOCKSIZE);
   }
 
   /**
@@ -222,12 +228,15 @@ public abstract class DTMDefaultBase implements DTM
                         XMLStringFactory xstringfactory, boolean doIndexing,
                         int blocksize)
   {
-    m_blocksize = blocksize;
-    m_exptype = new SuballocatedIntVector(blocksize);
-    m_firstch = new SuballocatedIntVector(blocksize);
-    m_nextsib = new SuballocatedIntVector(blocksize);
-    m_prevsib = new SuballocatedIntVector(blocksize);
-    m_parent  = new SuballocatedIntVector(blocksize);
+    //m_blocksize = blocksize;
+    int numblocks = (blocksize <= 64) ? DEFAULT_NUMBLOCKS_SMALL : 
+                     DEFAULT_NUMBLOCKS;
+    
+    m_exptype = new SuballocatedIntVector(blocksize, numblocks);
+    m_firstch = new SuballocatedIntVector(blocksize, numblocks);
+    m_nextsib = new SuballocatedIntVector(blocksize, numblocks);
+    m_prevsib = new SuballocatedIntVector(blocksize, numblocks);
+    m_parent  = new SuballocatedIntVector(blocksize, numblocks);
 
     m_mgr = mgr;
     if(mgr instanceof DTMManagerDefault)

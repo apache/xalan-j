@@ -116,7 +116,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * Made protected rather than private so SAX2RTFDTM can access it.
    */
   //private FastStringBuffer m_chars = new FastStringBuffer(13, 13);
-  protected FastStringBuffer m_chars = new FastStringBuffer(10, 13);
+  protected FastStringBuffer m_chars;
 
   /** This vector holds offset and length data.
    */
@@ -125,7 +125,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   /** The parent stack, needed only for construction.
    * Made protected rather than private so SAX2RTFDTM can access it.
    */
-  transient protected IntStack m_parents = new IntStack();
+  transient protected IntStack m_parents;
 
   /** The current previous node, needed only for construction time.
    * Made protected rather than private so SAX2RTFDTM can access it.
@@ -141,7 +141,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   /** Namespace support, only relevent at construction time.
    * Made protected rather than private so SAX2RTFDTM can access it.
    */
-  transient protected IntStack m_contextIndexes = new IntStack();
+  transient protected IntStack m_contextIndexes;
 
   /** Type of next characters() event within text block in prgress. */
   transient protected int m_textType = DTM.TEXT_NODE;
@@ -165,7 +165,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   protected DTMTreeWalker m_walker = new DTMTreeWalker();
 
   /** pool of string values that come as strings. */
-  protected DTMStringPool m_valuesOrPrefixes = new DTMStringPool();
+  protected DTMStringPool m_valuesOrPrefixes;
 
   /** End document has been reached.
    * Made protected rather than private so SAX2RTFDTM can access it.
@@ -263,7 +263,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   {
 
     this(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, m_initialblocksize);
+          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE);
   }
   
   /**
@@ -290,15 +290,35 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     super(mgr, source, dtmIdentity, whiteSpaceFilter,
           xstringfactory, doIndexing, blocksize);
 
-          
+    // %OPT% Use smaller sizes for all internal storage units when
+    // the blocksize is small. This reduces the cost of creating an RTF.
+    if (blocksize <= 64) 
+    {
+      m_data = new SuballocatedIntVector(blocksize, DEFAULT_NUMBLOCKS_SMALL);
+      m_dataOrQName = new SuballocatedIntVector(blocksize, DEFAULT_NUMBLOCKS_SMALL);
+      m_valuesOrPrefixes = new DTMStringPool(16);
+      m_chars = new FastStringBuffer(7, 10);
+      m_contextIndexes = new IntStack(4);
+      m_parents = new IntStack(4);
+    }
+    else
+    {
+      m_data = new SuballocatedIntVector(blocksize, DEFAULT_NUMBLOCKS);
+      m_dataOrQName = new SuballocatedIntVector(blocksize, DEFAULT_NUMBLOCKS);
+      m_valuesOrPrefixes = new DTMStringPool();
+      m_chars = new FastStringBuffer(10, 13);
+      m_contextIndexes = new IntStack();
+      m_parents = new IntStack();
+    }
+         
     // %REVIEW%  Initial size pushed way down to reduce weight of RTFs
     // (I'm not entirely sure 0 would work, so I'm playing it safe for now.)
     //m_data = new SuballocatedIntVector(doIndexing ? (1024*2) : 512, 1024);
-    m_data = new SuballocatedIntVector(blocksize);
+    //m_data = new SuballocatedIntVector(blocksize);
 
     m_data.addElement(0);   // Need placeholder in case index into here must be <0.
 
-    m_dataOrQName = new SuballocatedIntVector(blocksize);
+    //m_dataOrQName = new SuballocatedIntVector(blocksize);
     
     // m_useSourceLocationProperty=org.apache.xalan.processor.TransformerFactoryImpl.m_source_location;
     m_useSourceLocationProperty = m_source_location;
