@@ -806,7 +806,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      */
     public DTMAxisIterator getIterator()
     {
-	    return new SingletonIterator(getDocument());
+        return new SingletonIterator(getDocument());
     }
 
      /**
@@ -1548,7 +1548,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                 ? new ChildrenIterator()
                 : EMPTYITERATOR;
 */
-      return new ChildrenIterator();
+      return (new ChildrenIterator()).setStartNode(node);
     }
 
     /**

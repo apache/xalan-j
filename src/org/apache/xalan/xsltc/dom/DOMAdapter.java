@@ -178,7 +178,14 @@ public final class DOMAdapter implements DOM {
     }
     
     public DTMAxisIterator getChildren(final int node) {
-        DTMAxisIterator iterator = _dom.getChildren(node);
+        if (_saxImpl != null) {
+            return _saxImpl.getChildren(node);
+        }
+        else {
+            DTMAxisIterator iterator = _dom.getChildren(node);
+            return iterator.setStartNode(node);
+        }
+        //DTMAxisIterator iterator = _dom.getChildren(node);
         /*
         if (_filter != null) {
             if (_domImpl != null)
@@ -189,7 +196,7 @@ public final class DOMAdapter implements DOM {
                                                       _filter);
         }
         */
-        return iterator.setStartNode(node);
+        //return iterator.setStartNode(node);
     }
 
     public void setFilter(StripFilter filter) {
@@ -199,9 +206,16 @@ public final class DOMAdapter implements DOM {
     public DTMAxisIterator getTypedChildren(final int type) {
       final int[] reverse = getReverse();
 
-      DTMAxisIterator iterator = (reverse != null)
-                                  ? _dom.getTypedChildren(reverse[type])
-                                  : _dom.getTypedChildren(type);
+      if (_saxImpl != null) {
+          return _saxImpl.getTypedChildren(reverse[type]);
+      }
+      else if (_domImpl != null) {
+          return _domImpl.getTypedChildren(reverse[type]);
+      }
+      else {
+          return _dom.getTypedChildren(type);
+      }
+      
       /*
       if (_filter != null && reverse[type] == DTM.TEXT_NODE) {
       	if (_domImpl != null) {
@@ -211,7 +225,7 @@ public final class DOMAdapter implements DOM {
         }
       }
       */
-      return iterator;
+      //return iterator;
     }
 
     public DTMAxisIterator getNamespaceAxisIterator(final int axis,
@@ -220,7 +234,14 @@ public final class DOMAdapter implements DOM {
     }
 
     public DTMAxisIterator getAxisIterator(final int axis) {
-      DTMAxisIterator iterator = _dom.getAxisIterator(axis);
+        if (_saxImpl != null) {
+            return _saxImpl.getAxisIterator(axis);
+        }
+        else {
+            return _dom.getAxisIterator(axis);
+        }
+        
+      //DTMAxisIterator iterator = _dom.getAxisIterator(axis);
       /*
       if (_filter != null)
       {
@@ -229,25 +250,27 @@ public final class DOMAdapter implements DOM {
                   : _saxImpl.strippingIterator(iterator, getMapping(), _filter);
       }
       */
-      return iterator;
+      //return iterator;
     }
     
     public DTMAxisIterator getTypedAxisIterator(final int axis,
                                                 final int type) {
-      DTMAxisIterator iterator;
+      //DTMAxisIterator iterator;
       final int[] reverse = getReverse();
 
       if (axis == Axis.NAMESPACE) {
           short[] NSReverse = getNSReverse();
           if (type == NO_TYPE || type > NSReverse.length) {
-             iterator = _dom.getAxisIterator(axis);
+             return _dom.getAxisIterator(axis);
           } else {
-             iterator = _dom.getTypedAxisIterator(axis, NSReverse[type]);
+             return _dom.getTypedAxisIterator(axis, NSReverse[type]);
           }
+      } else if (_saxImpl != null) {
+          return _saxImpl.getTypedAxisIterator(axis, reverse[type]);
+      } else if (_domImpl != null) {
+          return _domImpl.getTypedAxisIterator(axis, reverse[type]);
       } else {
-          iterator = (reverse != null)
-                      ? _dom.getTypedAxisIterator(axis, reverse[type])
-                      : _dom.getTypedAxisIterator(axis, type);
+          return _dom.getTypedAxisIterator(axis, type);
       }
       
       /*
@@ -258,7 +281,7 @@ public final class DOMAdapter implements DOM {
         
       }
       */
-      return iterator;
+      //return iterator;
     }
         
     public int getMultiDOMMask() {
@@ -285,11 +308,11 @@ public final class DOMAdapter implements DOM {
     }
     
     public int getExpandedTypeID(final int node) {
-      if (_saxImpl != null) {
-        return getMapping()[_saxImpl.getExpandedTypeID(node)];
-      }
-      else
-        return getMapping()[_dom.getExpandedTypeID(node)];
+        if (_saxImpl != null) {
+            return getMapping()[_saxImpl.getExpandedTypeID(node)];
+        }
+        else
+            return getMapping()[_dom.getExpandedTypeID(node)];
     }
 
     public int getNamespaceType(final int node) {
@@ -301,7 +324,7 @@ public final class DOMAdapter implements DOM {
     }
     
     public int getParent(final int node) {
-      return _dom.getParent(node);
+        return _dom.getParent(node);
     }
 
     public int getAttributeNode(final int type, final int element) {
@@ -329,10 +352,15 @@ public final class DOMAdapter implements DOM {
     }
     
     public String getStringValueX(final int node) 
-    {
-    	if (node == DTM.NULL)
-    	return "";
-      return _dom.getStringValueX(node);
+    {    	
+    	if (_saxImpl != null) {
+            return _saxImpl.getStringValueX(node);
+        }
+        else {
+            if (node == DTM.NULL)
+    	        return "";
+            return _dom.getStringValueX(node);
+        }
     }
     
     public void copy(final int node, TransletOutputHandler handler)
@@ -350,7 +378,12 @@ public final class DOMAdapter implements DOM {
     public String shallowCopy(final int node, TransletOutputHandler handler)
 	throws TransletException 
     {
-	    return _dom.shallowCopy(node, handler);
+        if (_saxImpl != null) {
+            return _saxImpl.shallowCopy(node, handler);
+        }
+        else {
+            return _dom.shallowCopy(node, handler);
+        }
     }
     
     public boolean lessThan(final int node1, final int node2) 
@@ -361,7 +394,12 @@ public final class DOMAdapter implements DOM {
     public void characters(final int textNode, TransletOutputHandler handler)
       throws TransletException 
     {
-      _dom.characters(textNode, handler);
+        if (_saxImpl != null) {
+            _saxImpl.characters(textNode, handler);
+        }
+        else {
+            _dom.characters(textNode, handler);
+        }
     }
 
     public Node makeNode(int index) 
@@ -452,7 +490,12 @@ public final class DOMAdapter implements DOM {
      */ 
     public DOM getResultTreeFrag(int initSize, boolean isSimple)
     {
-    	return _dom.getResultTreeFrag(initSize, isSimple);
+    	if (_saxImpl != null) {
+    	    return _saxImpl.getResultTreeFrag(initSize, isSimple);
+    	}
+    	else {
+    	    return _dom.getResultTreeFrag(initSize, isSimple);
+    	}
     }
     
     /**
