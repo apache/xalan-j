@@ -520,6 +520,10 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   {
 
     int identity = makeNodeIdentity(nodeHandle);
+    
+    if (identity == DTM.NULL)
+      return;
+    
     int type = _type(identity);
 
     if (isTextType(type))
