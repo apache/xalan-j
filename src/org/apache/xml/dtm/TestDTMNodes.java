@@ -10,7 +10,8 @@ public class TestDTMNodes {
 			doc.nodes.readSlot(i, slot);
 			short high = (short) (slot[0] >> 16), low = (short) (slot[0] & 0xFFFF);
 			System.out.println(i + ": (" + high + ") (" + low + ") " + slot[1] + 
-												 " " + slot[2] + " " +slot[3]); 
+												 " " + slot[2] + " " +slot[3] + " Node Name: " + 
+												 doc.getNodeName(i) + " Node Value: " + doc.getNodeValue(i)); 
 		}
 
 	}
