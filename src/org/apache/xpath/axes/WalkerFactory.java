@@ -167,6 +167,11 @@ public class WalkerFactory
 
     return firstWalker;
   }
+  
+  public static boolean isSet(int analysis, int bit)
+  {
+    return (0 != (analysis & bit));
+  }
 
   /**
    * Create a new LocPathIterator iterator.  The exact type of iterator
@@ -276,13 +281,16 @@ public class WalkerFactory
       return new DescendantIterator(compiler, opPos, analysis);
     }
     else
-    {
-      if(true)
+    { 
+      if(true || isSet(analysis, BIT_NAMESPACE) || isSet(analysis, BIT_FILTER))
       {
-        if (DEBUG_ITERATOR_CREATION)
+        if (false || DEBUG_ITERATOR_CREATION)
+        {
           System.out.println("new iterator:  LocPathIterator: "
                              + Integer.toBinaryString(analysis) + ", "
                              + compiler.toString());
+          System.out.println("   "+getAnalysisString(analysis));
+        }
   
         return new LocPathIterator(compiler, opPos, analysis, true);
       }
@@ -378,7 +386,7 @@ public class WalkerFactory
         analysisResult |= BIT_DESCENDANT_OR_SELF;
         break;
       case OpCodes.FROM_FOLLOWING :
-        analysisResult |= BIT_DESCENDANT_OR_SELF;
+        analysisResult |= BIT_FOLLOWING;
         break;
       case OpCodes.FROM_FOLLOWING_SIBLINGS :
         analysisResult |= BIT_FOLLOWING_SIBLING;
@@ -424,6 +432,25 @@ public class WalkerFactory
 
     return analysisResult;
   }
+  
+  /**
+   * Tell if the given axis goes downword.  Bogus name, if you can think of 
+   * a better one, please do tell.  This really has to do with inverting 
+   * attribute axis.
+   * @param axis One of Axis.XXX.
+   * @return true if the axis is not a child axis and does not go up from 
+   * the axis root.
+   */
+  public static boolean isDownwardAxisOfMany(int axis)
+  {
+    return ((Axis.DESCENDANTORSELF == axis) ||
+          (Axis.DESCENDANT == axis) 
+          || (Axis.FOLLOWING == axis) 
+//          || (Axis.FOLLOWINGSIBLING == axis) 
+          || (Axis.PRECEDING == axis) 
+//          || (Axis.PRECEDINGSIBLING == axis)
+          );
+  }
 
   /**
    * Read a <a href="http://www.w3.org/TR/xpath#location-paths">LocationPath</a>
@@ -456,7 +483,10 @@ public class WalkerFactory
             throws javax.xml.transform.TransformerException
   {
     if (DEBUG_PATTERN_CREATION)
+    {
+      System.out.println("================");
       System.out.println("loadSteps for: "+compiler.getPatternString());
+    }
     int stepType;
     StepPattern step = null;
     StepPattern firstStep = null, prevStep = null;
@@ -495,7 +525,72 @@ public class WalkerFactory
       int nextAxis = pat.getAxis();
       int nextPaxis = pat.getPredicateAxis();
       pat.setAxis(axis);
-      pat.setAxis(paxis);
+      
+      // The predicate axis can't be moved!!!  Test Axes103
+      // pat.setPredicateAxis(paxis);
+      
+      // If we have an attribute or namespace axis that went up, then 
+      // it won't find the attribute in the inverse, since the select-to-match
+      // axes are not invertable (an element is a parent of an attribute, but 
+      // and attribute is not a child of an element).
+      // If we don't do the magic below, then "@*/ancestor-or-self::*" gets
+      // inverted for match to "self::*/descendant-or-self::@*/parent::node()",
+      // which obviously won't work.
+      // So we will rewrite this as:
+      // "self::*/descendant-or-self::*/attribute::*/parent::node()"
+      // Child has to be rewritten a little differently:
+      // select: "@*/parent::*"
+      // inverted match: "self::*/child::@*/parent::node()"
+      // rewrite: "self::*/attribute::*/parent::node()"
+      // Axes that go down in the select, do not have to have special treatment 
+      // in the rewrite. The following inverted match will still not select 
+      // anything.
+      // select: "@*/child::*"
+      // inverted match: "self::*/parent::@*/parent::node()"
+      // Lovely business, this.
+      // -sb
+      int whatToShow = pat.getWhatToShow();
+      if(whatToShow == DTMFilter.SHOW_ATTRIBUTE || 
+         whatToShow == DTMFilter.SHOW_NAMESPACE)
+      {
+        int newAxis = (whatToShow == DTMFilter.SHOW_ATTRIBUTE) ? 
+                       Axis.ATTRIBUTE : Axis.NAMESPACE;
+        if(isDownwardAxisOfMany(axis))
+        {
+          StepPattern attrPat = new StepPattern(whatToShow, 
+                                    pat.getNamespace(),
+                                    pat.getLocalName(),
+                                    newAxis, pat.getPredicateAxis());
+          XNumber score = pat.getStaticScore();
+          pat.setNamespace(null);
+          pat.setLocalName(NodeTest.WILD);
+          attrPat.setPredicates(pat.getPredicates());
+          pat.setPredicates(null);
+          pat.setWhatToShow(DTMFilter.SHOW_ELEMENT);
+          StepPattern rel = pat.getRelativePathPattern();
+          pat.setRelativePathPattern(attrPat);
+          attrPat.setRelativePathPattern(rel);
+          attrPat.setStaticScore(score);
+          
+          // This is needed to inverse a following pattern, because of the 
+          // wacky Xalan rules for following from an attribute.  See axes108.
+          // By these rules, following from an attribute is not strictly 
+          // inverseable.
+          if(Axis.PRECEDING == pat.getAxis())
+            pat.setAxis(Axis.PRECEDINGANDANCESTOR);
+            
+          else if(Axis.DESCENDANT == pat.getAxis())
+            pat.setAxis(Axis.DESCENDANTORSELF);
+          
+          pat = attrPat;
+        }
+        else if(Axis.CHILD == pat.getAxis())
+        {
+          // In this case just change the axis.
+          // pat.setWhatToShow(whatToShow);
+          pat.setAxis(Axis.ATTRIBUTE);
+        }
+      }
       axis = nextAxis;
       paxis = nextPaxis;
       tail = pat;
@@ -556,7 +651,7 @@ public class WalkerFactory
     int whatToShow = compiler.getWhatToShow(opPos);
     StepPattern ai = null;
     int axis, predicateAxis;
-
+    
     switch (stepType)
     {
     case OpCodes.OP_VARIABLE :
@@ -569,6 +664,9 @@ public class WalkerFactory
 
       switch (stepType)
       {
+      case OpCodes.OP_VARIABLE :
+      case OpCodes.OP_EXTFUNCTION :
+      case OpCodes.OP_FUNCTION :
       case OpCodes.OP_GROUP :
         expr = compiler.compile(opPos);
         break;
@@ -595,13 +693,13 @@ public class WalkerFactory
       whatToShow = DTMFilter.SHOW_ATTRIBUTE;
       axis = Axis.PARENT;
       predicateAxis = Axis.ATTRIBUTE;
-      ai = new StepPattern(whatToShow, Axis.SELF, Axis.SELF);
+      // ai = new StepPattern(whatToShow, Axis.SELF, Axis.SELF);
       break;
     case OpCodes.FROM_NAMESPACE :
       whatToShow = DTMFilter.SHOW_NAMESPACE;
       axis = Axis.PARENT;
       predicateAxis = Axis.NAMESPACE;
-      ai = new StepPattern(whatToShow, axis, predicateAxis);
+      // ai = new StepPattern(whatToShow, axis, predicateAxis);
       break;
     case OpCodes.FROM_ANCESTORS :
       axis = Axis.DESCENDANT;
@@ -659,13 +757,12 @@ public class WalkerFactory
                                 axis, predicateAxis);
     }
    
-    if (DEBUG_PATTERN_CREATION)
+    if (false || DEBUG_PATTERN_CREATION)
     {
-      System.out.print("new step: "+ ai + analysis);
-      System.out.print(", pattern: " + compiler.toString());
+      System.out.print("new step: "+ ai);
       System.out.print(", axis: " + Axis.names[ai.getAxis()]);
       System.out.print(", predAxis: " + Axis.names[ai.getAxis()]);
-      System.out.println(", what: ");
+      System.out.print(", what: ");
       System.out.print("    ");
       ai.debugWhatToShow(ai.getWhatToShow());
     }
@@ -983,7 +1080,7 @@ public class WalkerFactory
                              | DTMFilter.SHOW_PROCESSING_INSTRUCTION)));
       */
       if ((0 == (whatToShow
-                 & (DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_ELEMENT
+                 & (DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_NAMESPACE | DTMFilter.SHOW_ELEMENT
                     | DTMFilter.SHOW_PROCESSING_INSTRUCTION))) || (whatToShow == DTMFilter.SHOW_ALL))
         ai.initNodeTest(whatToShow);
       else
@@ -994,6 +1091,76 @@ public class WalkerFactory
     }
 
     return ai;
+  }
+  
+  public static String getAnalysisString(int analysis)
+  {
+    StringBuffer buf = new StringBuffer();
+    if((analysis & BIT_PREDICATE) != 0)
+    {
+      buf.append("PRED|");
+    }
+    if((analysis & BIT_ANCESTOR) != 0)
+    {
+      buf.append("ANC|");
+    }
+    if((analysis & BIT_ANCESTOR_OR_SELF) != 0)
+    {
+      buf.append("ANCOS|");
+    }
+    if((analysis & BIT_ATTRIBUTE) != 0)
+    {
+      buf.append("ATTR|");
+    }
+    if((analysis & BIT_CHILD) != 0)
+    {
+      buf.append("CH|");
+    }
+    if((analysis & BIT_DESCENDANT) != 0)
+    {
+      buf.append("DESC|");
+    }
+    if((analysis & BIT_DESCENDANT_OR_SELF) != 0)
+    {
+      buf.append("DESCOS|");
+    }
+    if((analysis & BIT_FOLLOWING) != 0)
+    {
+      buf.append("FOL|");
+    }
+    if((analysis & BIT_FOLLOWING_SIBLING) != 0)
+    {
+      buf.append("FOLS|");
+    }
+    if((analysis & BIT_NAMESPACE) != 0)
+    {
+      buf.append("NS|");
+    }
+    if((analysis & BIT_PARENT) != 0)
+    {
+      buf.append("P|");
+    }
+    if((analysis & BIT_PRECEDING) != 0)
+    {
+      buf.append("PREC|");
+    }
+    if((analysis & BIT_PRECEDING_SIBLING) != 0)
+    {
+      buf.append("PRECS|");
+    }
+    if((analysis & BIT_SELF) != 0)
+    {
+      buf.append(".|");
+    }
+    if((analysis & BIT_FILTER) != 0)
+    {
+      buf.append("FLT|");
+    }
+    if((analysis & BIT_ROOT) != 0)
+    {
+      buf.append("R|");
+    }
+    return buf.toString();
   }
 
   /** Set to true for diagnostics about walker creation */

@@ -92,14 +92,20 @@ public class FuncCurrent extends Function
   {
 
     // If we're in a predicate, then this will return non-null.
-    PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
+    Object subContextList = xctxt.getSubContextList();
     int currentNode;
 
-    if (null != iter)
+    // %TBD% Hack city...
+    if (null != subContextList && subContextList instanceof PredicatedNodeTest)
     {
+      PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
       LocPathIterator lpi = iter.getLocPathIterator();
 
       currentNode = lpi.getCurrentContextNode();
+    }
+    else if(xctxt.getIteratorRoot() != DTM.NULL)
+    {
+      currentNode = xctxt.getIteratorRoot();
     }
     else
     {

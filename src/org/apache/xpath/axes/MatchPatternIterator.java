@@ -96,7 +96,9 @@ public class MatchPatternIterator extends LocPathIterator
   protected DTMAxisTraverser m_traverser;
   
   /** DEBUG flag for diagnostic dumps. */
-  private static final boolean DEBUG = true;
+  private static final boolean DEBUG = false;
+  
+//  protected int m_nsElemBase = DTM.NULL;
 
   /**
    * Create a LocPathIterator object, including creation
@@ -189,26 +191,41 @@ public class MatchPatternIterator extends LocPathIterator
               & (WalkerFactory.BIT_ATTRIBUTE | WalkerFactory.BIT_NAMESPACE)))
       walkAttributes = true;
       
-    if(DEBUG)
-      System.out.println("analysis: "+Integer.toBinaryString(analysis));
+    if(false || DEBUG)
+    {
+      System.out.print("analysis: "+Integer.toBinaryString(analysis));
+      System.out.println(", "+WalkerFactory.getAnalysisString(analysis));
+    }
       
     if(fromRoot || walkBack)
     {
       if(walkAttributes)
+      {
         m_superAxes = Axis.ALL;
+      }
       else
+      {
         m_superAxes = Axis.DESCENDANTSFROMROOT;
+      }
     }
     else if(walkDescendants)
     {
       if(walkAttributes)
+      {
         m_superAxes = Axis.ALLFROMNODE;
+      }
       else
+      {
         m_superAxes = Axis.DESCENDANTORSELF;
+      }
     }
     else
     {
       m_superAxes = Axis.ALL;
+    }
+    if(false || DEBUG)
+    {
+      System.out.println("axis: "+Axis.names[m_superAxes]);
     }
     
   }
@@ -232,6 +249,33 @@ public class MatchPatternIterator extends LocPathIterator
    */
   protected int getNextNode()
   {
+//    if(m_superAxes == Axis.ALL || m_superAxes == Axis.ALLFROMNODE)
+//    {
+//      if(DTM.NULL != m_nsElemBase)
+//      {
+//        m_lastFetched = m_cdtm.getNextNamespaceNode(m_nsElemBase, m_lastFetched, true);
+//        if(DTM.NULL != m_lastFetched)
+//        {
+//          return m_lastFetched;
+//        }
+//        else
+//        {
+//          m_lastFetched = m_nsElemBase;
+//          m_nsElemBase = DTM.NULL;
+//        }
+//      }
+//      else if(DTM.NULL != m_lastFetched 
+//           && DTM.ELEMENT_NODE == m_cdtm.getNodeType(m_lastFetched))
+//      {
+//        int ns = m_cdtm.getFirstNamespaceNode(m_lastFetched, true);
+//        if(DTM.NULL != ns)
+//        {
+//          m_nsElemBase = m_lastFetched;
+//          m_lastFetched = ns;
+//          return m_lastFetched;
+//        }
+//      }
+//    }
     m_lastFetched = (DTM.NULL == m_lastFetched)
                      ? m_traverser.first(m_context)
                      : m_traverser.next(m_context, m_lastFetched);
@@ -364,11 +408,7 @@ public class MatchPatternIterator extends LocPathIterator
         System.out.println("traverser: "+m_traverser);
         System.out.print("node: "+n);
         System.out.println(", "+m_cdtm.getNodeName(n));
-        if(m_cdtm.getNodeName(n).equals("near-east"))
-        {
-          int x = 1;
-          x++;
-        }
+        // if(m_cdtm.getNodeName(n).equals("near-east"))
         System.out.println("pattern: "+m_pattern.toString());
         m_pattern.debugWhatToShow(m_pattern.getWhatToShow());
       }

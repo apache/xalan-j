@@ -156,6 +156,12 @@ public interface Axis
    *  root, descendants, attributes, and namespace node decls.
    */
   public static final int ALLFROMNODE = 14;
+
+  /**
+   * A non-xpath axis, traversing the the preceding and the ancestor nodes, 
+   * needed for inverseing select patterns to match patterns.
+   */
+  public static final int PRECEDINGANDANCESTOR = 15;
   
   // ===========================================
   // All axis past this are absolute.
@@ -164,23 +170,23 @@ public interface Axis
    * A non-xpath axis, returns all nodes in the tree from and including the 
    * root.
    */
-  public static final int ALL = 15;
+  public static final int ALL = 16;
 
   /**
    * A non-xpath axis, returns all nodes that aren't namespaces or attributes, 
    * from and including the root.
    */
-  public static final int DESCENDANTSFROMROOT = 16;
+  public static final int DESCENDANTSFROMROOT = 17;
 
   /**
    * A non-xpath axis, returns root only.
    */
-  public static final int ROOT = 17;
+  public static final int ROOT = 18;
 
   /**
    * A non-xpath axis, for functions.
    */
-  public static final int FILTEREDLIST = 18;
+  public static final int FILTEREDLIST = 19;
 
 
   /** The names of the axes for diagnostic purposes. */
@@ -201,9 +207,10 @@ public interface Axis
     "preceding-sibling",  // 12
     "self",  // 13
     "all-from-node",  // 14
-    "all",  // 15
-    "descendants-from-root",  // 16
-    "root",  // 17
-    "filtered-list"  // 18
+    "preceding-and-ancestor",  // 15
+    "all",  // 16
+    "descendants-from-root",  // 17
+    "root",  // 18
+    "filtered-list"  // 19
   };
 }

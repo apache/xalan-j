@@ -780,6 +780,23 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   
   public NodeVector getCurrentExpressionNodeStack() { return m_currentExpressionNodes; }
   public void setCurrentExpressionNodeStack(NodeVector nv) { m_currentExpressionNodes = nv; }
+  
+  private IntStack m_predicatePos = new IntStack();
+  
+  public final int getPredicatePos()
+  {
+    return m_predicatePos.peek();
+  }
+
+  public final void pushPredicatePos(int n)
+  {
+    m_predicatePos.push(n);
+  }
+
+  public final void popPredicatePos()
+  {
+    m_predicatePos.pop();
+  }
 
   /**
    * Get the current node that is the expression's context (i.e. for current() support).

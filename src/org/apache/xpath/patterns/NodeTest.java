@@ -111,6 +111,18 @@ public class NodeTest extends Expression
   {
     return m_whatToShow;
   }
+  
+  /**
+   * This attribute determines which node types are accepted.
+   * These constants are defined in the {@link org.w3c.dom.traversal.NodeFilter}
+   * interface.
+   *
+   * @param what bitset mainly defined in {@link org.w3c.dom.traversal.NodeFilter}.
+   */
+  public void setWhatToShow(int what)
+  {
+    m_whatToShow = what;
+  }
 
   /**
    * The namespace to be tested for, which may be null.
@@ -129,19 +141,39 @@ public class NodeTest extends Expression
   }
 
   /**
+   * Set the namespace to be tested.
+   *
+   * @param ns The namespace to be tested for, or {@link #WILD}, or null.
+   */
+  public void setNamespace(String ns)
+  {
+    m_namespace = ns;
+  }
+
+  /**
    * The local name to be tested for.
    *  @serial 
    */
   String m_name;
 
   /**
-   * Return the local namespace to be tested.
+   * Return the local name to be tested.
    *
-   * @return the local namespace to be tested, or {@link #WILD}, or an empty string.
+   * @return the local name to be tested, or {@link #WILD}, or an empty string.
    */
   public String getLocalName()
   {
     return (null == m_name) ? "" : m_name;
+  }
+
+  /**
+   * Set the local name to be tested.
+   *
+   * @param name the local name to be tested, or {@link #WILD}, or an empty string.
+   */
+  public void setLocalName(String name)
+  {
+    m_name = name;
   }
 
   /**
@@ -323,6 +355,9 @@ public class NodeTest extends Expression
 
     if (0 != (whatToShow & DTMFilter.SHOW_ATTRIBUTE))
       v.addElement("SHOW_ATTRIBUTE");
+      
+    if (0 != (whatToShow & DTMFilter.SHOW_NAMESPACE))
+      v.addElement("SHOW_NAMESPACE");
 
     if (0 != (whatToShow & DTMFilter.SHOW_CDATA_SECTION))
       v.addElement("SHOW_CDATA_SECTION");

@@ -785,7 +785,7 @@ public class Compiler extends OpMap
       switch (axesType)
       {
       case OpCodes.FROM_NAMESPACE:
-        return DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_NAMESPACE;
+        return DTMFilter.SHOW_NAMESPACE;
       case OpCodes.FROM_ATTRIBUTES :
       case OpCodes.MATCH_ATTRIBUTE :
         return DTMFilter.SHOW_ATTRIBUTE;
@@ -809,7 +809,7 @@ public class Compiler extends OpMap
       switch (axesType)
       {
       case OpCodes.FROM_NAMESPACE :
-        return DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_NAMESPACE;
+        return DTMFilter.SHOW_NAMESPACE;
       case OpCodes.FROM_ATTRIBUTES :
       case OpCodes.MATCH_ATTRIBUTE :
         return DTMFilter.SHOW_ATTRIBUTE;

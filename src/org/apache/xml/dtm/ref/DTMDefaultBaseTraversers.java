@@ -162,6 +162,9 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     case Axis.ALLFROMNODE :
       traverser = new AllFromNodeTraverser();
       break;
+    case Axis.PRECEDINGANDANCESTOR :
+      traverser = new PrecedingAndAncestorTraverser();
+      break;
     case Axis.DESCENDANTSFROMROOT :
       traverser = new DescendantFromRootTraverser();
       break;
@@ -870,6 +873,71 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       return NULL;
     }
   }
+  
+  /**
+   * Implements traversal of the Ancestor and the Preceding axis, 
+   * in reverse document order.
+   */
+  private class PrecedingAndAncestorTraverser extends DTMAxisTraverser
+  {
+
+    /**
+     * Traverse to the next node after the current node.
+     *
+     * @param context The context node of this iteration.
+     * @param current The current node of the iteration.
+     *
+     * @return the next node in the iteration, or DTM.NULL.
+     */
+    public int next(int context, int current)
+    {
+
+      int subtreeRootIdent = context & m_mask;
+
+      for (current = (current & m_mask) - 1; current >= 0; current--)
+      {
+        int exptype = m_exptype[current];
+        int type = ExpandedNameTable.getType(exptype);
+
+        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
+          continue;
+
+        return (current | m_dtmIdent);  // make handle.
+      }
+
+      return NULL;
+    }
+
+    /**
+     * Traverse to the next node after the current node that is matched
+     * by the extended type ID.
+     *
+     * @param context The context node of this iteration.
+     * @param current The current node of the iteration.
+     * @param extendedTypeID The extended type ID that must match.
+     *
+     * @return the next node in the iteration, or DTM.NULL.
+     */
+    public int next(int context, int current, int extendedTypeID)
+    {
+
+      int subtreeRootIdent = context & m_mask;
+
+      for (current = (current & m_mask) - 1; current >= 0; current--)
+      {
+        int exptype = m_exptype[current];
+        int type = ExpandedNameTable.getType(exptype);
+
+        if (exptype != extendedTypeID)
+          continue;
+
+        return (current | m_dtmIdent);  // make handle.
+      }
+
+      return NULL;
+    }
+  }
+
 
   /**
    * Implements traversal of the Ancestor access, in reverse document order.
