@@ -2860,6 +2860,11 @@ public class TransformerImpl extends Transformer
    * a derived class to support thread pooling.
    *
    * All thread-related stuff is in this class.
+   * 
+   * <p><em>WARNING!</em>  This class will probably move since the DTM 
+   * CoroutineSAXParser depends on it.  This class should move 
+   * to the CoroutineSAXParser.  You can use it, but be aware 
+   * that your code will have to change when the move occurs.</p>
    */
   public static class ThreadControler
   {
