@@ -891,7 +891,7 @@ public abstract class SyntaxTreeNode implements Constants {
      * @param message Any additional error message.
      */
     protected void reportError(SyntaxTreeNode element, Parser parser,
-			       int errorCode, String message) {
+			       String errorCode, String message) {
 	final ErrorMsg error = new ErrorMsg(errorCode, message, element);
         parser.reportError(Constants.ERROR, error);
     }
@@ -905,7 +905,7 @@ public abstract class SyntaxTreeNode implements Constants {
      * @param message Any additional error message.
      */
     protected  void reportWarning(SyntaxTreeNode element, Parser parser,
-				  int errorCode, String message) {
+				  String errorCode, String message) {
 	final ErrorMsg error = new ErrorMsg(errorCode, message, element);
         parser.reportError(Constants.WARNING, error);
     }
