@@ -57,6 +57,7 @@
 package org.apache.xml.dtm.sax2dtm;
 
 import java.util.Hashtable;
+import java.util.Vector;
 
 import org.xml.sax.*;
 import org.xml.sax.ext.*;
@@ -67,6 +68,8 @@ import org.apache.xml.utils.FastStringBuffer;
 import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
 import org.apache.xml.utils.XMLCharacterRecognizer;
+import org.apache.xml.utils.SystemIDResolver;
+
 import org.apache.xml.dtm.*;
 
 /**
@@ -161,6 +164,18 @@ public class SAX2DTM extends DTMDefaultBase
                                          "#comment", "#document",  // Comment, Document
                                          null, "#document-fragment",  // Doctype, DocumentFragment
                                          null };  // Notation
+              
+  /** 
+   * Vector of entities.  Each record is composed of four Strings: 
+   *  publicId, systemID, notationName, and name.
+   */                           
+  private Vector m_entities = null;
+  
+  private static final int ENTITY_FIELD_PUBLICID = 0;
+  private static final int ENTITY_FIELD_SYSTEMID = 1;
+  private static final int ENTITY_FIELD_NOTATIONNAME = 2;
+  private static final int ENTITY_FIELD_NAME = 3;
+  private static final int ENTITY_FIELDS_PER = 4;
 
   /**
    * Construct a SAX2DTM object ready to be constructed from SAX2
@@ -699,10 +714,41 @@ public class SAX2DTM extends DTMDefaultBase
   public String getUnparsedEntityURI(String name)
   {
 
-    /** @todo: implement this org.apache.xml.dtm.DTMDefaultBase abstract method */
-    error("Not yet supported!");
+    String url = "";
 
-    return null;
+    if(null == m_entities)
+      return url;
+      
+    int n = m_entities.size();
+    for (int i = 0; i < n; i += ENTITY_FIELDS_PER) 
+    {
+      String ename = (String)m_entities.elementAt(i+ENTITY_FIELD_NAME);
+      if(null != ename && ename.equals(name))
+      {
+        String nname = (String)m_entities.elementAt(i+ENTITY_FIELD_NOTATIONNAME);
+        if(null != nname)
+        {
+          // The draft says: "The XSLT processor may use the public 
+          // identifier to generate a URI for the entity instead of the URI 
+          // specified in the system identifier. If the XSLT processor does 
+          // not use the public identifier to generate the URI, it must use 
+          // the system identifier; if the system identifier is a relative 
+          // URI, it must be resolved into an absolute URI using the URI of 
+          // the resource containing the entity declaration as the base 
+          // URI [RFC2396]."
+          // So I'm falling a bit short here.
+          url = (String)m_entities.elementAt(i+ENTITY_FIELD_SYSTEMID);
+    
+          if (null == url)
+          {
+            url = (String)m_entities.elementAt(i+ENTITY_FIELD_PUBLICID);
+          }
+        }
+        break;
+      }
+    }
+
+    return url;
   }
 
   /**
@@ -1078,8 +1124,30 @@ public class SAX2DTM extends DTMDefaultBase
           String name, String publicId, String systemId, String notationName)
             throws SAXException
   {
+    
+    if(null == m_entities)
+    {
+      m_entities = new Vector();
+    }
 
-    // no op
+    try
+    {
+      systemId = SystemIDResolver.getAbsoluteURI(systemId, 
+                                                 getDocumentBaseURI(0));
+    }
+    catch(Exception e)
+    {
+      throw new org.xml.sax.SAXException(e);
+    }
+    
+    //  private static final int ENTITY_FIELD_PUBLICID = 0;
+    m_entities.addElement(publicId);
+    //  private static final int ENTITY_FIELD_SYSTEMID = 1;
+    m_entities.addElement(systemId);
+    //  private static final int ENTITY_FIELD_NOTATIONNAME = 2;
+    m_entities.addElement(notationName);
+    //  private static final int ENTITY_FIELD_NAME = 3;
+    m_entities.addElement(name);
   }
 
   ////////////////////////////////////////////////////////////////////
