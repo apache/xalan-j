@@ -36,7 +36,7 @@ public class OneStepIterator extends ChildTestIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public OneStepIterator(Compiler compiler, int opPos, int analysis)
+  OneStepIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
     super(compiler, opPos, analysis);
@@ -53,9 +53,9 @@ public class OneStepIterator extends ChildTestIterator
    * @param execContext The XPath runtime context for this
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-    super.initContext(execContext);
+    super.setRoot(context, environment);
     m_iterator = m_cdtm.getAxisIterator(m_axis);
     m_iterator.setStartNode(m_context);
   }
@@ -127,9 +127,10 @@ public class OneStepIterator extends ChildTestIterator
       try
       {
         OneStepIterator clone = (OneStepIterator) this.clone();
-
-        xctxt.pushCurrentNode(getRoot());
-        clone.initContext(xctxt);
+        
+        int root = getRoot();
+        xctxt.pushCurrentNode(root);
+        clone.setRoot(root, xctxt);
 
         clone.setPredicateCount(predicateIndex);
 
@@ -191,8 +192,9 @@ public class OneStepIterator extends ChildTestIterator
     {
       OneStepIterator clone = (OneStepIterator) this.clone();
 
-      xctxt.pushCurrentNode(getRoot());
-      clone.initContext(xctxt);
+      int root = getRoot();
+      xctxt.pushCurrentNode(root);
+      clone.setRoot(root, xctxt);
 
       clone.setPredicateCount(this.getPredicateCount() - 1);
 

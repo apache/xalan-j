@@ -83,7 +83,7 @@ public class ReverseAxesWalker extends AxesWalker
    *
    * @param locPathIterator The location path iterator that 'owns' this walker.
    */
-  public ReverseAxesWalker(LocPathIterator locPathIterator, int axis)
+  ReverseAxesWalker(LocPathIterator locPathIterator, int axis)
   {
     super(locPathIterator, axis);
   }

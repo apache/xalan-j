@@ -87,7 +87,7 @@ public class DescendantIterator extends LocPathIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public DescendantIterator(Compiler compiler, int opPos, int analysis)
+  DescendantIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
 
@@ -292,9 +292,9 @@ public class DescendantIterator extends LocPathIterator
    * @param execContext The XPath runtime context for this
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-    super.initContext(execContext);
+    super.setRoot(context, environment);
     m_traverser = m_cdtm.getAxisTraverser(m_axis);
     
     String localName = getLocalName();
@@ -354,6 +354,22 @@ public class DescendantIterator extends LocPathIterator
       return traverser.first(current, extendedType);
     }
   }
+  
+  /**
+   *  Detaches the iterator from the set which it iterated over, releasing
+   * any computational resources and placing the iterator in the INVALID
+   * state. After<code>detach</code> has been invoked, calls to
+   * <code>nextNode</code> or<code>previousNode</code> will raise the
+   * exception INVALID_STATE_ERR.
+   */
+  public void detach()
+  {    
+    m_traverser = null;    
+    m_extendedTypeID = 0;
+    
+    // Always call the superclass detach last!
+    super.detach();
+  }
 
   
   /** The traverser to use to navigate over the descendants. */
@@ -362,7 +378,7 @@ public class DescendantIterator extends LocPathIterator
   /** The axis that we are traversing. */
   protected int m_axis;
   
-  /** The extended type ID, not set until initContext. */
+  /** The extended type ID, not set until setRoot. */
   protected int m_extendedTypeID;
   
 }

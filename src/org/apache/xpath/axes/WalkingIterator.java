@@ -44,7 +44,7 @@ public class WalkingIterator extends LocPathIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public WalkingIterator(
+  WalkingIterator(
           Compiler compiler, int opPos, int analysis, boolean shouldLoadWalkers)
             throws javax.xml.transform.TransformerException
   {
@@ -65,7 +65,7 @@ public class WalkingIterator extends LocPathIterator
    * @param nscontext The namespace context for this iterator,
    * should be OK if null.
    */
-  public WalkingIterator(PrefixResolver nscontext)
+  protected WalkingIterator(PrefixResolver nscontext)
   {
 
     super(nscontext);
@@ -109,6 +109,13 @@ public class WalkingIterator extends LocPathIterator
 
       m_firstWalker.setRoot(m_context);
     }
+    if (null != m_firstWalker)
+    {
+      m_lastUsedWalker = m_firstWalker;
+
+      m_firstWalker.setRoot(m_context);
+    }
+
   }
   
   /**
@@ -147,7 +154,7 @@ public class WalkingIterator extends LocPathIterator
     // expression need to reset the variable stack, while iterators 
     // in predicates do not need to, and should not, since their execution
     // may be much later than top-level iterators.  
-    // m_varStackPos is set in initContext, which is called 
+    // m_varStackPos is set in setRoot, which is called 
     // from the execute method.
     if (-1 == m_varStackPos)
     {
@@ -221,6 +228,21 @@ public class WalkingIterator extends LocPathIterator
   public final AxesWalker getLastUsedWalker()
   {
     return m_lastUsedWalker;
+  }
+  
+  /**
+   *  Detaches the iterator from the set which it iterated over, releasing
+   * any computational resources and placing the iterator in the INVALID
+   * state. After<code>detach</code> has been invoked, calls to
+   * <code>nextNode</code> or<code>previousNode</code> will raise the
+   * exception INVALID_STATE_ERR.
+   */
+  public void detach()
+  {    
+    m_lastUsedWalker = null;
+    
+    // Always call the superclass detach last!
+    super.detach();
   }
 
   

@@ -85,7 +85,7 @@ public class AttributeIterator extends ChildTestIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public AttributeIterator(Compiler compiler, int opPos, int analysis)
+  AttributeIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
     super(compiler, opPos, analysis);

@@ -66,6 +66,7 @@ import org.apache.xml.utils.PrefixResolver;
 //import org.w3c.dom.Node;
 //import org.w3c.dom.DOMException;
 import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -87,7 +88,7 @@ public class ChildIterator extends LocPathIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public ChildIterator(Compiler compiler, int opPos, int analysis)
+  ChildIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
     super(compiler, opPos, analysis, false);
@@ -141,11 +142,10 @@ public class ChildIterator extends LocPathIterator
       return DTM.NULL;
 
     int next;
-    DTM dtm = m_cdtm;
 
     m_lastFetched = next = (DTM.NULL == m_lastFetched)
-                           ? dtm.getFirstChild(m_context)
-                           : dtm.getNextSibling(m_lastFetched);
+                           ? m_cdtm.getFirstChild(m_context)
+                           : m_cdtm.getNextSibling(m_lastFetched);
 
     // m_lastFetched = next;
     if (DTM.NULL != next)

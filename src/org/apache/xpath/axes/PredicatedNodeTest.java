@@ -23,7 +23,7 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
    *
    * @param locPathIterator non-null reference to the parent iterator.
    */
-  public PredicatedNodeTest(LocPathIterator locPathIterator)
+  PredicatedNodeTest(LocPathIterator locPathIterator)
   {
     m_lpi = locPathIterator;
   }
@@ -32,7 +32,7 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
    * Construct an AxesWalker.  The location path iterator will have to be set
    * before use.
    */
-  public PredicatedNodeTest()
+  PredicatedNodeTest()
   {
   }
   

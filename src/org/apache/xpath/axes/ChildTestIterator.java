@@ -88,7 +88,7 @@ public class ChildTestIterator extends LocPathIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public ChildTestIterator(Compiler compiler, int opPos, int analysis)
+  ChildTestIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
 

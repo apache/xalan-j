@@ -67,6 +67,7 @@ import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTMManager;
+import org.apache.xml.dtm.DTMIterator;
 
 // Xalan Imports
 import org.apache.xpath.NodeSet;
@@ -110,12 +111,11 @@ public class UnionPathIterator extends Expression
    * @param execContext The XPath runtime context for this 
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-
-    this.m_execContext = execContext;
-    this.m_currentContextNode = execContext.getCurrentExpressionNode();
-    this.m_context = execContext.getCurrentNode();
+    this.m_execContext = (XPathContext)environment;
+    this.m_currentContextNode = context;
+    this.m_context = context;
 
     if (null != m_iterators)
     {
@@ -123,7 +123,7 @@ public class UnionPathIterator extends Expression
 
       for (int i = 0; i < n; i++)
       {
-        m_iterators[i].initContext(execContext);
+        m_iterators[i].setRoot(context, environment);
         m_iterators[i].nextNode();
       }
     }
@@ -179,7 +179,8 @@ public class UnionPathIterator extends Expression
       if (null == clone)
         clone = (UnionPathIterator) this.clone();
 
-      clone.initContext(xctxt);
+      int current = xctxt.getCurrentNode();
+      clone.setRoot(current, xctxt);
 
       return new XNodeSet(clone);
     }
@@ -352,7 +353,7 @@ public class UnionPathIterator extends Expression
     }
     else
     {
-      LocPathIterator[] iters = m_iterators;
+      DTMIterator[] iters = m_iterators;
       int len = m_iterators.length;
 
       m_iterators = new LocPathIterator[len + 1];
@@ -471,7 +472,7 @@ public class UnionPathIterator extends Expression
     {
       loadLocationPaths(compiler, compiler.getNextOpPos(opPos), count + 1);
 
-      m_iterators[count] = createLocPathIterator(compiler, opPos);
+      m_iterators[count] = createDTMIterator(compiler, opPos);
     }
     else
     {
@@ -515,12 +516,11 @@ public class UnionPathIterator extends Expression
    *
    * @throws javax.xml.transform.TransformerException
    */
-  protected LocPathIterator createLocPathIterator(
+  protected DTMIterator createDTMIterator(
           Compiler compiler, int opPos) throws javax.xml.transform.TransformerException
   {
-    LocPathIterator lpi = WalkerFactory.newLocPathIterator(compiler, opPos);
-    if(compiler.getLocationPathDepth() <= 0)
-      lpi.setIsTopLevel(true);
+    DTMIterator lpi = WalkerFactory.newDTMIterator(compiler, opPos, 
+                                      (compiler.getLocationPathDepth() <= 0));
     return lpi;
   }
 
@@ -808,7 +808,7 @@ public class UnionPathIterator extends Expression
    * path</a> contained in the union expression.
    * @serial
    */
-  protected LocPathIterator[] m_iterators;
+  protected DTMIterator[] m_iterators;
   
   /**
    * The last index in the list.

@@ -18,7 +18,6 @@ public class WalkingIteratorSorted extends WalkingIterator
   {
 
     super(nscontext);
-    this.setShouldCacheNodes(true);
   }
 
   /**
@@ -49,17 +48,24 @@ public class WalkingIteratorSorted extends WalkingIterator
    * @param execContext The XPath runtime context for this
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-    super.initContext(execContext);
+    super.setRoot(context, environment);
     
+    this.setShouldCacheNodes(true);
+
     setNextPosition(0);
-    m_firstWalker.setRoot(m_context);
+    m_firstWalker.setRoot(context);
 
     m_lastUsedWalker = m_firstWalker;
 
     int nextNode = DTM.NULL;
     AxesWalker walker = getLastUsedWalker();
+    XPathContext execContext = (XPathContext)environment;
+    execContext.pushCurrentNodeAndExpression(context, context);
+    
+    try
+    {
 
     do
     {
@@ -111,20 +117,24 @@ public class WalkingIteratorSorted extends WalkingIterator
         walker = getLastUsedWalker();
       }
     }
-
-    // Not sure what is going on here, but we were loosing
-    // the next node in the nodeset because it's coming from a 
-    // different document. 
-    while (
-      (DTM.NULL != nextNode) /* && (DTM.NULL != m_prevReturned) */
-      /* && getDTM(nextNode).getDocument() == getDTM(m_prevReturned).getDocument() */
-      /* && getDTM(nextNode).isNodeAfter(nextNode, m_prevReturned) */);
+      while (DTM.NULL != nextNode);
+      
+    }
+    finally
+    {
+      execContext.popCurrentNodeAndExpression();
+    }
 
     // m_prevReturned = nextNode;
     setNextPosition(0);
     m_lastFetched = DTM.NULL;
     m_currentContextNode = DTM.NULL;
     m_foundLast = true;
+  }
+  
+  public int nextNode()
+  {
+    return super.nextNode();
   }
   
   /**
@@ -138,6 +148,14 @@ public class WalkingIteratorSorted extends WalkingIterator
     m_lastFetched = DTM.NULL;
     m_next = 0;
     // m_last = 0;
+    
+    if (null != m_firstWalker)
+    {
+      m_lastUsedWalker = m_firstWalker;
+
+      m_firstWalker.setRoot(m_context);
+    }
+
   }
 
 

@@ -87,7 +87,7 @@ public class FilterExprWalker extends AxesWalker
    *
    * @param locPathIterator non-null reference to the parent iterator.
    */
-  public FilterExprWalker(WalkingIterator locPathIterator)
+  FilterExprWalker(WalkingIterator locPathIterator)
   {
     super(locPathIterator, Axis.FILTEREDLIST);
   }

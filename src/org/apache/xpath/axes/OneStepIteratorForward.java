@@ -38,7 +38,7 @@ public class OneStepIteratorForward extends ChildTestIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public OneStepIteratorForward(Compiler compiler, int opPos, int analysis)
+  OneStepIteratorForward(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
     super(compiler, opPos, analysis);
@@ -57,9 +57,9 @@ public class OneStepIteratorForward extends ChildTestIterator
    * @param execContext The XPath runtime context for this
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-    super.initContext(execContext);
+    super.setRoot(context, environment);
     m_traverser = m_cdtm.getAxisTraverser(m_axis);
   }
   

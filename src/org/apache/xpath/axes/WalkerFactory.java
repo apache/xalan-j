@@ -67,6 +67,7 @@ import org.apache.xpath.Expression;
 import org.apache.xpath.objects.XNumber;
 
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.Axis;
 
 /**
@@ -193,14 +194,16 @@ public class WalkerFactory
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public static LocPathIterator newLocPathIterator(
-          Compiler compiler, int opPos)
+  public static DTMIterator newDTMIterator(
+          Compiler compiler, int opPos,
+          boolean isTopLevel)
             throws javax.xml.transform.TransformerException
   {
 
     int firstStepPos = compiler.getFirstChildPos(opPos);
     int analysis = analyze(compiler, firstStepPos, 0);
     boolean isOneStep = isOneStep(analysis);
+    DTMIterator iter;
 
     // Is the iteration a one-step attribute pattern (i.e. select="@foo")?
     if (isOneStep && walksSelfOnly(analysis) && 
@@ -211,7 +214,7 @@ public class WalkerFactory
 
       // Then use a simple iteration of the attributes, with node test 
       // and predicate testing.
-      return new SelfIteratorNoPredicate(compiler, opPos, analysis);
+      iter = new SelfIteratorNoPredicate(compiler, opPos, analysis);
     }
     // Is the iteration exactly one child step?
     else if (walksChildrenOnly(analysis) && isOneStep)
@@ -224,7 +227,7 @@ public class WalkerFactory
           diagnoseIterator("ChildIterator", analysis, compiler);
 
         // Use simple child iteration without any test.
-        return new ChildIterator(compiler, opPos, analysis);
+        iter = new ChildIterator(compiler, opPos, analysis);
       }
       else
       {
@@ -232,7 +235,7 @@ public class WalkerFactory
           diagnoseIterator("ChildTestIterator", analysis, compiler);
 
         // Else use simple node test iteration with predicate test.
-        return new ChildTestIterator(compiler, opPos, analysis);
+        iter = new ChildTestIterator(compiler, opPos, analysis);
       }
     }
     // Is the iteration a one-step attribute pattern (i.e. select="@foo")?
@@ -243,7 +246,7 @@ public class WalkerFactory
 
       // Then use a simple iteration of the attributes, with node test 
       // and predicate testing.
-      return new AttributeIterator(compiler, opPos, analysis);
+      iter = new AttributeIterator(compiler, opPos, analysis);
     }
     else if(isOneStep && !walksFilteredList(analysis))
     {
@@ -255,7 +258,7 @@ public class WalkerFactory
   
         // Then use a simple iteration of the attributes, with node test 
         // and predicate testing.
-        return new OneStepIteratorForward(compiler, opPos, analysis);
+        iter = new OneStepIteratorForward(compiler, opPos, analysis);
       }
       else
       {
@@ -264,7 +267,7 @@ public class WalkerFactory
   
         // Then use a simple iteration of the attributes, with node test 
         // and predicate testing.
-        return new OneStepIterator(compiler, opPos, analysis);
+        iter = new OneStepIterator(compiler, opPos, analysis);
       }
     }
 
@@ -288,7 +291,7 @@ public class WalkerFactory
       if (DEBUG_ITERATOR_CREATION)
         diagnoseIterator("DescendantIterator", analysis, compiler);
 
-      return new DescendantIterator(compiler, opPos, analysis);
+      iter = new DescendantIterator(compiler, opPos, analysis);
     }
     else
     { 
@@ -302,7 +305,7 @@ public class WalkerFactory
         if (DEBUG_ITERATOR_CREATION)
           diagnoseIterator("WalkingIteratorSorted", analysis, compiler);
 
-        return new WalkingIteratorSorted(compiler, opPos, analysis, true);
+        iter = new WalkingIteratorSorted(compiler, opPos, analysis, true);
 
 
       }
@@ -313,9 +316,13 @@ public class WalkerFactory
           diagnoseIterator("WalkingIterator", analysis, compiler);
         }
   
-        return new WalkingIterator(compiler, opPos, analysis, true);
+        iter = new WalkingIterator(compiler, opPos, analysis, true);
       }
     }
+    if(iter instanceof LocPathIterator)
+      ((LocPathIterator)iter).setIsTopLevel(isTopLevel);
+      
+    return iter;
   }
   
   /**

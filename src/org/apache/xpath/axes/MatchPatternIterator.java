@@ -114,7 +114,7 @@ public class MatchPatternIterator extends LocPathIterator
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public MatchPatternIterator(Compiler compiler, int opPos, int analysis)
+  MatchPatternIterator(Compiler compiler, int opPos, int analysis)
           throws javax.xml.transform.TransformerException
   {
 
@@ -199,9 +199,9 @@ public class MatchPatternIterator extends LocPathIterator
    * @param execContext The XPath runtime context for this
    * transformation.
    */
-  public void initContext(XPathContext execContext)
+  public void setRoot(int context, Object environment)
   {
-    super.initContext(execContext);
+    super.setRoot(context, environment);
     m_traverser = m_cdtm.getAxisTraverser(m_superAxis);
   }
   
@@ -277,7 +277,7 @@ public class MatchPatternIterator extends LocPathIterator
   
         if (DTM.NULL != next)
         {
-          if(DTMIterator.FILTER_ACCEPT == acceptNode(next))
+          if(DTMIterator.FILTER_ACCEPT == acceptNode(next, m_execContext))
             break;
           else
             continue;
@@ -329,10 +329,8 @@ public class MatchPatternIterator extends LocPathIterator
    * @return  a constant to determine whether the node is accepted,
    *   rejected, or skipped, as defined  above .
    */
-  public short acceptNode(int n)
+  public short acceptNode(int n, XPathContext xctxt)
   {
-
-    XPathContext xctxt = m_lpi.getXPathContext();
 
     try
     {
