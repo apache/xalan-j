@@ -73,6 +73,7 @@ import org.apache.xpath.objects.XObject;
 
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.ref.DTMNodeIterator;
+import org.apache.xml.dtm.ref.DTMNodeList;
 import org.apache.xml.dtm.ref.DTMManagerDefault;
 
 
@@ -205,15 +206,8 @@ public class XPathAPI
     // Execute the XPath, and have it return the result
     XObject list = eval(contextNode, str, namespaceNode);
 
-    // Patch attributed to nboyd@atg.com (Norris Boyd)
-    NodeSet nodeset = list.mutableNodeset();
-
-    // setShouldCacheNodes(true) be called before the first nextNode() is
-    //   called, in order that nodes can be added as they are fetched.
-    nodeset.setShouldCacheNodes(true);
-
     // Return a NodeList.
-    return (NodeList) nodeset;
+    return new DTMNodeList(list.nodeset());
   }
 
   /**
