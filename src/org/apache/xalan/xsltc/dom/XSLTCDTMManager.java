@@ -62,13 +62,9 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.xml.dtm.DTM;
-import org.apache.xml.dtm.DTMConfigurationException;
 import org.apache.xml.dtm.DTMException;
-import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.DTMWSFilter;
 import org.apache.xml.dtm.ref.DTMManagerDefault;
-import org.apache.xml.dtm.ref.IncrementalSAXSource;
-import org.apache.xml.dtm.ref.IncrementalSAXSource_Filter;
 import org.apache.xml.res.XMLErrorResources;
 import org.apache.xml.res.XMLMessages;
 import org.apache.xml.utils.SystemIDResolver;
@@ -111,9 +107,9 @@ public class XSLTCDTMManager extends DTMManagerDefault
    * This static method creates a new factory instance.
    * The current implementation just returns a new XSLTCDTMManager instance.
    */
-  public static DTMManager newInstance()
+  public static XSLTCDTMManager newInstance()
   {
-    DTMManager factoryImpl = new XSLTCDTMManager();
+    XSLTCDTMManager factoryImpl = new XSLTCDTMManager();
     factoryImpl.setXMLStringFactory(new XMLStringFactoryDefault());
     return factoryImpl;
     
@@ -177,7 +173,37 @@ public class XSLTCDTMManager extends DTMManagerDefault
                     boolean doIndexing)
   {
     return getDTM(source, unique, whiteSpaceFilter, incremental, doIndexing,
-                  false, 0);
+                  false, 0, true);
+  }
+
+  /**
+   * Get an instance of a DTM, loaded with the content from the
+   * specified source.  If the unique flag is true, a new instance will
+   * always be returned.  Otherwise it is up to the DTMManager to return a
+   * new instance or an instance that it already created and may be being used
+   * by someone else.
+   * (I think more parameters will need to be added for error handling, and
+   * entity resolution).
+   *
+   * @param source the specification of the source object.
+   * @param unique true if the returned DTM must be unique, probably because it
+   * is going to be mutated.
+   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may
+   *                         be null.
+   * @param incremental true if the DTM should be built incrementally, if
+   *                    possible.
+   * @param doIndexing true if the caller considers it worth it to use
+   *                   indexing schemes.
+   * @param buildIdIndex true if the id index table should be built.
+   * 
+   * @return a non-null DTM reference.
+   */
+  public DTM getDTM(Source source, boolean unique,
+                    DTMWSFilter whiteSpaceFilter, boolean incremental,
+                    boolean doIndexing, boolean buildIdIndex)
+  {
+    return getDTM(source, unique, whiteSpaceFilter, incremental, doIndexing,
+                  false, 0, buildIdIndex);
   }
   
   /**
@@ -202,46 +228,15 @@ public class XSLTCDTMManager extends DTMManagerDefault
    *                      <code>SAXSource</code> object that has an
    *                      <code>XMLReader</code>, that was specified by the
    *                      user.
-   *
-   * @return a non-null DTM reference.
-   */
-  public DTM getDTM(Source source, boolean unique,
-                    DTMWSFilter whiteSpaceFilter, boolean incremental,
-                    boolean doIndexing, boolean hasUserReader)
-  {
-    return getDTM(source, unique, whiteSpaceFilter, incremental, doIndexing,
-                  hasUserReader, 0);
-  }
-
-  /**
-   * Get an instance of a DTM, loaded with the content from the
-   * specified source.  If the unique flag is true, a new instance will
-   * always be returned.  Otherwise it is up to the DTMManager to return a
-   * new instance or an instance that it already created and may be being used
-   * by someone else.
-   * (I think more parameters will need to be added for error handling, and
-   * entity resolution).
-   *
-   * @param source the specification of the source object.
-   * @param unique true if the returned DTM must be unique, probably because it
-   * is going to be mutated.
-   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may
-   *                         be null.
-   * @param incremental true if the DTM should be built incrementally, if
-   *                    possible.
-   * @param doIndexing true if the caller considers it worth it to use
-   *                   indexing schemes.
-   * @param hasUserReader true if <code>source</code> is a
-   *                      <code>SAXSource</code> object that has an
-   *                      <code>XMLReader</code>, that was specified by the
-   *                      user.
    * @param size  Specifies initial size of tables that represent the DTM
+   * @param buildIdIndex true if the id index table should be built.
    *
    * @return a non-null DTM reference.
    */
   public DTM getDTM(Source source, boolean unique,
                     DTMWSFilter whiteSpaceFilter, boolean incremental,
-                    boolean doIndexing, boolean hasUserReader, int size)
+                    boolean doIndexing, boolean hasUserReader, int size,
+                    boolean buildIdIndex)
   {
 
     if(DEBUG && null != source)
@@ -323,10 +318,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
         SAXImpl dtm;
         if (size <= 0) {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            null, doIndexing);
+                            null, doIndexing, buildIdIndex);
         } else {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            null, doIndexing, size);
+                            null, doIndexing, size, buildIdIndex);
         }
 
         // Go ahead and add the DTM to the lookup table.  This needs to be

@@ -74,7 +74,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.sax.SAXSource;
 
-import org.apache.xalan.xsltc.Translet;
 import org.apache.xalan.xsltc.TransletException;
 import org.apache.xalan.xsltc.TransletOutputHandler;
 import org.apache.xalan.xsltc.compiler.util.ErrorMsg;
@@ -85,7 +84,6 @@ import org.apache.xalan.xsltc.runtime.Constants;
 import org.apache.xalan.xsltc.runtime.Parameter;
 import org.apache.xalan.xsltc.runtime.TransletLoader;
 import org.apache.xalan.xsltc.runtime.output.TransletOutputHandlerFactory;
-import org.apache.xml.dtm.DTMManager;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -153,7 +151,7 @@ final public class Transform {
 	try {
 	    
 	    final Class clazz = loadTranslet(_className);
-	    final Translet translet = (Translet)clazz.newInstance();
+	    final AbstractTranslet translet = (AbstractTranslet)clazz.newInstance();
 
 	    // Create a SAX parser and get the XMLReader object it uses
 	    final SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -167,15 +165,14 @@ final public class Transform {
 	    final XMLReader reader = parser.getXMLReader();
 
 	    // Set the DOM's DOM builder as the XMLReader's SAX2 content handler
-            DTMManager dtmManager = XSLTCDTMManager.newInstance();
+            XSLTCDTMManager dtmManager = XSLTCDTMManager.newInstance();
 
             final SAXImpl dom = (SAXImpl)dtmManager.getDTM(
                              new SAXSource(reader, new InputSource(_fileName)),
-                             false, null, true, false);
+                             false, null, true, false, translet.hasIdCall());
 
-	    AbstractTranslet _translet = (AbstractTranslet)translet;
 	    dom.setDocumentURI(_fileName);
-            _translet.prepassDocument(dom);
+            translet.prepassDocument(dom);
 
 	    // Pass global parameters
 	    int n = _params.size();
@@ -188,8 +185,8 @@ final public class Transform {
 	    TransletOutputHandlerFactory tohFactory = 
 		TransletOutputHandlerFactory.newInstance();
 	    tohFactory.setOutputType(TransletOutputHandlerFactory.STREAM);
-	    tohFactory.setEncoding(_translet._encoding);
-	    tohFactory.setOutputMethod(_translet._method);
+	    tohFactory.setEncoding(translet._encoding);
+	    tohFactory.setOutputMethod(translet._method);
 
 	    if (_iterations == -1) {
 		translet.transform(dom, _useOldOutputSystem ?

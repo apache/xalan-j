@@ -437,7 +437,9 @@ public final class TransformerImpl extends Transformer
             } else {
 	        wsfilter = null;
             }
-
+            
+            boolean hasIdCall = (_translet != null) ? _translet.hasIdCall() 
+                                                      : false;
 	    // Get systemId from source
 	    if (source != null) {
 		_sourceSystemId = source.getSystemId();
@@ -462,7 +464,7 @@ public final class TransformerImpl extends Transformer
 
                 //dtmManager.setIncremental(_isIncremental);
 		dom = (SAXImpl)dtmManager.getDTM(sax, false, wsfilter, true, false,
-                                                 hasUserReader);
+                                                 hasUserReader, 0, hasIdCall);
 		final DOMBuilder builder = ((SAXImpl)dom).getBuilder();
 		try {
 		    reader.setProperty(LEXICAL_HANDLER_PROPERTY, builder);
@@ -483,7 +485,7 @@ public final class TransformerImpl extends Transformer
     
                 //dtmManager.setIncremental(_isIncremental);
 		dom = (DOMImpl)dtmManager.getDTM(domsrc, false, wsfilter, true,
-                                                 false, false);
+                                                 false, hasIdCall);
 		((DOMImpl)dom).setDocumentURI(_sourceSystemId);
 	    }
 	    // Handle StreamSource input
@@ -517,8 +519,8 @@ public final class TransformerImpl extends Transformer
 		    throw new TransformerException(err.toString());
 		}
 		dom = (SAXImpl)dtmManager.getDTM(new SAXSource(reader, input),
-                                                 false, wsfilter, true, false,
-                                                 false);
+                                                 false, wsfilter, true,
+                                                 false, hasIdCall);
 		((SAXImpl)dom).setDocumentURI(_sourceSystemId);
 	    }
 	    else if (source instanceof XSLTCSource) {

@@ -138,6 +138,8 @@ public final class Stylesheet extends SyntaxTreeNode {
     private boolean _templateInlining = true;
 
     private boolean _forwardReference = false;
+    
+    private boolean _hasIdCall = false;
 
     private Properties _outputProperties = null;
 
@@ -159,6 +161,10 @@ public final class Stylesheet extends SyntaxTreeNode {
 
     public void setSimplified() {
 	_simplified = true;
+    }
+    
+    public void setHasIdCall(boolean flag) {
+        _hasIdCall = flag;
     }
     
     public void setOutputProperty(String key, String value) {
@@ -612,6 +618,14 @@ public final class Stylesheet extends SyntaxTreeNode {
 					       NAMESPACE_INDEX,
 					       NAMESPACE_INDEX_SIG)));
 
+	if (_hasIdCall) {
+	    il.append(classGen.loadTranslet());
+	    il.append(new PUSH(cpg, Boolean.TRUE));
+	    il.append(new PUTFIELD(cpg.addFieldref(TRANSLET_CLASS,
+					           HASIDCALL_INDEX,
+					           HASIDCALL_INDEX_SIG)));
+	}
+	
 	// Compile in code to set the output configuration from <xsl:output>
 	if (output != null) {
 	    // Set all the output settings files in the translet

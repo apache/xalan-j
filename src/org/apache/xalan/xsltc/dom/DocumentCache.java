@@ -139,7 +139,7 @@ public final class DocumentCache implements DOMCache {
 		final long stamp = System.currentTimeMillis();
                 _dom = (SAXImpl)dtmManager.getDTM(
                                  new SAXSource(_reader, new InputSource(uri)),
-                                 false, null, true, false, false);
+                                 false, null, true, false);
 		_dom.setDocumentURI(uri);
 
 		// The build time can be used for statistics for a better

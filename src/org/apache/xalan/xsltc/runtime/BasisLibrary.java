@@ -88,7 +88,6 @@ import org.apache.xalan.xsltc.dom.DOMImpl;
 import org.apache.xalan.xsltc.dom.MultiDOM;
 import org.apache.xalan.xsltc.dom.SingletonIterator;
 import org.apache.xalan.xsltc.dom.StepIterator;
-import org.apache.xalan.xsltc.dom.XSLTCDTMManager;
 import org.apache.xml.dtm.DTMAxisIterator;
 import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.ref.DTMDefaultBase;

@@ -124,13 +124,13 @@ public abstract class DTMDefaultBase implements DTM
   protected int[][][] m_elemIndexes;
 
   /** The default block size of the node arrays */
-  protected static final int DEFAULT_BLOCKSIZE = 512;  // favor small docs.
+  public static final int DEFAULT_BLOCKSIZE = 512;  // favor small docs.
   
   /** The number of blocks for the node arrays */
-  protected static final int DEFAULT_NUMBLOCKS = 32;
+  public static final int DEFAULT_NUMBLOCKS = 32;
   
   /** The number of blocks used for small documents & RTFs */
-  protected static final int DEFAULT_NUMBLOCKS_SMALL = 4;
+  public static final int DEFAULT_NUMBLOCKS_SMALL = 4;
   
   /** The block size of the node arrays */
   //protected final int m_blocksize;

@@ -75,7 +75,6 @@ import org.apache.xalan.xsltc.TransletException;
 import org.apache.xalan.xsltc.runtime.AbstractTranslet;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMAxisIterator;
-import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.ref.DTMDefaultBase;
 
 import org.xml.sax.InputSource;
@@ -159,12 +158,12 @@ public final class LoadDocument {
             final XMLReader reader = parser.getXMLReader();
 
             // Set the DOM's DOM builder as the XMLReader's SAX2 content handler
-            DTMManager dtmManager =
+            XSLTCDTMManager dtmManager = (XSLTCDTMManager)
                         ((DTMDefaultBase)((DOMAdapter)multiplexer.getMain())
                                                .getDOMImpl()).m_mgr;
             newdom = (SAXImpl)dtmManager.getDTM(
                                  new SAXSource(reader, new InputSource(uri)),
-                                 false, null, true, false);
+                                 false, null, true, false, translet.hasIdCall());
 
             translet.prepassDocument(newdom);
 

@@ -101,6 +101,9 @@ public abstract class AbstractTranslet implements Translet {
     // DOM/translet handshaking - the arrays are set by the compiled translet
     protected String[] namesArray;
     protected String[] namespaceArray;
+    
+    // Boolean flag to indicate whether this translet has id functions.
+    protected boolean _hasIdCall = false;
 
     // TODO - these should only be instanciated when needed
     protected StringValueHandler stringValueHandler = new StringValueHandler();
@@ -618,5 +621,9 @@ public abstract class AbstractTranslet implements Translet {
     }
     public String[] getNamespaceArray() {
 	return namespaceArray;
+    }
+    
+    public boolean hasIdCall() {
+    	return _hasIdCall;
     }
 }

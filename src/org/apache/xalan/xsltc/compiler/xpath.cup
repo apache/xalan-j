@@ -129,6 +129,11 @@ parser code {:
     public void setCallsNodeset(boolean flag) {
           _xsltc.setCallsNodeset(flag);
     }
+    
+    public void setHasIdCall(boolean flag) {
+          _xsltc.setHasIdCall(flag); 
+    }
+    
 
     /**
      * This method is similar to findNodeType(int, Object) except that it
@@ -413,7 +418,9 @@ LocationPathPattern ::= SLASH
             {: RESULT = rpp; :};
 
 IdKeyPattern ::= ID LPAREN Literal:l RPAREN
-            {: RESULT = new IdPattern(l); :}
+            {: RESULT = new IdPattern(l);
+               parser.setHasIdCall(true);
+            :}
 
             | KEY LPAREN Literal:l1 COMMA Literal:l2 RPAREN
             {: RESULT = new KeyPattern(l1, l2); :};
@@ -980,6 +987,7 @@ FunctionCall ::= FunctionName:fname LPAREN RPAREN
 	  }
           else if (fname == parser.getQNameIgnoreDefaultNs("id")) {
             RESULT = new KeyCall(fname, argl);
+            parser.setHasIdCall(true);
 	  }
           else if (fname == parser.getQNameIgnoreDefaultNs("ceiling")) {
             RESULT = new CeilingCall(fname, argl);

@@ -1842,8 +1842,8 @@ public final class DOMImpl extends DOM2DTM implements DOM, Externalizable
     public DOM getResultTreeFrag(int initSize)
     {
         return (SAXImpl) ((XSLTCDTMManager)m_mgr).getDTM(null, true, m_wsfilter,
-                                                         false, false, false,
-                                                         initSize);
+                                                         true, false, false,
+                                                         initSize, true);
     }
 
     /**

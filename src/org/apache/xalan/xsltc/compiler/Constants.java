@@ -398,6 +398,10 @@ public interface Constants extends InstructionConstants {
 	= "namespaceArray";
     public static final String NAMESPACE_INDEX_SIG
 	= "[" + STRING_SIG;
+    public static final String HASIDCALL_INDEX
+        = "_hasIdCall";
+    public static final String HASIDCALL_INDEX_SIG
+        = "Z";
 
     public static final String DOM_FIELD
 	= "_dom";

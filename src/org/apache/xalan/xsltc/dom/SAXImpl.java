@@ -1040,10 +1040,10 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     public SAXImpl(DTMManager mgr, Source saxSource,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
-                 boolean doIndexing)
+                 boolean doIndexing, boolean buildIdIndex)
     {
       this(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
-           doIndexing, DEFAULT_BLOCKSIZE);
+           doIndexing, DEFAULT_BLOCKSIZE, buildIdIndex);
     }
 
     /**
@@ -1052,10 +1052,11 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     public SAXImpl(DTMManager mgr, Source saxSource,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
-                 boolean doIndexing, int blocksize)
+                 boolean doIndexing, int blocksize, 
+                 boolean buildIdIndex)
     {
       super(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
-            doIndexing, blocksize, false);
+            doIndexing, blocksize, false, buildIdIndex);
       
       _size = blocksize;
       
@@ -2120,8 +2121,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     public DOM getResultTreeFrag(int initSize)
     {
     	return (SAXImpl) ((XSLTCDTMManager)m_mgr).getDTM(null, true, m_wsfilter,
-                                                         false, false, false,
-                                                         initSize);
+                                                         true, false, false,
+                                                         initSize, m_buildIdIndex);
     }
 
     /**

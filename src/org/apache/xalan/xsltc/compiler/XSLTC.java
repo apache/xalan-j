@@ -147,6 +147,7 @@ public final class XSLTC {
     private Vector  _bcelClasses;
     private boolean _callsNodeset = false;
     private boolean _multiDocument = false;
+    private boolean _hasIdCall = false;
 
     /**
      * Set to true if template inlining is requested. Template
@@ -213,6 +214,7 @@ public final class XSLTC {
 	_helperClassSerial  = 0;
 	_attributeSetSerial = 0;
 	_multiDocument      = false;
+	_hasIdCall          = false;
 	_numberFieldIndexes = new int[] {
 	    -1, 	// LEVEL_SINGLE
 	    -1, 	// LEVEL_MULTIPLE
@@ -354,6 +356,7 @@ public final class XSLTC {
 	    if ((!_parser.errorsFound()) && (_stylesheet != null)) {
 		_stylesheet.setCallsNodeset(_callsNodeset);
 		_stylesheet.setMultiDocument(_multiDocument);
+		_stylesheet.setHasIdCall(_hasIdCall);
 
 		// Class synchronization is needed for BCEL
 		synchronized (getClass()) {
@@ -510,6 +513,14 @@ public final class XSLTC {
 
     public boolean callsNodeset() {
 	return _callsNodeset;
+    }
+    
+    protected void setHasIdCall(boolean flag) {
+    	_hasIdCall = flag;
+    }
+    
+    public boolean hasIdCall() {
+    	return _hasIdCall;
     }
 
     /**

@@ -74,7 +74,6 @@ import org.apache.xalan.xsltc.dom.DOMWSFilter;
 import org.apache.xalan.xsltc.dom.SAXImpl;
 import org.apache.xalan.xsltc.dom.XSLTCDTMManager;
 import org.apache.xalan.xsltc.runtime.AbstractTranslet;
-import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.DTMWSFilter;
 
 import org.xml.sax.Attributes;
@@ -219,7 +218,7 @@ public class TransformerHandlerImpl implements TransformerHandler, DeclHandler {
 
         if (!_isIdentity) {
 	    // Create an internal DOM (not W3C) and get SAX2 input handler
-            DTMManager dtmManager = XSLTCDTMManager.newInstance();
+            XSLTCDTMManager dtmManager = XSLTCDTMManager.newInstance();
 
             DTMWSFilter wsFilter;
             if (_translet != null && _translet instanceof StripFilter) {
@@ -227,9 +226,11 @@ public class TransformerHandlerImpl implements TransformerHandler, DeclHandler {
             } else {
                 wsFilter = null;
             }
+            
+            boolean hasIdCall = (_translet != null) ? _translet.hasIdCall() : false;
             // Construct the DTM using the SAX events that come through
             _dom = (SAXImpl)dtmManager.getDTM(null, false, wsFilter, true,
-                                              false);
+                                              false, hasIdCall);
 	    _handler = _dom.getBuilder();
 	    _lexHandler = (LexicalHandler) _handler;
 	    _dtdHandler = (DTDHandler) _handler;

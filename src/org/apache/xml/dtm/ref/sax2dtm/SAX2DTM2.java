@@ -1728,6 +1728,8 @@ public class SAX2DTM2 extends SAX2DTM
   protected int m_SHIFT;
   protected int m_MASK;
   protected int m_blocksize;
+  
+  protected boolean m_buildIdIndex = true;
       
   // A constant for empty string
   private static final String EMPTY_STR = "";
@@ -1742,7 +1744,7 @@ public class SAX2DTM2 extends SAX2DTM
   {
 
     this(mgr, source, dtmIdentity, whiteSpaceFilter,
-          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE, true);
+          xstringfactory, doIndexing, DEFAULT_BLOCKSIZE, true, true);
   }
  
   /**
@@ -1753,7 +1755,8 @@ public class SAX2DTM2 extends SAX2DTM
                  XMLStringFactory xstringfactory,
                  boolean doIndexing,
                  int blocksize,
-                 boolean usePrevsib)
+                 boolean usePrevsib,
+                 boolean buildIdIndex)
   {
 
     super(mgr, source, dtmIdentity, whiteSpaceFilter,
@@ -1766,6 +1769,8 @@ public class SAX2DTM2 extends SAX2DTM
     m_blocksize = 1<<shift;
     m_SHIFT = shift;
     m_MASK = m_blocksize - 1;
+    
+    m_buildIdIndex = buildIdIndex;
     
     // Set the map0 values in the constructor.
     m_exptype_map0 = m_exptype.getMap0();
@@ -1992,16 +1997,15 @@ public class SAX2DTM2 extends SAX2DTM
       String attrQName = attributes.getQName(i);
       String valString = attributes.getValue(i);
 
-      prefix = getPrefix(attrQName, attrUri);
-
       int nodeType;
       
-       String attrLocalName = attributes.getLocalName(i);
+      String attrLocalName = attributes.getLocalName(i);
 
       if ((null != attrQName)
               && (attrQName.equals("xmlns")
                   || attrQName.startsWith("xmlns:")))
       {
+        prefix = getPrefix(attrQName, attrUri);
         if (declAlreadyDeclared(prefix))
           continue;  // go to the next attribute.
 
@@ -2011,7 +2015,7 @@ public class SAX2DTM2 extends SAX2DTM
       {
         nodeType = DTM.ATTRIBUTE_NODE;
 
-        if (attributes.getType(i).equalsIgnoreCase("ID"))
+        if (m_buildIdIndex && attributes.getType(i).equalsIgnoreCase("ID"))
           setIDAttribute(valString, elemNode);
       }
 
@@ -2021,9 +2025,8 @@ public class SAX2DTM2 extends SAX2DTM
         valString = "";
 
       int val = m_valuesOrPrefixes.stringToIndex(valString);
-      //String attrLocalName = attributes.getLocalName(i);
 
-      if (null != prefix)
+      if (attrLocalName.length() != attrQName.length())
       {
 
         prefixIndex = m_valuesOrPrefixes.stringToIndex(attrQName);
