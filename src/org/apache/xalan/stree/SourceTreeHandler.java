@@ -147,7 +147,7 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
       m_root = new DocumentImpl(this);
     }
     DOMSource ds = new DOMSource(m_root, baseSystemID);
-    dtm = mgr.getDTM(ds, false, transformer);
+    dtm = mgr.getDTM(ds, false, transformer, false);
     
     m_DTMroot = dtm.getDocument();
 

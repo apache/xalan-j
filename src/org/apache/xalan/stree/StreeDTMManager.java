@@ -116,7 +116,7 @@ public class StreeDTMManager extends DTMManagerDefault
     // System.out.println("In StreeDTMManager");
     if (source instanceof DOMSource)
     {
-      return super.getDTM(source, unique, whiteSpaceFilter);
+      return super.getDTM(source, unique, whiteSpaceFilter, false);
     }
     else if (whiteSpaceFilter instanceof TransformerImpl)
     {
