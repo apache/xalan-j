@@ -99,8 +99,27 @@ import org.apache.xml.utils.XMLStringFactory;
 public class DTMManagerDefault extends DTMManager
 {
 
-  /** Vector of DTMs that this manager manages. */
-  protected Vector m_dtms = new Vector();
+  /** 
+   * Vector of DTMs that this manager manages. 
+   */
+  protected DTM m_dtms[] = new DTM[4095];
+  
+  /**
+   * The first free DTM slot.  Keep this at 1 so that 0 never gets used 
+   * as a DTM identity, which will avoid bugs with the DTM identity not 
+   * getting set on a node handle.
+   */
+  protected int m_dtmsFirstFree = 1;
+  
+  /**
+   * Add a DTM to the DTM table.
+   * 
+   * @param dtm Should be a valid reference to a DTM.
+   */
+  public void addDTM(DTM dtm)
+  {
+    m_dtms[m_dtmsFirstFree++] = dtm;
+  }
   
   /**
    * The default table for exandedNameID lookups.
@@ -149,14 +168,14 @@ public class DTMManagerDefault extends DTMManager
     if(DEBUG && null != source)
       System.out.println("Starting source: "+source.getSystemId());
     XMLStringFactory xstringFactory = m_xsf;
-    int documentID = m_dtms.size() << 20;
+    int documentID = m_dtmsFirstFree << 20;
 
     if ((null != source) && source instanceof DOMSource)
     {
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
                                 whiteSpaceFilter, xstringFactory, doIndexing);
 
-      m_dtms.addElement(dtm); // add() is Java 1.2 and later
+      addDTM(dtm);
 
       if (DUMPTREE)
       {
@@ -212,7 +231,7 @@ public class DTMManagerDefault extends DTMManager
 
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
-        m_dtms.addElement(dtm); // add() is Java 1.2 and later
+        addDTM(dtm);
 
         boolean haveXercesParser =
           (null != reader)
@@ -221,7 +240,7 @@ public class DTMManagerDefault extends DTMManager
         if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
 
-        if (false && incremental)
+        if (true && incremental)
         {
 
           // Create a CoroutineManager to manage the coordination between the 
@@ -403,9 +422,9 @@ public class DTMManagerDefault extends DTMManager
       // subtree, but that's going to entail additional work
       // checking more DTMs... and getHandleFromNode is not a
       // cheap operation in most implementations.
-      for(int i=m_dtms.size()-1;i>=0;--i)
+      for(int i=m_dtmsFirstFree-1;i>=0;--i)
         {
-          DTM thisDTM=(DTM)m_dtms.elementAt(i);
+          DTM thisDTM=m_dtms[i];
           if(thisDTM instanceof DOM2DTM)
             {
               int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
@@ -516,7 +535,7 @@ public class DTMManagerDefault extends DTMManager
   {
 
     // Performance critical function.
-    return (DTM) m_dtms.elementAt(nodeHandle >> 20);
+    return m_dtms[nodeHandle >> 20];
   }
 
   /**
@@ -531,11 +550,11 @@ public class DTMManagerDefault extends DTMManager
   {
 
     // A backwards search should normally be the fastest.
-    int n = m_dtms.size();
+    int n = m_dtmsFirstFree;
 
     for (int i = (n - 1); i >= 0; i--)
     {
-      DTM tdtm = (DTM) m_dtms.elementAt(i);
+      DTM tdtm = m_dtms[i];
 
       if (tdtm == dtm)
         return i;
@@ -563,13 +582,11 @@ public class DTMManagerDefault extends DTMManager
 
     int i = getDTMIdentity(dtm);
 
-    // %TBD% Recover space.
     if (i >= 0)
     {
-      m_dtms.setElementAt(null, i);
+      m_dtms[i] = null;
     }
 
-    /** @todo: implement this org.apache.xml.dtm.DTMManager abstract method */
     return true;
   }
 
