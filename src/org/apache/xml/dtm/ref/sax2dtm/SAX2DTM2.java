@@ -290,7 +290,7 @@ public class SAX2DTM2 extends SAX2DTM
 
       final int nodeType = _nodeType;
 
-      if (nodeType >= DTM.NTYPES) {
+      if (nodeType != DTM.ELEMENT_NODE) {
         /*
         while (node != DTM.NULL && _exptype2(node) != nodeType) {
           node = _nextsib2(node);
@@ -303,7 +303,7 @@ public class SAX2DTM2 extends SAX2DTM
       // an element can be either an element, text, comment or
       // processing instruction node. Only element node has an extended
       // type greater than or equal to DTM.NTYPES.
-      else if (nodeType == DTM.ELEMENT_NODE) {
+      else {
       	int eType;
       	while (node != DTM.NULL) {
       	  eType = _exptype2(node);
@@ -312,20 +312,6 @@ public class SAX2DTM2 extends SAX2DTM
       	  else
       	    node = _nextsib2(node);
       	}
-      }
-      else {
-        int eType;
-        while (node != DTM.NULL) {
-          eType = _exptype2(node);
-          if (eType < DTM.NTYPES) {
-            if (eType == nodeType) {
-              break;
-            }
-          } else if (m_extendedTypes[eType].getNodeType() == nodeType) {
-            break;
-          }
-          node = _nextsib2(node);
-        }
       }
 
       if (node == DTM.NULL) {
@@ -475,24 +461,13 @@ public class SAX2DTM2 extends SAX2DTM
       int node = _currentNode;
       final int nodeType = _nodeType;
 
-      if (nodeType >= DTM.NTYPES) {
+      if (nodeType != DTM.ELEMENT_NODE) {
         node = getTypedFollowingSibling(node, nodeType);
-      } 
-      else {
-        int eType;
-        while ((node = _nextsib2(node)) != DTM.NULL) {
-          eType = _exptype2(node);
-          if (eType < DTM.NTYPES) {
-            if (eType == nodeType) {
-              break;
-            }
-          }
-          else if (m_extendedTypes[eType].getNodeType() == nodeType) {
-            break;
-          }
-        }
       }
-
+      else {
+        while ((node = _nextsib2(node)) != DTM.NULL && _exptype2(node) < DTM.NTYPES) {}
+      }
+      
       _currentNode = node;
 
       return (node == DTM.NULL)
@@ -1971,7 +1946,7 @@ public class SAX2DTM2 extends SAX2DTM
 
     int startDecls = m_contextIndexes.peek();
     int nDecls = m_prefixMappings.size();
-    int prev = DTM.NULL;
+    //int prev = DTM.NULL;
     String prefix;
 
     if(!m_pastFirstElement)
@@ -1981,8 +1956,8 @@ public class SAX2DTM2 extends SAX2DTM
       String declURL = "http://www.w3.org/XML/1998/namespace";
       exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
       int val = m_valuesOrPrefixes.stringToIndex(declURL);
-      prev = addNode(DTM.NAMESPACE_NODE, exName, elemNode,
-                     prev, val, false);
+      addNode(DTM.NAMESPACE_NODE, exName, elemNode,
+                     DTM.NULL, val, false);
       m_pastFirstElement=true;
     }
 
@@ -1999,8 +1974,8 @@ public class SAX2DTM2 extends SAX2DTM
 
       int val = m_valuesOrPrefixes.stringToIndex(declURL);
 
-      prev = addNode(DTM.NAMESPACE_NODE, exName, elemNode,
-                     prev, val, false);
+      addNode(DTM.NAMESPACE_NODE, exName, elemNode,
+                     DTM.NULL, val, false);
     }
 
     int n = attributes.getLength();
@@ -2056,12 +2031,14 @@ public class SAX2DTM2 extends SAX2DTM
       }
 
       exName = m_expandedNameTable.getExpandedTypeID(attrUri, attrLocalName, nodeType);
-      prev = addNode(nodeType, exName, elemNode, prev, val,
+      addNode(nodeType, exName, elemNode, DTM.NULL, val,
                      false);
     }
 
+    /*
     if (DTM.NULL != prev)
       m_nextsib.setElementAt(DTM.NULL,prev);
+    */
 
     if (null != m_wsfilter)
     {
@@ -2233,8 +2210,8 @@ public class SAX2DTM2 extends SAX2DTM
       addNewDTMID(nodeIndex);
     }
 
-    m_firstch.addElement(canHaveFirstChild ? NOTPROCESSED : DTM.NULL);
-    m_nextsib.addElement(NOTPROCESSED);
+    m_firstch.addElement(DTM.NULL);
+    m_nextsib.addElement(DTM.NULL);
     m_prevsib.addElement(previousSibling);
     m_parent.addElement(parentIndex);
     m_exptype.addElement(expandedTypeID);
