@@ -70,6 +70,7 @@ import javax.xml.transform.SourceLocator;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.dtm.dom2dtm.DOM2DTM;
+import org.apache.xml.dtm.sax2dtm.SAX2DTM;
 
 // W3C DOM
 import org.w3c.dom.Document;
@@ -98,6 +99,8 @@ public class DTMManagerDefault extends DTMManager
    *
    */
   public DTMManagerDefault(){}
+  
+  private static final boolean DUMPTREE = false;
 
   /**
    * Get an instance of a DTM, loaded with the content from the
@@ -124,10 +127,12 @@ public class DTMManagerDefault extends DTMManager
 
     if (source instanceof DOMSource)
     {
-      DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
+      DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
                             whiteSpaceFilter);
-
       m_dtms.add(dtm);
+      
+      if(DUMPTREE)
+        dtm.dumpDTM();
 
       return dtm;
     }
@@ -160,15 +165,52 @@ public class DTMManagerDefault extends DTMManager
           xmlSource.setSystemId(urlOfSource);
         }
           
-        DTMDocumentImpl dtm = new DTMDocumentImpl(this, 
-                                                  documentID, 
-                                                  whiteSpaceFilter);
+//        DTMDocumentImpl dtm = new DTMDocumentImpl(this, 
+//                                                  documentID, 
+//                                                  whiteSpaceFilter);
+//
+//        // It looks like you just construct this??
+//        DTMBuilder builder = new DTMBuilder(dtm, xmlSource, reader);
 
-        // It looks like you just construct this??
-        DTMBuilder builder = new DTMBuilder(dtm, xmlSource, reader);
+        SAX2DTM dtm = new SAX2DTM(this, 
+                                  source,
+                                  documentID, 
+                                  whiteSpaceFilter);
+                                  
+        reader.setContentHandler(dtm);
+        reader.setDTDHandler(dtm);
+        reader.setErrorHandler(dtm);
         
+        try 
+        {
+          reader.setProperty("http://xml.org/sax/properties/lexical-handler",
+                                dtm);
+        }
+        catch (org.xml.sax.SAXException se) {}
+        try
+        {
+          reader.setFeature("http://apache.org/xml/features/validation/dynamic",
+                            true);
+        }
+        catch (org.xml.sax.SAXException se) {}
+          
         m_dtms.add(dtm);
+        
+        try
+        {
+          reader.parse(xmlSource);
+        }
+        catch(RuntimeException re)
+        {
+          throw re;
+        }
+        catch(Exception e)
+        {
+          throw new org.apache.xml.utils.WrappedRuntimeException(e);
+        }
 
+        if(DUMPTREE)
+          dtm.dumpDTM();
         return dtm;
       }
       else

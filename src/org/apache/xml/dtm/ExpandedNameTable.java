@@ -79,12 +79,12 @@ public class ExpandedNameTable
   /** Probably a reference to static pool.   */
   private DTMStringPool m_namespaceNames;
   
-  static int BITS_PER_LOCALNAME = 16;
-  static int BITS_PER_NAMESPACE = 10;
+  public static int BITS_PER_LOCALNAME = 16;
+  public static int BITS_PER_NAMESPACE = 10;
 
-  static int MASK_LOCALNAME = 0x0000FFFF;
-  static int MASK_NAMESPACE = 0x03FF0000;
-  static int MASK_NODETYPE = 0xFC000000;
+  public static int MASK_LOCALNAME = 0x0000FFFF;
+  public static int MASK_NAMESPACE = 0x03FF0000;
+  public static int MASK_NODETYPE = 0xFC000000;
 
   /**
    * Create an expanded name table that uses private string pool lookup.
@@ -129,16 +129,37 @@ public class ExpandedNameTable
 
     return expandedTypeID;
   }
+  
+  /**
+   * Given a type, return an expanded name ID.Any additional nodes that are 
+   * created that have this expanded name will use this ID.
+   *
+   * @param namespace
+   * @param localName
+   *
+   * @return the expanded-name id of the node.
+   */
+  public int getExpandedNameID(int type)
+  {
+    int expandedTypeID = (type << (BITS_PER_NAMESPACE+BITS_PER_LOCALNAME));
+
+    return expandedTypeID;
+  }
 
   /**
    * Given an expanded-name ID, return the local name part.
    *
    * @param ExpandedNameID an ID that represents an expanded-name.
-   * @return String Local name of this node.
+   * @return String Local name of this node, or null if the node has no name.
    */
   public String getLocalName(int ExpandedNameID)
   {
-    return m_namespaceNames.indexToString(ExpandedNameID & MASK_LOCALNAME);
+    int localNameID = (ExpandedNameID & MASK_LOCALNAME);
+    
+    if (0 == localNameID) 
+      return null;
+    else
+      return m_locNamesPool.indexToString(localNameID);
   }
 
   /**
@@ -151,7 +172,8 @@ public class ExpandedNameTable
   public String getNamespace(int ExpandedNameID)
   {
 
-    return m_namespaceNames.indexToString((ExpandedNameID & MASK_NAMESPACE) >> BITS_PER_LOCALNAME);
+    int id = (ExpandedNameID & MASK_NAMESPACE) >> BITS_PER_LOCALNAME;
+    return (0 == id) ? null : m_namespaceNames.indexToString(id);
   }
 
   /**

@@ -933,31 +933,31 @@ public class TransformerImpl extends Transformer
     // If the Result object contains a Node, then create 
     // a ContentHandler that will add nodes to the input node.
     // %TBD%
-    int outputNode = DTM.NULL;
+    org.w3c.dom.Node outputNode = null;
     if(outputTarget instanceof DOMResult)
     {
-      // %TBD%
-//      outputNode = ((DOMResult)outputTarget).getNode();
-//
-//      Document doc;
-//      short type;
-//      if (null != outputNode)
-//      {
-//        type = outputNode.getNodeType();
-//        doc = (Node.DOCUMENT_NODE == type)
-//                       ? (Document) outputNode : outputNode.getOwnerDocument();
-//      }
-//      else
-//      {
-//        doc = getXPathContext().getDOMHelper().createDocument();
-//        outputNode = doc;
-//        type = outputNode.getNodeType();
-//        ((DOMResult)outputTarget).setNode(outputNode);
-//      }
-//      
-//      handler = (Node.DOCUMENT_FRAGMENT_NODE == type)
-//                ? new DOMBuilder(doc, (DocumentFragment) outputNode)
-//                  : new DOMBuilder(doc, outputNode);
+      outputNode = ((DOMResult)outputTarget).getNode();
+
+      org.w3c.dom.Document doc;
+      short type;
+      if (null != outputNode)
+      {
+        type = outputNode.getNodeType();
+        doc = (org.w3c.dom.Node.DOCUMENT_NODE == type)
+                       ? (org.w3c.dom.Document) outputNode 
+                       : outputNode.getOwnerDocument();
+      }
+      else
+      {
+        doc = getXPathContext().getDOMHelper().createDocument();
+        outputNode = doc;
+        type = outputNode.getNodeType();
+        ((DOMResult)outputTarget).setNode(outputNode);
+      }
+      
+      handler = (org.w3c.dom.Node.DOCUMENT_FRAGMENT_NODE == type)
+                ? new DOMBuilder(doc, (org.w3c.dom.DocumentFragment) outputNode)
+                  : new DOMBuilder(doc, outputNode);
     }
     else if(outputTarget instanceof SAXResult)
     {

@@ -76,11 +76,18 @@ public class DTMTreeWalker
   /** Local reference to a ContentHandler          */
   private ContentHandler m_contentHandler = null;
 
-  // ARGHH!!  JAXP Uses Xerces without setting the namespace processing to ON!
-  // DOM2Helper m_dh = new DOM2Helper();
-
   /** DomHelper for this TreeWalker          */
   protected DTM m_dtm;
+  
+  /**
+   * Set the DTM to be traversed.
+   * 
+   * @param dtm The Document Table Model to be used.
+   */
+  public void setDTM(DTM dtm)
+  {
+    m_dtm = dtm;
+  }
 
   /**
    * Get the ContentHandler used for the tree walk.
@@ -90,6 +97,26 @@ public class DTMTreeWalker
   public ContentHandler getcontentHandler()
   {
     return m_contentHandler;
+  }
+  
+  /**
+   * Set the ContentHandler used for the tree walk.
+   *
+   * @param ch the ContentHandler to be the result of the tree walk.
+   */
+  public void setcontentHandler(ContentHandler ch)
+  {
+    m_contentHandler = ch;
+  }
+
+  
+  /**
+   * Constructor.
+   * @param   contentHandler The implemention of the
+   * contentHandler operation (toXMLString, digest, ...)
+   */
+  public DTMTreeWalker()
+  {
   }
   
   /**
