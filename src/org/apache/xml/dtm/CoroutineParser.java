@@ -88,7 +88,7 @@ public interface CoroutineParser extends Runnable {
      * Note that this isn't useful unless you know which CoroutineManager
      * you're talking to.
      * */
-    public int getParserCoroutine();
+    public int getParserCoroutineID();
 
   /** Register a SAX-style content handler for us to output to */
   public void setContentHandler(ContentHandler handler);
@@ -130,7 +130,26 @@ public interface CoroutineParser extends Runnable {
     public void run();
 
   //================================================================
-    /** doCommand() is a simple API which tells the coroutine parser
+  /** doParse() is a simple API which tells the coroutine parser
+   * to begin reading from a file.  This is intended to be called from one
+   * of our partner coroutines, and serves both to encapsulate the
+   * communication protocol and to avoid having to explicitly use the
+   * CoroutineParser's coroutine ID number.
+   *
+   * %REVIEW% Can/should this unify with doMore? (if URI hasn't changed,
+   * parse more from same file, else end and restart parsing...?
+   *
+   * @param source The InputSource to parse from.
+   * @param appCoroutine The coroutine ID number of the coroutine invoking
+   * this method, so it can be resumed after the parser has responded to the
+   * request.
+   * @return Boolean.TRUE if the CoroutineParser believes more data may be available
+   * for further parsing. Boolean.FALSE if parsing ran to completion.
+   * Exception if the parser objected for some reason.
+   * */
+  public Object doParse(InputSource source, int appCoroutine);
+
+  /** doMore() is a simple API which tells the coroutine parser
    * that we need more nodes.  This is intended to be called from one
    * of our partner coroutines, and serves both to encapsulate the
    * communication protocol and to avoid having to explicitly use the
@@ -142,12 +161,12 @@ public interface CoroutineParser extends Runnable {
    * @param appCoroutine The coroutine ID number of the coroutine invoking
    * this method, so it can be resumed after the parser has responded to the
    * request.
-   * @return True if the CoroutineParser believes more data may be available
-   * for further parsing. False means either parsemore=false or end of document
-   * caused parsing to stop.
+   * @return Boolean.TRUE if the CoroutineParser believes more data may be available
+   * for further parsing. Boolean.FALSE if parsing ran to completion.
+   * Exception if the parser objected for some reason.
    * */
-  public boolean doMore(boolean parsemore, int appCoroutine);
-  
+  public Object doMore (boolean parsemore, int appCoroutine);
+
   /** doTerminate() is a simple API which tells the coroutine
    * parser to terminate itself.  This is intended to be called from
    * one of our partner coroutines, and serves both to encapsulate the

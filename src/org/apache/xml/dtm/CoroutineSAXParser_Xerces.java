@@ -82,22 +82,22 @@ implements CoroutineParser, Runnable
     //
 
     private CoroutineManager fCoroutineManager = null;
-    private int fAppCoroutine = -1;
-    private int fParserCoroutine = -1;
+    private int fAppCoroutineID = -1;
+    private int fParserCoroutineID = -1;
     private boolean fParseInProgress=false;
 
     //
     // Constructors
     //
 
-    public CoroutineSAXParser_Xerces(CoroutineManager co, int appCoroutine) {
+    public CoroutineSAXParser_Xerces(CoroutineManager co, int appCoroutineID) {
 
         initHandlers(true, this, this);
 
         fCoroutineManager = co;
-        fAppCoroutine = appCoroutine;
-        fParserCoroutine = co.co_joinCoroutineSet(-1);
-        if (fParserCoroutine == -1)
+        fAppCoroutineID = appCoroutineID;
+        fParserCoroutineID = co.co_joinCoroutineSet(-1);
+        if (fParserCoroutineID == -1)
             throw new RuntimeException("co_joinCoroutineSet() failed");
         Thread t = new Thread(this);
         t.setDaemon(false);
@@ -107,8 +107,8 @@ implements CoroutineParser, Runnable
     //
     // Factories
     //
-    static public CoroutineParser createCoroutineParser(CoroutineManager co, int appCoroutine) {
-      return new CoroutineSAXParser_Xerces(co, appCoroutine);
+    static public CoroutineParser createCoroutineParser(CoroutineManager co, int appCoroutineID) {
+      return new CoroutineSAXParser_Xerces(co, appCoroutineID);
     }
 
     //
@@ -117,8 +117,8 @@ implements CoroutineParser, Runnable
 
     // coroutine support
 
-    public int getParserCoroutine() {
-        return fParserCoroutine;
+    public int getParserCoroutineID() {
+        return fParserCoroutineID;
     }
 
   // Note name, needed to dodge the inherited Xerces setLexicalHandler
@@ -173,9 +173,9 @@ implements CoroutineParser, Runnable
 	  
         Object arg = null;
         while (true) {
-            arg = fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine);
+            arg = fCoroutineManager.co_resume(arg, fParserCoroutineID, fAppCoroutineID);
             if (arg == null) {
-                fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
+                fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
                 break;
             }
             if (arg instanceof InputSource) {
@@ -219,33 +219,103 @@ implements CoroutineParser, Runnable
 	  // Shouldn't happen unless we've miscoded our coroutine logic
 	  // "Shut down the garbage smashers on the detention level!"
 	  e.printStackTrace(System.err);
-          fCoroutineManager.co_exit(fParserCoroutine);
+          fCoroutineManager.co_exit(fParserCoroutineID);
 	}
     }
 
-
   //================================================================
+  /** doParse() is a simple API which tells the coroutine parser
+   * to begin reading from a file.  This is intended to be called from one
+   * of our partner coroutines, and serves both to encapsulate the
+   * communication protocol and to avoid having to explicitly use the
+   * CoroutineParser's coroutine ID number.
+   *
+   * %REVIEW% Can/should this unify with doMore? (if URI hasn't changed,
+   * parse more from same file, else end and restart parsing...?
+   *
+   * %REVIEW% With this encapsulation, and Xerces incremental parsing,
+   * we may be able to encapsulate entirely and avoid the second thread.
+   *
+   * @param source The InputSource to parse from.
+   * @param appCoroutineID The coroutine ID number of the coroutine invoking
+   * this method, so it can be resumed after the parser has responded to the
+   * request.
+   * @return Boolean.TRUE if the CoroutineParser believes more data may be available
+   * for further parsing. Boolean.FALSE if parsing ran to completion.
+   * Exception if the parser objected for some reason.
+   * */
+  public Object doParse(InputSource source, int appCoroutineID)
+  {
+    try 
+      {
+	Object result=    
+	  fCoroutineManager.co_resume(source, appCoroutineID, fParserCoroutineID);
+	
+	// %REVIEW% Better error reporting needed... though most of these
+	// should never arise during normal operation.
+	// Should this rethrow the parse exception?
+	if (result instanceof Exception) {
+	  System.out.println("\nParser threw exception:");
+	  ((Exception)result).printStackTrace();
+	}
+
+	return result;
+      }
+
+    // SHOULD NEVER OCCUR, since the coroutine number and coroutine manager
+    // are those previously established for this CoroutineSAXParser...
+    // So I'm just going to return it as a parsing exception, for now.
+    catch(NoSuchMethodException e)
+      {
+	return e;
+      }
+  }
+  
+  
   /** doMore() is a simple API which tells the coroutine parser
    * that we need more nodes.  This is intended to be called from one
    * of our partner coroutines, and serves both to encapsulate the
    * communication protocol and to avoid having to explicitly use the
    * CoroutineParser's coroutine ID number.
    *
-   * %TBD% doParse(uri)?
-   *
    * @param parsemore If true, tells the incremental parser to generate
    * another chunk of output. If false, tells the parser that we're
    * satisfied and it can terminate parsing of this document.
-   * @param appCoroutine The coroutine ID number of the coroutine invoking
+   * @param appCoroutineID The coroutine ID number of the coroutine invoking
    * this method, so it can be resumed after the parser has responded to the
    * request.
-   * @return True if the CoroutineParser believes more data may be available
-   * for further parsing. False means either parsemore=false or end of document
-   * caused parsing to stop.
+   * @return Boolean.TRUE if the CoroutineParser believes more data may be available
+   * for further parsing. Boolean.FALSE if parsing ran to completion.
+   * Exception if the parser objected for some reason.
    * */
-  public boolean doMore(boolean parsemore, int appCoroutine)
+  public Object doMore (boolean parsemore, int appCoroutineID)
   {
-    return false;    //%TBD%
+    try 
+      {
+	Object result =
+	  fCoroutineManager.co_resume(parsemore?Boolean.TRUE:Boolean.FALSE,
+				      appCoroutineID, fParserCoroutineID);
+	
+	// %REVIEW% Better error reporting needed
+	if (result == null)
+	  {
+	    System.out.println("\nUNEXPECTED: Parser doMore says shut down prematurely.\n");
+	  }
+	else if (result instanceof Exception) {
+	  System.out.println("\nParser threw exception:");
+	  ((Exception)result).printStackTrace();
+	}
+	
+	return result;
+      }
+  
+    // SHOULD NEVER OCCUR, since the coroutine number and coroutine manager
+    // are those previously established for this CoroutineSAXParser...
+    // So I'm just going to return it as a parsing exception, for now.
+    catch(NoSuchMethodException e)
+      {
+	return e;
+      }
   }
   
   
@@ -257,13 +327,25 @@ implements CoroutineParser, Runnable
    *
    * Returns only after the CoroutineParser has acknowledged the request.
    *
-   * @param appCoroutine The coroutine ID number of the coroutine invoking
+   * @param appCoroutineID The coroutine ID number of the coroutine invoking
    * this method, so it can be resumed after the parser has responded to the
    * request.
    * */
-  public void doTerminate(int appCoroutine)
+  public void doTerminate(int appCoroutineID)
   {
-    //%TBD%
+    try
+      {
+        Object result =
+	  fCoroutineManager.co_resume(null, appCoroutineID, fParserCoroutineID);
+
+	// Debugging; shouldn't arise in normal operation
+        if(result!=null)
+          System.out.println("\nUNEXPECTED: Parser doTerminate answers "+result);
+      }
+    catch(java.lang.NoSuchMethodException e)
+      {
+	// That's OK; if it doesn't exist, we don't need to terminate it
+      }
   }
 
   //================================================================
@@ -273,17 +355,17 @@ implements CoroutineParser, Runnable
   public static void main(String args[])
   {
     System.out.println("Starting...");
-    
+
     CoroutineManager co = new CoroutineManager();
-    int appCoroutine = co.co_joinCoroutineSet(-1);
-    if (appCoroutine == -1)
+    int appCoroutineID = co.co_joinCoroutineSet(-1);
+    if (appCoroutineID == -1)
       {
-	System.out.println("ERROR: Couldn't allocate coroutine number.\n");
-	return;
+        System.out.println("ERROR: Couldn't allocate coroutine number.\n");
+        return;
       }
     CoroutineSAXParser_Xerces parser=
-      new CoroutineSAXParser_Xerces(co, appCoroutine);
-    int parserCoroutine = parser.getParserCoroutine();
+      new CoroutineSAXParser_Xerces(co, appCoroutineID);
+    int parserCoroutineID = parser.getParserCoroutineID();
 
     // Use a serializer as our sample output
     org.apache.xml.serialize.XMLSerializer trace;
@@ -294,57 +376,44 @@ implements CoroutineParser, Runnable
     // Tell coroutine to begin parsing, run while parsing is in progress
     for(int arg=0;arg<args.length;++arg)
       {
-	try
+	InputSource source = new InputSource(args[arg]);
+	Object result=null;
+	boolean more=true;
+	/**    
+	  for(result = co.co_resume(source, appCoroutineID, parserCoroutineID);
+	  (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+	  result = co.co_resume(more, appCoroutineID, parserCoroutineID))
+	  **/
+	for(result = parser.doParse(source, appCoroutineID);
+	    (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+	    result = parser.doMore(more, appCoroutineID))
 	  {
-	    InputSource source = new InputSource(args[arg]);
-	    Object result=null;
-	    Boolean more=Boolean.TRUE;
-	    for(result = co.co_resume(source, appCoroutine, parserCoroutine);
-		(result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-		result = co.co_resume(more, appCoroutine, parserCoroutine))
+	    System.out.println("\nSome parsing successful, trying more.\n");
+            
+	    // Special test: Terminate parsing early.
+	    if(arg+1<args.length && "!".equals(args[arg+1]))
 	      {
-		System.out.println("\nSome parsing successful, trying more.\n");
-	    
-		// Special test: Terminate parsing early.
-		if(arg+1<args.length && "!".equals(args[arg+1]))
-		  {
-		    ++arg;
-		    more=Boolean.FALSE;
-		  }
-	    
+		++arg;
+		more=false;
 	      }
+            
+	  }
+        
+	if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
+	  {
+	    System.out.println("\nParser ended (EOF or on request).\n");
+	  }
+	else if (result == null) {
+	  System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
+	}
+	else if (result instanceof Exception) {
+	  System.out.println("\nParser threw exception:");
+	  ((Exception)result).printStackTrace();
+	}
 	
-	    if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
-	      {
-		System.out.println("\nParser ended (EOF or on request).\n");
-	      }
-	    else if (result == null) {
-	      System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
-	    }
-	    else if (result instanceof Exception) {
-	      System.out.println("\nParser threw exception:");
-	      ((Exception)result).printStackTrace();
-	    }
-
-	  }
-	catch(java.lang.NoSuchMethodException e)
-	  {
-	    System.out.println("\nUNEXPECTED Coroutine not resolved:");
-	    e.printStackTrace();
-	  }
       }
 
-    try
-      {
-	System.out.println("Requesting parser shutdown");
-	Object result = co.co_resume(null, appCoroutine, parserCoroutine);
-	if(result!=null)
-	  System.out.println("\nUNEXPECTED: Parser co-shutdown answers "+result);
-      }
-    catch(java.lang.NoSuchMethodException e)
-      {
-	System.out.println("\nUNEXPECTED Coroutine not resolved:");
-	e.printStackTrace();
-      }
+    parser.doTerminate(appCoroutineID);
   }
-} // class CoroutineSAXParser_Xerces
+  
+} // class CoroutineSAXParser
