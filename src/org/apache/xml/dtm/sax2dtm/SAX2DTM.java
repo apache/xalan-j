@@ -227,14 +227,13 @@ public class SAX2DTM extends DTMDefaultBase
       {
         int offset = -1;
         int length = 0;
-        int nextSibling = getNodeInfo(identity, OFFSET_NEXTSIBLING);
+        int level = getNodeInfo(identity, OFFSET_LEVEL);
         
         identity = firstChild;
 
-        while(DTM.NULL != identity)
+        while(DTM.NULL != identity 
+          && (getNodeInfo(identity, OFFSET_LEVEL) > level))
         {
-          if (identity == nextSibling)
-            break;
 
           type = getNodeType(identity);
           if (isTextType(type))
@@ -855,10 +854,12 @@ public class SAX2DTM extends DTMDefaultBase
       {
         int offset = -1;
         int length = 0;
-        int nextSibling = getNodeInfo(identity, OFFSET_NEXTSIBLING);
-        identity = firstChild;
+        int level = getNodeInfo(identity, OFFSET_LEVEL);
         
-        while (DTM.NULL != identity && identity != nextSibling)
+        identity = firstChild;
+
+        while(DTM.NULL != identity && 
+             (getNodeInfo(identity, OFFSET_LEVEL) > level))
         {
           type = getNodeType(identity);
           
