@@ -209,6 +209,7 @@ public class TemplatesHandlerImpl extends Parser
 	    // Generate the bytecodes and output the translet class(es)
 	    if (!errorsFound() && stylesheet != null) {
 		stylesheet.setMultiDocument(xsltc.isMultiDocument());
+		stylesheet.setHasIdCall(xsltc.hasIdCall());
 		stylesheet.translate();
 	    }
 
