@@ -138,8 +138,17 @@ public class TransformerHandlerImpl
   public void setResult(Result result) throws IllegalArgumentException
   {
 
-    if (null == result)
-      throw new IllegalArgumentException("result can not be null!");
+    if(null == result)
+      throw new IllegalArgumentException("result should not be null");
+    try
+    {
+      ContentHandler handler = m_transformer.createResultContentHandler(result);
+      m_transformer.setContentHandler(handler); 
+    }
+    catch(javax.xml.transform.TransformerException te)
+    {
+      throw new IllegalArgumentException("result could not be set");
+    }
 
     m_result = result;
   }
@@ -285,6 +294,11 @@ public class TransformerHandlerImpl
   public void startDocument() throws SAXException
   {
 
+    Thread listener=new Thread(m_transformer);
+    m_transformer.setTransformThread(listener);
+    listener.setDaemon(false);
+    listener.start();
+
     if (m_contentHandler != null)
     {
       m_contentHandler.startDocument();
@@ -305,6 +319,27 @@ public class TransformerHandlerImpl
     {
       m_contentHandler.endDocument();
     }
+    
+    Thread transformThread = m_transformer.getTransformThread();
+
+    if (null != transformThread)
+    {
+      try
+      {
+
+        // This should wait until the transformThread is considered not alive.
+        transformThread.join();
+        if(!m_transformer.hasTransformThreadErrorCatcher())
+        {
+          Exception e = m_transformer.getExceptionThrown();
+          if(null != e)
+            throw new org.xml.sax.SAXException(e);
+        }
+        m_transformer.setTransformThread(null);
+      }
+      catch (InterruptedException ie){}
+    }
+
   }
 
   /**

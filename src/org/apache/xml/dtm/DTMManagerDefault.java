@@ -216,8 +216,11 @@ public class DTMManagerDefault extends DTMManager
           {
 
             // Create a CoroutineSAXParser that will run on the secondary thread.
-            coParser = new CoroutineSAXParser(coroutineManager, appCoroutine,
-                                              reader);
+            if(null == reader)
+              coParser = new CoroutineSAXParser(coroutineManager, appCoroutine);
+            else
+              coParser = new CoroutineSAXParser(coroutineManager, appCoroutine,
+                                                reader);
           }
 
           // Have the DTM set itself up as the CoroutineSAXParser's listener.
@@ -225,6 +228,13 @@ public class DTMManagerDefault extends DTMManager
 
           // Get the parser's CoRoutine ID.
           int parserCoroutine = coParser.getParserCoroutineID();
+
+          if (null == xmlSource)
+          {
+  
+            // Then the user will construct it themselves.
+            return dtm;
+          }
 
           // System.out.println("parserCoroutine (mgr): "+parserCoroutine);
           // %TBD%  It's probably OK to have these bypass the CoRoutine stuff??
@@ -236,13 +246,6 @@ public class DTMManagerDefault extends DTMManager
           reader.setDTDHandler(dtm);
           reader.setErrorHandler(dtm);
           
-          if (null == xmlSource)
-          {
-  
-            // Then the user will construct it themselves.
-            return dtm;
-          }
-
           try
           {
 

@@ -2842,34 +2842,26 @@ public class TransformerImpl extends Transformer
     {
       // int n = ((SourceTreeHandler)getInputContentHandler()).getDTMRoot();
       // transformNode(n);
-      if (isParserEventsOnMain())
+      try
       {
-        try
-        {
-          m_isTransformDone = false;
-
-          transformNode(m_doc);
-        }
-        catch (Exception e)
-        {
-          // e.printStackTrace();
-          // Strange that the other catch won't catch this...
-          postExceptionFromThread(e);
-        }
-        finally
-        {
-          m_isTransformDone = true;
-
-          synchronized (this)
-          {
-            notifyAll();
-          }
-        }
+        m_isTransformDone = false;
+        
+        transformNode(m_doc);
       }
-      else
+      catch (Exception e)
       {
-        InputSource isource = SAXSource.sourceToInputSource(m_xmlSource);
-        getXPathContext().getPrimaryReader().parse(isource);
+        e.printStackTrace();
+        // Strange that the other catch won't catch this...
+        postExceptionFromThread(e);
+      }
+      finally
+      {
+        m_isTransformDone = true;
+
+        synchronized (this)
+        {
+          notifyAll();
+        }
       }
     }
     catch (Exception e)
