@@ -87,9 +87,19 @@ public class TreeWalker
    *
    * @return the ContentHandler used for the tree walk
    */
-  public ContentHandler getcontentHandler()
+  public ContentHandler getContentHandler()
   {
     return m_contentHandler;
+  }
+
+  /**
+   * Get the ContentHandler used for the tree walk.
+   *
+   * @return the ContentHandler used for the tree walk
+   */
+  public void setContentHandler(ContentHandler ch)
+  {
+    m_contentHandler = ch;
   }
 
   /**
