@@ -156,7 +156,7 @@ public class DTMManagerDefault extends DTMManager
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
                                 whiteSpaceFilter, xstringFactory, doIndexing);
 
-      m_dtms.add(dtm);
+      m_dtms.addElement(dtm); // add() is Java 1.2 and later
 
       if (DUMPTREE)
       {
@@ -212,7 +212,7 @@ public class DTMManagerDefault extends DTMManager
 
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
-        m_dtms.add(dtm);
+        m_dtms.addElement(dtm); // add() is Java 1.2 and later
 
         boolean haveXercesParser =
           (null != reader)

@@ -535,11 +535,18 @@ public class XString extends XObject implements XMLString
    * @see     java.text.Collator#compare(String, String)
    * @since   1.2
    */
-  public int compareToIgnoreCase(XMLString str)
+  public int compareToIgnoreCase1(XMLString str)
   {
-    // %REVIEW% This method may not exist in earlier versions of Java --
-    // Microsoft VJ++, for example, has never heard of it.
-    return str().compareToIgnoreCase(str.toString());
+	// %REVIEW%  Like it says, @since 1.2. Doesn't exist in earlier
+	// versions of Java, hence we can't yet shell out to it. We can implement
+	// it as character-by-character compare, but doing so efficiently
+    // is likely to be (ahem) interesting.
+	//  
+	// However, since nobody is actually _using_ this method yet:
+    //    return str().compareToIgnoreCase(str.toString());
+	  
+	throw new  java.lang.NoSuchMethodException("Java 1.2 method, not yet implemented");
+  
   }
 
   /**
