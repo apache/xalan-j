@@ -160,9 +160,14 @@ public abstract class DTMManager
           PrefixResolver presolver);
 
   /**
-   * Create a new <code>DTMIterator</code> based only on a whatToShow and
-   * a DTMFilter.  The traversal semantics are defined as the descendant
-   * access.
+   * Create a new <code>DTMIterator</code> based only on a whatToShow
+   * and a DTMFilter.  The traversal semantics are defined as the
+   * descendant access. 
+   * <p>
+   * Note that DTMIterators may not be an exact match to DOM *
+   * NodeIterators. They are initialized and used in much the same way
+   * as a NodeIterator, but their response to document mutation is not
+   * currently defined.
    *
    * @param whatToShow This flag specifies which node types may appear in
    *   the logical view of the tree presented by the iterator. See the
@@ -170,12 +175,11 @@ public abstract class DTMManager
    *   <code>SHOW_</code> values.These flags can be combined using
    *   <code>OR</code>.
    * @param filter The <code>NodeFilter</code> to be used with this
-   *   <code>TreeWalker</code>, or <code>null</code> to indicate no filter.
+   *   <code>DTMFilter</code>, or <code>null</code> to indicate no filter.
    * @param entityReferenceExpansion The value of this flag determines
    *   whether entity reference nodes are expanded.
    *
-   * @return The newly created <code>DTMIterator</code>.
-   */
+   * @return The newly created <code>DTMIterator</code>.  */
   public abstract DTMIterator createDTMIterator(int whatToShow,
           DTMFilter filter, boolean entityReferenceExpansion);
           
