@@ -98,6 +98,12 @@ public final class NthIterator extends DTMAxisIteratorBase {
     }
 
     public int next() {
+	if (_ready) {
+	    _ready = false;
+	    return _source.getNodeByPosition(_position);
+	}
+	return DTMAxisIterator.END;
+	/*
 	if (_ready && _position > 0) {
             final int pos = _source.isReverse()
                                        ? _source.getLast() - _position + 1
@@ -112,6 +118,7 @@ public final class NthIterator extends DTMAxisIteratorBase {
 	    }
 	}
 	return DTMAxisIterator.END;
+	*/
     }
 
     public DTMAxisIterator setStartNode(final int node) {

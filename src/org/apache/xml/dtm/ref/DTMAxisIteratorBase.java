@@ -289,7 +289,28 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
   
   public void setRestartable(boolean isRestartable) {
-	_isRestartable = isRestartable;
-	}  
+    _isRestartable = isRestartable;
+  }
+  
+  /**
+   * Return the node at the given position.
+   * 
+   * @param position The position
+   * @return The node at the given position.
+   */
+  public int getNodeByPosition(int position)
+  {
+    if (position > 0) {
+      final int pos = isReverse() ? getLast() - position + 1
+                                   : position;
+      int node;
+      while ((node = next()) != DTMAxisIterator.END) {
+        if (pos == getPosition()) {
+          return node;
+        }
+      }
+    }
+    return END;
+  }
   
 }

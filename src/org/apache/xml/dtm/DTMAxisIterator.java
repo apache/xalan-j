@@ -135,4 +135,12 @@ public interface DTMAxisIterator extends Cloneable
    * Set if restartable.
    */
   public void setRestartable(boolean isRestartable);
+
+  /**
+   * Return the node at the given position.
+   * 
+   * @param position The position
+   * @return The node at the given position.
+   */
+  public int getNodeByPosition(int position);
 }

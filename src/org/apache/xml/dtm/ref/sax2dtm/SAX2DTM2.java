@@ -324,6 +324,44 @@ public class SAX2DTM2 extends SAX2DTM
       }
 
     }
+
+    /**
+     * Return the node at the given position.
+     */
+    public int getNodeByPosition(int position)
+    {
+      if (position <= 0)
+        return DTM.NULL;
+      
+      int node = _currentNode; 
+      int pos = 0;
+      
+      final int nodeType = _nodeType;
+      if (nodeType != DTM.ELEMENT_NODE) {   
+        while (node != DTM.NULL) {
+          if (_exptype2(node) == nodeType) {
+            pos++;
+            if (pos == position)
+              return makeNodeHandle(node);
+          }
+          
+          node = _nextsib2(node);
+        }
+        return NULL;
+      }
+      else {
+      	while (node != DTM.NULL) {
+      	  if (_exptype2(node) >= DTM.NTYPES) {
+      	    pos++;
+      	    if (pos == position)
+      	      return makeNodeHandle(node);
+      	  }
+      	  node = _nextsib2(node);
+      	}
+      	return NULL;
+      }
+    }
+
   }  // end of TypedChildrenIterator
 
   /**
@@ -475,6 +513,7 @@ public class SAX2DTM2 extends SAX2DTM
                       ? DTM.NULL
                       : returnNode(makeNodeHandle(node));
     }
+
   }  // end of TypedFollowingSiblingIterator
 
   /**
@@ -709,38 +748,66 @@ public class SAX2DTM2 extends SAX2DTM
     public int next()
     {
       int node = _currentNode;
-      int expType;
 
-      int nodeType = _nodeType;
-      int startID = _startNodeID;
+      final int nodeType = _nodeType;
+      final int startNodeID = _startNodeID;
 
-      if (nodeType >= DTM.NTYPES) {
-        while (node != NULL && node != startID && _exptype2(node) != nodeType) {
+      if (nodeType != DTM.ELEMENT_NODE) {
+        while (node != NULL && node != startNodeID && _exptype2(node) != nodeType) {
           node = _nextsib2(node);
         }
-      } else {
-        while (node != NULL && node != startID) {
-          expType = _exptype2(node);
-          if (expType < DTM.NTYPES) {
-            if (expType == nodeType) {
-              break;
-            }
-          } else {
-            if (m_extendedTypes[expType].getNodeType() == nodeType) {
-              break;
-            }
+      } 
+      else {
+        while (node != NULL && node != startNodeID && _exptype2(node) < DTM.NTYPES) {
+          node = _nextsib2(node);
+        }
+      }
+
+      if (node == DTM.NULL || node == startNodeID) {
+        _currentNode = NULL;
+        return NULL;
+      }
+      else {
+        _currentNode = _nextsib2(node);
+        return returnNode(makeNodeHandle(node));
+      }
+    }
+    
+    /**
+     * Return the index of the last node in this iterator.
+     */    
+    public int getLast()
+    {
+      if (_last != -1)
+        return _last;
+      
+      setMark();
+      
+      int node = _currentNode;
+      final int nodeType = _nodeType;
+      final int startNodeID = _startNodeID;
+      
+      int last = 0;
+      if (nodeType != DTM.ELEMENT_NODE) {
+        while (node != NULL && node != startNodeID) {
+          if (_exptype2(node) == nodeType) {
+            last++;
           }
           node = _nextsib2(node);
         }
       }
-
-      if (node == DTM.NULL || node == _startNodeID) {
-        _currentNode = NULL;
-        return NULL;
-      } else {
-        _currentNode = _nextsib2(node);
-        return returnNode(makeNodeHandle(node));
+      else {
+        while (node != NULL && node != startNodeID) {
+          if (_exptype2(node) >= DTM.NTYPES) {
+            last++;
+          }
+          node = _nextsib2(node);
+        }      
       }
+      
+      gotoMark();
+      
+      return (_last = last);
     }
   }  // end of TypedPrecedingSiblingIterator
 
@@ -1436,6 +1503,26 @@ public class SAX2DTM2 extends SAX2DTM
       }
 
       return this;
+    }
+
+    /**
+     * Return the node at the given position.
+     */
+    public int getNodeByPosition(int position)
+    {
+      if (position > 0 && position <= m_size) {
+        return m_ancestors[position-1];
+      }
+      else
+        return DTM.NULL;
+    }
+    
+    /** 
+     * Returns the position of the last node within the iteration, as
+     * defined by XPath.    
+     */
+    public int getLast() {
+      return m_size;
     }
   }  // end of TypedAncestorIterator
 
