@@ -120,7 +120,7 @@ public class ClonerToResultTree
       switch (dtm.getNodeType(node))
       {
       case DTM.TEXT_NODE :
-        dtm.dispatchCharactersEvents(node, m_rth);
+        dtm.dispatchCharactersEvents(node, m_rth, false);
         break;
       case DTM.DOCUMENT_FRAGMENT_NODE :
       case DTM.DOCUMENT_NODE :
@@ -146,7 +146,7 @@ public class ClonerToResultTree
         break;
       case DTM.CDATA_SECTION_NODE :
         m_rth.startCDATA();          
-        dtm.dispatchCharactersEvents(node, m_rth);
+        dtm.dispatchCharactersEvents(node, m_rth, false);
         m_rth.endCDATA();
         break;
       case DTM.ATTRIBUTE_NODE :

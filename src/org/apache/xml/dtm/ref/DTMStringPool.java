@@ -99,7 +99,7 @@ public class DTMStringPool
   public DTMStringPool()
     {
       m_intToString=new Vector();
-      m_hashChain=new IntVector();
+      m_hashChain=new IntVector(512);
       removeAllElements();
       
       // -sb Add this to force empty strings to be index 0.

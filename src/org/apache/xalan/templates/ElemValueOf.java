@@ -70,7 +70,7 @@ import org.apache.xalan.trace.SelectionEvent;
 import org.apache.xalan.res.XSLTErrorResources;
 import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.ResultTreeHandler;
-
+import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.utils.QName;
 import org.apache.xml.utils.XMLString;
 
@@ -96,7 +96,7 @@ public class ElemValueOf extends ElemTemplateElement
    * @serial
    */
   private XPath m_selectExpression = null;
-  
+
   /**
    * True if the pattern is a simple ".".
    * @serial
@@ -113,11 +113,14 @@ public class ElemValueOf extends ElemTemplateElement
    */
   public void setSelect(XPath v)
   {
-    if(null != v)
+
+    if (null != v)
     {
       String s = v.getPatternString();
+
       m_isDot = (null != s) && s.equals(".");
     }
+
     m_selectExpression = v;
   }
 
@@ -229,92 +232,84 @@ public class ElemValueOf extends ElemTemplateElement
    *
    * @throws TransformerException
    */
-  public void execute(
-          TransformerImpl transformer)
-            throws TransformerException
+  public void execute(TransformerImpl transformer) throws TransformerException
   {
 
-		XPathContext xctxt = transformer.getXPathContext();
-		boolean didPushCurrent = false;
+    XPathContext xctxt = transformer.getXPathContext();
+    ResultTreeHandler rth = transformer.getResultTreeHandler();
+
     try
     {
       if (TransformerImpl.S_DEBUG)
         transformer.getTraceManager().fireTraceEvent(this);
 
-      
-      int sourceNode = xctxt.getCurrentNode();			
-      int child;
-      XObject value;
-      
       // Optimize for "."
-      if(m_isDot && !TransformerImpl.S_DEBUG)
+      if (m_isDot &&!TransformerImpl.S_DEBUG)
       {
-        child = sourceNode;
-        value = null;
-      }
-      else
-      {
-        value = m_selectExpression.execute(transformer.getXPathContext(),
-                                                 sourceNode, this);
-        if(value.getType() == XObject.CLASS_NODESET)
-        {
-          DTMIterator iterator = value.nodeset();
-          child = iterator.nextNode();
-          if(DTM.NULL == child)
-            return;
-        }
-        else
-          child = DTM.NULL;
-        if (TransformerImpl.S_DEBUG)
-          transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-                                                          "select", m_selectExpression, value);
-      }
-         
-      XMLString s;                                                                                             
-      if(DTM.NULL != child)
-      {
-				xctxt.pushCurrentNode(child);
-				didPushCurrent = true;
+        int child = xctxt.getCurrentNode();
         DTM dtm = xctxt.getDTM(child);
-        ResultTreeHandler rth = transformer.getResultTreeHandler();
-        if (m_disableOutputEscaping)
-        {
-          rth.processingInstruction(javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
-          dtm.dispatchCharactersEvents(child, rth);
-          rth.processingInstruction(javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
-        }
-        else
-          dtm.dispatchCharactersEvents(child, rth);
-        return;
-      }
-      else
-      {
-        s = value.xstr();
-      }
-      
-      int len = (null != s) ? s.length() : 0;
-      if(len > 0)
-      {
-        ResultTreeHandler rth = transformer.getResultTreeHandler();
+
+        xctxt.pushCurrentNode(child);
 
         if (m_disableOutputEscaping)
+          rth.processingInstruction(
+            javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
+
+        try
         {
-          rth.processingInstruction(javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
-          s.dispatchCharactersEvents(rth);
-          rth.processingInstruction(javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
+          dtm.dispatchCharactersEvents(child, rth, false);
+
+          // %TBD% if (TransformerImpl.S_DEBUG)
+          //  transformer.getTraceManager().fireSelectedEvent(child, this,
+          //          "select", m_selectExpression, ??value??);
         }
-        else
-          s.dispatchCharactersEvents(rth);
+        finally
+        {
+          if (m_disableOutputEscaping)
+            rth.processingInstruction(
+              javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
+
+          xctxt.popCurrentNode();
+        }
+      }
+      else
+      {
+        PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
+
+        xctxt.setNamespaceContext(this);
+
+        int current = xctxt.getCurrentNode();
+
+        xctxt.pushCurrentNodeAndExpression(current, current);
+
+        if (m_disableOutputEscaping)
+          rth.processingInstruction(
+            javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
+
+        try
+        {
+          Expression expr = m_selectExpression.getExpression();
+
+          expr.executeCharsToContentHandler(xctxt, rth);
+
+          // %TBD% if (TransformerImpl.S_DEBUG)
+          //  transformer.getTraceManager().fireSelectedEvent(child, this,
+          //          "select", m_selectExpression, ??value??);
+        }
+        finally
+        {
+          if (m_disableOutputEscaping)
+            rth.processingInstruction(
+              javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
+
+          xctxt.setNamespaceContext(savedPrefixResolver);
+          xctxt.popCurrentNodeAndExpression();
+        }
       }
     }
-    catch(SAXException se)
+    catch (SAXException se)
     {
       throw new TransformerException(se);
-    }
-		finally
-    {
-			if (didPushCurrent) 
-				xctxt.popCurrentNode();
     }
   }
 

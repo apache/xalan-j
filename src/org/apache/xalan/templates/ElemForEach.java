@@ -423,7 +423,7 @@ public class ElemForEach extends ElemTemplateElement
               case DTM.ATTRIBUTE_NODE :
               case DTM.CDATA_SECTION_NODE :
               case DTM.TEXT_NODE :
-                dtm.dispatchCharactersEvents(child, rth);
+                dtm.dispatchCharactersEvents(child, rth, false);
                 continue;
               case DTM.DOCUMENT_NODE :
                 template = sroot.getDefaultRootRule();

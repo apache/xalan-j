@@ -2058,7 +2058,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * @throws org.xml.sax.SAXException
          */
         public void dispatchCharactersEvents(
-                                                                                                                                                        int nodeHandle, org.xml.sax.ContentHandler ch)
+                                                                                                                                                        int nodeHandle, org.xml.sax.ContentHandler ch, boolean normalize)
         throws org.xml.sax.SAXException {}
 
         /**

@@ -4,7 +4,7 @@ import javax.xml.transform.TransformerException;
 
 import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.patterns.NodeTest;
-import org.apache.xpath.WhitespaceStrippingElementMatcher;
+import org.apache.xpath.XPathContext;
 import org.apache.xml.utils.PrefixResolver;
 
 //import org.w3c.dom.Node;
@@ -89,4 +89,19 @@ public class SelfIteratorNoPredicate extends LocPathIterator
       return DTM.NULL;
     }
   }
+  
+  /**
+   * Return the first node out of the nodeset, if this expression is 
+   * a nodeset expression.  This is the default implementation for 
+   * nodesets.  Derived classes should try and override this and return a 
+   * value without having to do a clone operation.
+   * @param xctxt The XPath runtime context.
+   * @return the first node out of the nodeset, or DTM.NULL.
+   */
+  public int asNode(XPathContext xctxt)
+    throws javax.xml.transform.TransformerException
+  {
+    return xctxt.getCurrentNode();
+  }
+
 }

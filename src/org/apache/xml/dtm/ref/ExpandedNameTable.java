@@ -224,9 +224,9 @@ public class ExpandedNameTable
    * @param ExpandedNameID an ID that represents an expanded-name.
    * @return The id of this local name.
    */
-  public static final int getType(int ExpandedNameID)
+  public static final short getType(int ExpandedNameID)
   {
-    return ExpandedNameID >> ROTAMOUNT_TYPE;
+    return (short)(ExpandedNameID >> ROTAMOUNT_TYPE);
   }
   
 }

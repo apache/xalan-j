@@ -63,6 +63,7 @@ import org.apache.xpath.res.XPATHErrorResources;
 import org.apache.xalan.res.XSLMessages;
 
 import org.xml.sax.XMLReader;
+import org.xml.sax.ContentHandler;
 
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -128,6 +129,50 @@ public abstract class Expression implements java.io.Serializable
    */
   public abstract XObject execute(XPathContext xctxt)
     throws javax.xml.transform.TransformerException;
+    
+  /**
+   * Tell if the expression is a nodeset expression.  In other words, tell 
+   * if you can execute {@link asNode() asNode} without an exception.
+   * @return true if the expression can be represented as a nodeset.
+   */
+  public boolean isNodesetExpr()
+  {
+    return false;
+  }
+  
+  /**
+   * Return the first node out of the nodeset, if this expression is 
+   * a nodeset expression.
+   * @param xctxt The XPath runtime context.
+   * @return the first node out of the nodeset, or DTM.NULL.
+   */
+  public int asNode(XPathContext xctxt)
+    throws javax.xml.transform.TransformerException
+  {
+    return execute(xctxt).nodeset().nextNode();
+  }
+    
+  /**
+   * Execute an expression in the XPath runtime context, and return the 
+   * result of the expression.
+   *
+   *
+   * @param xctxt The XPath runtime context.
+   *
+   * @return The result of the expression in the form of a <code>XObject</code>.
+   *
+   * @throws javax.xml.transform.TransformerException if a runtime exception 
+   *         occurs.
+   */
+  public void executeCharsToContentHandler(XPathContext xctxt, 
+                                              ContentHandler handler)
+    throws javax.xml.transform.TransformerException,
+           org.xml.sax.SAXException
+  {
+    XObject obj = execute(xctxt);
+    obj.dispatchCharactersEvents(handler);
+  }
+
 
   /**
    * Warn the user of an problem.

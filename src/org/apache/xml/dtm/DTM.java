@@ -808,11 +808,15 @@ public interface DTM
    *
    * @param nodeHandle The node ID.
    * @param ch A non-null reference to a ContentHandler.
+   * @param normalize true if the content should be normalized according to 
+   * the rules for the XPath
+   * <a href="http://www.w3.org/TR/xpath#function-normalize-space">normalize-space</a>
+   * function.
    *
    * @throws org.xml.sax.SAXException
    */
   public void dispatchCharactersEvents(
-    int nodeHandle, org.xml.sax.ContentHandler ch)
+    int nodeHandle, org.xml.sax.ContentHandler ch, boolean normalize)
       throws org.xml.sax.SAXException;
 
   /**

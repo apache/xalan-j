@@ -1930,7 +1930,7 @@ public class TransformerImpl extends Transformer
           m_resultTreeHandler.m_cloner.cloneToResultTree(child, false);
           break;
         case DTM.ATTRIBUTE_NODE :
-          dtm.dispatchCharactersEvents(child, getResultTreeHandler());
+          dtm.dispatchCharactersEvents(child, getResultTreeHandler(), false);
           break;
         }
       }

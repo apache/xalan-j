@@ -117,6 +117,23 @@ public class XObject extends Expression implements Serializable
   {
     return this;
   }
+  
+  /**
+   * Directly call the
+   * characters method on the passed ContentHandler for the
+   * string-value. Multiple calls to the
+   * ContentHandler's characters methods may well occur for a single call to
+   * this method.
+   *
+   * @param ch A non-null reference to a ContentHandler.
+   *
+   * @throws org.xml.sax.SAXException
+   */
+  public void dispatchCharactersEvents(org.xml.sax.ContentHandler ch)
+          throws org.xml.sax.SAXException
+  {
+    xstr().dispatchCharactersEvents(ch);
+  }
 
   /**
    * Create the right XObject based on the type of the object passed.

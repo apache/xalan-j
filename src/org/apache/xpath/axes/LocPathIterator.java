@@ -230,6 +230,44 @@ public abstract class LocPathIterator extends PredicatedNodeTest
       throw new javax.xml.transform.TransformerException(ncse);
     }
   }
+  
+  /**
+   * Tell if the expression is a nodeset expression.  In other words, tell 
+   * if you can execute {@link asNode() asNode} without an exception.
+   * @return true if the expression can be represented as a nodeset.
+   */
+  public boolean isNodesetExpr()
+  {
+    return true;
+  }
+  
+  /**
+   * Return the first node out of the nodeset, if this expression is 
+   * a nodeset expression.  This is the default implementation for 
+   * nodesets.  Derived classes should try and override this and return a 
+   * value without having to do a clone operation.
+   * @param xctxt The XPath runtime context.
+   * @return the first node out of the nodeset, or DTM.NULL.
+   */
+  public int asNode(XPathContext xctxt)
+    throws javax.xml.transform.TransformerException
+  {
+    try
+    {
+
+      // LocPathIterator clone = (LocPathIterator) m_pool.getInstanceIfFree();
+      // if (null == clone)
+      LocPathIterator clone = (LocPathIterator) this.clone();
+
+      clone.initContext(xctxt);
+
+      return clone.nextNode();
+    }
+    catch (CloneNotSupportedException ncse)
+    {
+      throw new javax.xml.transform.TransformerException(ncse);
+    }
+  }
 
   /**
    * <meta name="usage" content="advanced"/>

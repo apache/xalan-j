@@ -260,6 +260,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
       if (name.startsWith("xmlns:") || name.equals("xmlns"))
       {
         type = DTM.NAMESPACE_NODE;
+        m_haveSeenNamespace = true;
       }
     }
     
@@ -1350,7 +1351,8 @@ public class DOM2DTM extends DTMDefaultBaseIterators
    * @throws org.xml.sax.SAXException
    */
   public void dispatchCharactersEvents(
-          int nodeHandle, org.xml.sax.ContentHandler ch)
+          int nodeHandle, org.xml.sax.ContentHandler ch, 
+          boolean normalize)
             throws org.xml.sax.SAXException
   {
     int type = getNodeType(nodeHandle);

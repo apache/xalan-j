@@ -92,8 +92,16 @@ public class FunctionDef1Arg extends FunctionOneArg
   {
 
     return (null == m_arg0)
-           ? xctxt.getCurrentNode()
-           : m_arg0.execute(xctxt).nodeset().nextNode();
+           ? xctxt.getCurrentNode() : m_arg0.asNode(xctxt);
+  }
+  
+  /**
+   * Tell if the expression is a nodeset expression.
+   * @return true if the expression can be represented as a nodeset.
+   */
+  public boolean Arg0IsNodesetExpr()
+  {
+    return (null == m_arg0) ? true : m_arg0.isNodesetExpr();
   }
 
   /**

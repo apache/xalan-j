@@ -286,7 +286,7 @@ public class XPath implements Serializable
 
     PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
 
-    xctxt.m_currentPrefixResolver = namespaceContext;
+    xctxt.setNamespaceContext(namespaceContext);
 
     xctxt.pushCurrentNodeAndExpression(contextNode, contextNode);
 
@@ -313,7 +313,7 @@ public class XPath implements Serializable
       {
         e = ((org.apache.xml.utils.WrappedRuntimeException) e).getException();
       }
-      e.printStackTrace();
+      // e.printStackTrace();
 
       String msg = e.getMessage();
       msg = (msg == null || msg.length()== 0)? "Unknown error in XPath" : msg;
@@ -330,7 +330,7 @@ public class XPath implements Serializable
     }
     finally
     {
-      xctxt.m_currentPrefixResolver = savedPrefixResolver;
+      xctxt.setNamespaceContext(savedPrefixResolver);
 
       xctxt.popCurrentNodeAndExpression();
     }

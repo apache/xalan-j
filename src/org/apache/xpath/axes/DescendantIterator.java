@@ -316,6 +316,46 @@ public class DescendantIterator extends LocPathIterator
     
   }
   
+  /**
+   * Return the first node out of the nodeset, if this expression is 
+   * a nodeset expression.  This is the default implementation for 
+   * nodesets.
+   * <p>WARNING: Do not mutate this class from this function!</p>
+   * @param xctxt The XPath runtime context.
+   * @return the first node out of the nodeset, or DTM.NULL.
+   */
+  public int asNode(XPathContext xctxt)
+    throws javax.xml.transform.TransformerException
+  {
+    if(getPredicateCount() > 0)
+      return super.asNode(xctxt);
+
+    int current = xctxt.getCurrentNode();
+    
+    DTM dtm = xctxt.getDTM(current);
+    DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axis);
+    
+    String localName = getLocalName();
+    String namespace = getNamespace();
+    int what = m_whatToShow;
+    
+    // System.out.println("what: ");
+    // NodeTest.debugWhatToShow(what);
+    if(DTMFilter.SHOW_ALL == what
+       || localName == NodeTest.WILD
+       || namespace == NodeTest.WILD)
+    {
+      return traverser.first(current);
+    }
+    else
+    {
+      int type = getNodeTypeTest(what);
+      int extendedType = dtm.getExpandedTypeID(namespace, localName, type);
+      return traverser.first(current, extendedType);
+    }
+  }
+
+  
   /** The traverser to use to navigate over the descendants. */
   transient protected DTMAxisTraverser m_traverser;
   

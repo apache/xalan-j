@@ -241,7 +241,7 @@ public class DTMTreeWalker
   private final void dispatachChars(int node)
      throws org.xml.sax.SAXException
   {
-    m_dtm.dispatchCharactersEvents(node, m_contentHandler);
+    m_dtm.dispatchCharactersEvents(node, m_contentHandler, false);
   }
 
   /**

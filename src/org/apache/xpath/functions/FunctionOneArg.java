@@ -79,7 +79,7 @@ public class FunctionOneArg extends Function
   {
     return m_arg0;
   }
-
+  
   /**
    * Set an argument expression for a function.  This method is called by the 
    * XPath compiler.

@@ -124,7 +124,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   private FastStringBuffer m_chars = new FastStringBuffer(13, 13);
 
   /** This vector holds offset and length data. */
-  protected IntVector m_data = new IntVector();
+  protected IntVector m_data;
 
   /** The parent stack, needed only for construction. */
   transient private IntStack m_parents = new IntStack();
@@ -210,7 +210,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * or -1 if there is no text node in progress
    */
   private int m_textPendingStart = -1;
-
+  
   /**
    * Construct a SAX2DTM object ready to be constructed from SAX2
    * ContentHandler events.
@@ -232,6 +232,8 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     super(mgr, source, dtmIdentity, whiteSpaceFilter, 
           xstringfactory, doIndexing);
+          
+    m_data = new IntVector(doIndexing ? (1024*4) : 512);
 
     m_dataOrQName = new short[m_initialblocksize];
 
@@ -452,10 +454,15 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    *
    * @param nodeHandle The node ID.
    * @param ch A non-null reference to a ContentHandler.
+   * @param normalize true if the content should be normalized according to 
+   * the rules for the XPath
+   * <a href="http://www.w3.org/TR/xpath#function-normalize-space">normalize-space</a>
+   * function.
    *
    * @throws SAXException
    */
-  public void dispatchCharactersEvents(int nodeHandle, ContentHandler ch)
+  public void dispatchCharactersEvents(int nodeHandle, ContentHandler ch, 
+                                       boolean normalize)
           throws SAXException
   {
 
@@ -467,8 +474,11 @@ public class SAX2DTM extends DTMDefaultBaseIterators
       int dataIndex = m_dataOrQName[identity];
       int offset = m_data.elementAt(dataIndex);
       int length = m_data.elementAt(dataIndex + 1);
-
-      m_chars.sendSAXcharacters(ch, offset, length);
+      
+      if(normalize)
+        m_chars.sendNormalizedSAXcharacters(ch, offset, length);
+      else
+        m_chars.sendSAXcharacters(ch, offset, length);
     }
     else
     {
@@ -503,7 +513,10 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
         if (length > 0)
         {
-          m_chars.sendSAXcharacters(ch, offset, length);
+          if(normalize)
+            m_chars.sendNormalizedSAXcharacters(ch, offset, length);
+          else
+            m_chars.sendSAXcharacters(ch, offset, length);
         }
       }
       else
@@ -518,10 +531,15 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
         String str = m_valuesOrPrefixes.indexToString(dataIndex);
 
-        ch.characters(str.toCharArray(), 0, str.length());
+          if(normalize)
+            FastStringBuffer.sendNormalizedSAXcharacters(str.toCharArray(), 
+                                                         0, str.length(), ch);
+          else
+            ch.characters(str.toCharArray(), 0, str.length());
       }
     }
   }
+
 
   /**
    * Given a node handle, return its DOM-style node name. This will
@@ -803,11 +821,11 @@ public class SAX2DTM extends DTMDefaultBaseIterators
       m_dataOrQName = new short[newcapacity];
 
       System.arraycopy(dataOrQName, 0, m_dataOrQName, 0, capacity);
+      
+      // We have to do this after we do our resize, since DTMDefaultBase 
+      // will change m_blocksize before it exits.
+      super.ensureSize(index);
     }
-
-    // We have to do this after we do our resize, since DTMDefaultBase 
-    // will change m_blocksize before it exits.
-    super.ensureSize(index);
   }
 
   /**
@@ -841,6 +859,9 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     m_parent[nodeIndex] = (short) parentIndex;
     m_exptype[nodeIndex] = expandedTypeID;
     m_dataOrQName[nodeIndex] = (short) dataOrPrefix;
+    
+    if(DTM.NAMESPACE_NODE == type)
+      m_haveSeenNamespace = true;
 
     if (DTM.NULL != parentIndex && type != DTM.ATTRIBUTE_NODE
             && type != DTM.NAMESPACE_NODE)

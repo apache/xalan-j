@@ -108,6 +108,9 @@ public abstract class DTMDefaultBase implements DTM
 
   /** Previous sibling values, one array element for each node. */
   protected short[] m_parent;
+  
+  /** Experemental.  -sb */
+  protected boolean m_haveSeenNamespace = false;
 
   /**
    * These hold indexes to elements based on namespace and local name.
@@ -295,7 +298,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     ExpandedNameTable ent = m_expandedNameTable;
-    int type = ent.getType(expandedTypeID);
+    short type = ent.getType(expandedTypeID);
 
     if (DTM.ELEMENT_NODE == type)
     {
@@ -466,7 +469,7 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @return The simple type ID, or DTM.NULL.
    */
-  protected int _type(int identity)
+  protected short _type(int identity)
   {
 
     int info = getExpandedTypeID(identity);
@@ -1081,6 +1084,8 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
+    if(!m_haveSeenNamespace)
+      return NULL;
 
     int type = getNodeType(nodeHandle);
 
@@ -1783,11 +1788,15 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @param nodeHandle The node ID.
    * @param ch A non-null reference to a ContentHandler.
+   * @param normalize true if the content should be normalized according to 
+   * the rules for the XPath
+   * <a href="http://www.w3.org/TR/xpath#function-normalize-space">normalize-space</a>
+   * function.
    *
    * @throws org.xml.sax.SAXException
    */
   public abstract void dispatchCharactersEvents(
-    int nodeHandle, org.xml.sax.ContentHandler ch)
+    int nodeHandle, org.xml.sax.ContentHandler ch, boolean normalize)
       throws org.xml.sax.SAXException;
 
   /**

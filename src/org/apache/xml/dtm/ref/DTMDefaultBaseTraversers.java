@@ -1090,7 +1090,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
-        int type = ExpandedNameTable.getType(exptype);
+        short type = ExpandedNameTable.getType(exptype);
 
         if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type
                 || isAncestor(subtreeRootIdent, current))
@@ -1120,7 +1120,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
-        int type = ExpandedNameTable.getType(exptype);
+        short type = ExpandedNameTable.getType(exptype);
 
         if (exptype != extendedTypeID
                 || isAncestor(subtreeRootIdent, current))
@@ -1156,7 +1156,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
-        int type = ExpandedNameTable.getType(exptype);
+        short type = ExpandedNameTable.getType(exptype);
 
         if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
           continue;
@@ -1185,7 +1185,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
-        int type = ExpandedNameTable.getType(exptype);
+        short type = ExpandedNameTable.getType(exptype);
 
         if (exptype != extendedTypeID)
           continue;

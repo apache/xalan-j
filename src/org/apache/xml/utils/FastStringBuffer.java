@@ -971,6 +971,131 @@ public class FastStringBuffer
   }
   
   /**
+   * Sends the specified range of characters as one or more SAX characters()
+   * events, normalizing the characters according to XSLT rules.
+   *
+   * @param ch SAX ContentHandler object to receive the event.
+   * @param start Offset of first character in the range.
+   * @param length Number of characters to send.
+   * @exception org.xml.sax.SAXException may be thrown by handler's
+   * characters() method.
+   */
+  public void sendNormalizedSAXcharacters(
+          org.xml.sax.ContentHandler ch, int start, int length)
+            throws org.xml.sax.SAXException
+  {
+
+    int stop = start + length;
+    int startChunk = start >>> m_chunkBits;
+    int startColumn = start & m_chunkMask;
+    int stopChunk = stop >>> m_chunkBits;
+    int stopColumn = stop & m_chunkMask;
+
+    for (int i = startChunk; i < stopChunk; ++i)
+    {
+      if (i == 0 && m_innerFSB != null)
+        m_innerFSB.sendNormalizedSAXcharacters(ch, startColumn,
+                                     m_chunkSize - startColumn);
+      else
+        sendNormalizedSAXcharacters(m_array[i], startColumn, 
+                                    m_chunkSize - startColumn, ch);
+
+      startColumn = 0;  // after first chunk
+    }
+
+    // Last, or only, chunk
+    if (stopChunk == 0 && m_innerFSB != null)
+      m_innerFSB.sendNormalizedSAXcharacters(ch, startColumn, stopColumn - startColumn);
+    else if (stopColumn > startColumn)
+    {
+      sendNormalizedSAXcharacters(m_array[stopChunk], startColumn,
+                    stopColumn - startColumn, ch);
+    }
+  }
+  
+  static char[] m_oneChar = {' '};
+  
+  /**
+   * Directly normalize and dispatch the character array.
+   *
+   * @param ch The characters from the XML document.
+   * @param start The start position in the array.
+   * @param length The number of characters to read from the array.
+   * 
+   * @exception org.xml.sax.SAXException Any SAX exception, possibly
+   *            wrapping another exception.
+   */
+  public static void sendNormalizedSAXcharacters(char ch[], 
+             int start, int length, 
+             org.xml.sax.ContentHandler handler)
+          throws org.xml.sax.SAXException
+  {
+    int end = length + start;
+    int s;
+    for (s = start; s < end; s++)
+    {
+      char c = ch[s];
+      if(!XMLCharacterRecognizer.isWhiteSpace(c))
+        break;
+    }
+
+    boolean whiteSpaceFound = false;
+    int d = s;
+    for (; s < end; s++)
+    {
+      char c = ch[s];
+
+      if (XMLCharacterRecognizer.isWhiteSpace(c))
+      {
+        if (!whiteSpaceFound)
+        {
+          whiteSpaceFound = true;
+          if(c != ' ')
+          {
+            handler.characters(ch, d, (s-d));
+            handler.characters(m_oneChar, 0, 1);
+            d = s+1;
+          }
+        }
+        else
+        {
+          int z;
+          for (z = s+1; z < end; z++)
+          {
+            c = ch[z];
+            if(!XMLCharacterRecognizer.isWhiteSpace(c))
+              break;
+          }
+
+          int len = (s-d);
+
+          if(z == end)
+          {
+            end = s;
+            break; // Let the flush at the end handle it.
+          }
+          handler.characters(ch, d, len);
+
+          whiteSpaceFound = false;
+          d = s = z;
+        }
+      }
+      else
+      {
+        whiteSpaceFound = false;
+      }
+    }
+
+    if (whiteSpaceFound)
+      s--;
+    
+    int len = (s-d);
+    
+    if(len > 0)
+      handler.characters(ch, d, len);
+  }
+  
+  /**
    * Sends the specified range of characters as sax Comment.
    * <p>
    * Note that, unlike sendSAXcharacters, this has to be done as a single 

@@ -665,7 +665,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    * the source tree context).
    * (Is this really needed?)
    */
-  PrefixResolver m_currentPrefixResolver = null;
+  private PrefixResolver m_currentPrefixResolver = null;
 
   /** The stack of <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a> objects.
    *  Not to be confused with the current node list.  */
