@@ -56,6 +56,17 @@
  */
 package org.apache.xml.dtm;
 
+import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+ 
+import java.util.Properties;
+import java.util.Enumeration;
+
+ 
 import org.apache.xml.utils.PrefixResolver;
 
 /**
@@ -81,10 +92,86 @@ import org.apache.xml.utils.PrefixResolver;
 public abstract class DTMManager
 {
 
+   /** The default property name according to the JAXP spec. */
+   private static final String defaultPropName =
+       "org.apache.xml.dtm.DTMManager";
+      
+   /**
+    * The default table for exandedNameID lookups.
+    */ 
+   private static ExpandedNameTable m_expandedNameTable = new ExpandedNameTable();
+
   /**
    * Default constructor is protected on purpose.
    */
   protected DTMManager(){}
+
+     /**
+      * Obtain a new instance of a <code>DTMManager</code>.
+      * This static method creates a new factory instance 
+      * This method uses the following ordered lookup procedure to determine
+      * the <code>DTMManager</code> implementation class to
+      * load:
+      * <ul>
+      * <li>
+      * Use the <code>javax.xml.parsers.DocumentBuilderFactory</code> system
+      * property.
+      * </li>
+      * <li>
+      * Use the JAVA_HOME(the parent directory where jdk is
+      * installed)/lib/jaxp.properties for a property file that contains the
+      * name of the implementation class keyed on the same value as the
+      * system property defined above.
+      * </li>
+      * <li>
+      * Use the Services API (as detailed in teh JAR specification), if
+      * available, to determine the classname. The Services API will look
+      * for a classname in the file
+      * <code>META-INF/services/javax.xml.parsers.DTMManager</code>
+      * in jars available to the runtime.
+      * </li>
+      * <li>
+      * Platform default <code>DTMManager</code> instance.
+      * </li>
+      * </ul>
+      *
+      * Once an application has obtained a reference to a <code>
+      * DTMManager</code> it can use the factory to configure
+      * and obtain parser instances.
+      *
+      * @return new DTMManager instance, never null.
+      *
+      * @throws DTMConfigurationException
+      * if the implmentation is not available or cannot be instantiated.
+      */
+     public static DTMManager newInstance()
+             throws DTMConfigurationException {
+ 
+         String classname =
+             findFactory(defaultPropName,
+                         "org.apache.xml.dtm.DTMManagerDefault");
+ 
+         if (classname == null) {
+             throw new DTMConfigurationException(
+                 "No default implementation found");
+         }
+ 
+         DTMManager factoryImpl;
+ 
+         try {
+             Class clazz = Class.forName(classname);
+ 
+             factoryImpl = (DTMManager) clazz.newInstance();
+         } catch (ClassNotFoundException cnfe) {
+             throw new DTMConfigurationException(cnfe);
+         } catch (IllegalAccessException iae) {
+             throw new DTMConfigurationException(iae);
+         } catch (InstantiationException ie) {
+             throw new DTMConfigurationException(ie);
+         }
+ 
+         return factoryImpl;
+     }
 
   /**
    * Get an instance of a DTM, loaded with the content from the
@@ -113,7 +200,7 @@ public abstract class DTMManager
    */
   public abstract DTM getDTM(int nodeHandle);
   /**
-   * Creates an empty <code>DocumentFragment</code> object. 
+   * Creates a DTM representing an empty <code>DocumentFragment</code> object. 
    * @return a non-null DTM reference.
    */
   public abstract DTM createDocumentFragment();
@@ -165,7 +252,7 @@ public abstract class DTMManager
    * and a DTMFilter.  The traversal semantics are defined as the
    * descendant access. 
    * <p>
-   * Note that DTMIterators may not be an exact match to DOM *
+   * Note that DTMIterators may not be an exact match to DOM 
    * NodeIterators. They are initialized and used in much the same way
    * as a NodeIterator, but their response to document mutation is not
    * currently defined.
@@ -180,7 +267,8 @@ public abstract class DTMManager
    * @param entityReferenceExpansion The value of this flag determines
    *   whether entity reference nodes are expanded.
    *
-   * @return The newly created <code>DTMIterator</code>.  */
+   * @return The newly created <code>DTMIterator</code>.
+   * */
   public abstract DTMIterator createDTMIterator(int whatToShow,
           DTMFilter filter, boolean entityReferenceExpansion);
           
@@ -192,4 +280,166 @@ public abstract class DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public abstract DTMIterator createDTMIterator(int node);
+
+   
+     // -------------------- private methods --------------------
+ 
+     /**
+      * Avoid reading all the files when the findFactory
+      * method is called the second time (cache the result of
+      * finding the default impl).
+      */
+     private static String foundFactory = null;
+     
+     /**
+      * Temp debug code - this will be removed after we test everything
+      */
+     private static boolean debug;
+     static {
+         try {
+             debug = System.getProperty("dtm.debug") != null;
+         } catch( SecurityException ex ) {}
+     }
+ 
+     /**
+      * Private implementation method - will find the implementation
+      * class in the specified order.
+      *
+      * @param factoryId   Name of the factory interface.
+      * @param xmlProperties Name of the properties file based on JAVA/lib.
+      * @param defaultFactory Default implementation, if nothing else is found.
+      *
+      * @return The factory class name.
+      */
+     private static String findFactory(String factoryId,
+                                       String defaultFactory) {
+ 
+         // Use the system property first
+         try {
+             String systemProp = null;
+             try {
+                 systemProp = System.getProperty(factoryId);
+             } catch( SecurityException se ) {}
+ 
+             if (systemProp != null) {
+                 if (debug) {
+                     System.err.println("DTM: found system property"
+                                        + systemProp);
+                 }
+ 
+                 return systemProp;
+             }
+         } catch (SecurityException se) {}
+ 
+         if (foundFactory != null) {
+             return foundFactory;
+         }
+ 
+         // try to read from $java.home/lib/jaxp.properties
+         try {
+             String javah      = System.getProperty("java.home");
+             String configFile = javah + File.separator + "lib"
+                                 + File.separator + "jaxp.properties";
+             File   f          = new File(configFile);
+ 
+             if (f.exists()) {
+                 Properties props = new Properties();
+ 
+                 props.load(new FileInputStream(f));
+ 
+                 foundFactory = props.getProperty(factoryId);
+ 
+                 if (debug) {
+                     System.err.println("DTM: found java.home property "
+                                        + foundFactory);
+                 }
+ 
+                 if (foundFactory != null) {
+                     return foundFactory;
+                 }
+             }
+         } catch (Exception ex) {
+             if (debug) {
+                 ex.printStackTrace();
+             }
+         }
+ 
+         String serviceId = "META-INF/services/" + factoryId;
+ 
+         // try to find services in CLASSPATH
+         try {
+             ClassLoader cl = DTMManager.class.getClassLoader();
+             InputStream is = null;
+ 
+             if (cl == null) {
+                 is = ClassLoader.getSystemResourceAsStream(serviceId);
+             } else {
+                 is = cl.getResourceAsStream(serviceId);
+             }
+ 
+             if (is != null) {
+                 if (debug) {
+                     System.err.println("DTM: found  " + serviceId);
+                 }
+ 
+                 BufferedReader rd =
+                     new BufferedReader(new InputStreamReader(is));
+ 
+                 foundFactory = rd.readLine();
+ 
+                 rd.close();
+ 
+                 if (debug) {
+                     System.err.println("DTM: loaded from services: "
+                                        + foundFactory);
+                 }
+ 
+                 if ((foundFactory != null) &&!"".equals(foundFactory)) {
+                     return foundFactory;
+                 }
+             }
+         } catch (Exception ex) {
+             if (debug) {
+                 ex.printStackTrace();
+             }
+         }
+ 
+         return defaultFactory;
+     }
+     
+     /** %TBD% Doc */
+     static final int IDENT_DTM_DEFAULT = 0xFFF00000;
+     
+     /** %TBD% Doc */
+     static final int IDENT_NODE_DEFAULT = 0x000FFFFF;
+     
+     /**
+      * %TBD% Doc
+      */
+     public abstract int getDTMIdentity(DTM dtm);
+     
+     /**
+      * %TBD% Doc
+      */
+     public int getDTMIdentityMask()
+     {
+       return IDENT_DTM_DEFAULT;
+     }
+ 
+     /**
+      * %TBD% Doc
+      */
+     public int getNodeIdentityMask()
+     {
+       return IDENT_NODE_DEFAULT;
+     }
+     
+     /**
+      * return the expanded name table.
+      */
+     public ExpandedNameTable getExpandedNameTable(DTM dtm)
+     {
+       return m_expandedNameTable;
+     }
+          
 }
