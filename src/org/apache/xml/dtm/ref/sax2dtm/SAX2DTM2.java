@@ -1025,11 +1025,11 @@ public class SAX2DTM2 extends SAX2DTM
    */
   public class FollowingIterator extends InternalAxisIteratorBase
   {
-    DTMAxisTraverser m_traverser; // easier for now
+    //DTMAxisTraverser m_traverser; // easier for now
     
     public FollowingIterator()
     {
-      m_traverser = getAxisTraverser(Axis.FOLLOWING);
+      //m_traverser = getAxisTraverser(Axis.FOLLOWING);
     }
 
     /**
@@ -1049,12 +1049,34 @@ public class SAX2DTM2 extends SAX2DTM
       {
         _startNode = node;
 
-        // ?? -sb
-        // find rightmost descendant (or self)
-        // int current;
-        // while ((node = getLastChild(current = node)) != NULL){}
-        // _currentNode = current;
-        _currentNode = m_traverser.first(node);
+        //_currentNode = m_traverser.first(node);
+        
+        node = makeNodeIdentity(node);
+
+        int first;
+        int type = _type2(node);
+
+        if ((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
+        {
+          node = _parent2(node);
+          first = _firstch2(node);
+
+          if (NULL != first) {
+            _currentNode = makeNodeHandle(first);
+            return resetPosition();
+          }
+        }
+
+        do
+        {
+          first = _nextsib2(node);
+
+          if (NULL == first)
+            node = _parent2(node);
+        }
+        while (NULL == first && NULL != node);
+
+        _currentNode = makeNodeHandle(first);
 
         // _currentNode precedes possible following(node) nodes
         return resetPosition();
@@ -1073,10 +1095,27 @@ public class SAX2DTM2 extends SAX2DTM
 
       int node = _currentNode;
 
-      _currentNode = m_traverser.next(_startNode, _currentNode);
+      //_currentNode = m_traverser.next(_startNode, _currentNode);
+      int current = makeNodeIdentity(node);
 
-      return returnNode(node);
+      while (true)
+      {
+        current++;
+
+        int type = _type2(current);
+        if (NULL == type) {
+          _currentNode = NULL;
+          return returnNode(node);
+        }
+
+        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
+          continue;
+
+        _currentNode = makeNodeHandle(current);
+        return returnNode(node);
+      }
     }
+    
   }  // end of FollowingIterator
 
   /**
@@ -1106,19 +1145,47 @@ public class SAX2DTM2 extends SAX2DTM
      */
     public int next()
     {
-
+      int current;
       int node;
+      int type;
 
-      do{
-       node = _currentNode;
+      final int nodeType = _nodeType;
+      int currentNodeID = makeNodeIdentity(_currentNode);
+      
+      if (nodeType >= DTM.NTYPES) {
+        do {
+          node = currentNodeID;
+	  current = node;
 
-      _currentNode = m_traverser.next(_startNode, _currentNode);
+          do {
+            current++;
+            type = _type2(current);
+          } 
+          while (type != NULL && (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type));
+        
+          currentNodeID = (type != NULL) ? current : NULL;    
+        } 
+        while (node != DTM.NULL && _exptype2(node) != nodeType);
+      }
+      else {
+        do {
+          node = currentNodeID;
+	  current = node;
 
-      } 
-      while (node != DTM.NULL
-             && (getExpandedTypeID(node) != _nodeType && getNodeType(node) != _nodeType));
+          do {
+            current++;
+            type = _type2(current);
+          } 
+          while (type != NULL && (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type));
+        
+          currentNodeID = (type != NULL) ? current : NULL;    
+        } 
+        while (node != DTM.NULL
+               && (_exptype2(node) != nodeType && _type2(node) != nodeType));      
+      }
 
-      return (node == DTM.NULL ? DTM.NULL :returnNode(node));
+      _currentNode = makeNodeHandle(currentNodeID);
+      return (node == DTM.NULL ? DTM.NULL :returnNode(makeNodeHandle(node)));
     }
   }  // end of TypedFollowingIterator
 
