@@ -105,24 +105,7 @@ public interface DTMIterator
    * Skip this single node. 
    */
   public static final short FILTER_SKIP = 3;
-  
-  /**
-   * Set the environment in which this iterator operates, which should provide:
-   * <ul>
-   * <li>a node (the context node... same value as "root" defined below) </li>
-   * <li>a pair of non-zero positive integers (the context position and the context size) </li>
-   * <li>a set of variable bindings </li>
-   * <li>a function library </li>
-   * <li>the set of namespace declarations in scope for the expression.</li>
-   * <ul>
-   * 
-   * <p>At this time the exact implementation of this environment is application 
-   * dependent.  Probably a proper interface will be created fairly soon.</p>
-   * 
-   * @param environment The environment object.
-   */
-  public void setEnvironment(Object environment);
-  
+    
   /**
    * Get an instance of a DTM that "owns" a node handle.  Since a node 
    * iterator may be passed without a DTMManager, this allows the 
@@ -160,8 +143,21 @@ public interface DTMIterator
    * where the iteration begins.
    *
    * @param nodeHandle int Handle of the context node.
+   * @param environment The environment object.  
+   * The environment in which this iterator operates, which should provide:
+   * <ul>
+   * <li>a node (the context node... same value as "root" defined below) </li>
+   * <li>a pair of non-zero positive integers (the context position and the context size) </li>
+   * <li>a set of variable bindings </li>
+   * <li>a function library </li>
+   * <li>the set of namespace declarations in scope for the expression.</li>
+   * <ul>
+   * 
+   * <p>At this time the exact implementation of this environment is application 
+   * dependent.  Probably a proper interface will be created fairly soon.</p>
+   * 
    */
-  public void setRoot(int nodeHandle);
+  public void setRoot(int nodeHandle, Object environment);
   
   /**
    * Reset the iterator to the start. After resetting, the next node returned
@@ -228,13 +224,6 @@ public interface DTMIterator
    * in the INVALID state. After <code>detach</code> has been invoked,
    * calls to <code>nextNode</code> or <code>previousNode</code> will
    * raise a runtime exception.
-   *
-   * %REVIEW% This method may not be required in DTMIterator.
-   * It was needed in DOMIterator because data linkages were
-   * established to support the "maintain relative position" semantic
-   * under document mutation...  but if DTM doesn't need
-   * that semantic, we probably don't need to worry about this
-   * cleanup. On the other hand, at worst it's a harmless no-op...
    */
   public void detach();
 
