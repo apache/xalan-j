@@ -68,12 +68,16 @@ import org.apache.xalan.xsltc.TransletException;
 
 public final class StringValueHandler extends TransletOutputBase {
 
-    private char[] _buffer = new char[32];
-    private int _free = 0;
+    //private char[] _buffer = new char[32];
+    private StringBuffer _buffer = new StringBuffer();
+    private String _str = null;
+    private static final String EMPTY_STR = "";
+    //private int _free = 0;
 	
     public void characters(char[] ch, int off, int len) 
 	throws TransletException 
     {
+	/*
 	if (_free + len >= _buffer.length) {
 	    char[] newBuffer = new char[_free + len + 32];
 	    System.arraycopy(_buffer, 0, newBuffer, 0, _free);
@@ -81,16 +85,41 @@ public final class StringValueHandler extends TransletOutputBase {
 	}
 	System.arraycopy(ch, off, _buffer, _free, len);
 	_free += len;
+	*/
+	_buffer.append(ch, off, len);
     }
 
     public String getValue() {
+	/*
 	final int length = _free;
 	_free = 0;		// getValue resets
 	return new String(_buffer, 0, length);
+	*/
+	if (_buffer.length() != 0) {
+	    String result = _buffer.toString();
+	    _buffer.setLength(0);
+	    return result;
+	}
+	else {
+	    String result = _str;
+	    _str = null;
+	    return (result != null) ? result : EMPTY_STR;
+	}
     }
 
     public void characters(String characters) throws TransletException {
-	characters(characters.toCharArray(), 0, characters.length());
+	//characters(characters.toCharArray(), 0, characters.length());
+	if (_str == null && _buffer.length() == 0) {
+	    _str = characters;
+	}
+	else {
+	    if (_str != null) {
+	        _buffer.append(_str);
+	        _str = null;
+	    }
+	    
+	    _buffer.append(characters);
+	}
     }
 
     /**
