@@ -97,9 +97,9 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /* ------------------------------------------------------------------- */
     private final static int INIT_STACK_LENGTH = 64;
 
-    private int       _parentStackLength    = INIT_STACK_LENGTH;
-    private int[]     _parentStack          = new int[INIT_STACK_LENGTH];
-    private int       _sp;
+    //private int       _parentStackLength    = INIT_STACK_LENGTH;
+    //private int[]     _parentStack          = new int[INIT_STACK_LENGTH];
+    //private int       _sp;
 
     // Temporary structures for attribute nodes
     //private int       _currentAttributeNode = 1;
@@ -1148,6 +1148,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Sets the current parent
      */
+     /*
     private void linkParent(final int node)
   {
     if (++_sp >= _parentStackLength)
@@ -1162,6 +1163,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     }
     _parentStack[_sp] = node;
   }
+  */
 
     /**
      * Creates a text-node and checks if it is a whitespace node.
@@ -1219,8 +1221,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     {
 
         super.startDocument();
-        _sp             = 0;
-        _parentStack[0] = DTMDefaultBase.ROOTNODE;  // root
+        //_sp             = 0;
+        //_parentStack[0] = DTMDefaultBase.ROOTNODE;  // root
         //_currentAttributeNode = 1;
 
         definePrefixAndUri(EMPTYSTRING, EMPTYSTRING);
@@ -1292,8 +1294,10 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         handleTextEscaping();
 
         // Get node index and setup parent/child references
+        /*
         int currentNode = getNumberOfNodes()-1;
         linkParent(currentNode);
+        */
 
         if (m_wsfilter != null) {
             // Look for any xml:space attributes
@@ -1301,7 +1305,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
             // might be faster than looping through all attributes. ILENE
             final int index = attributes.getIndex(XMLSPACE_STRING);
             if (index >= 0) {
-                xmlSpaceDefine(attributes.getValue(index), currentNode);
+                xmlSpaceDefine(attributes.getValue(index), m_parents.peek());
             }
         }
     }
@@ -1317,7 +1321,10 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
         // Revert to strip/preserve-space setting from before this element
             // use m_parent??
-        xmlSpaceRevert(_parentStack[_sp--]);
+        if (m_wsfilter != null) {
+            // xmlSpaceRevert(_parentStack[_sp--]);
+            xmlSpaceRevert(m_previous);
+        }
     }
 
     /**
