@@ -109,7 +109,24 @@ public abstract class DTMManager
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(int nodeHandle);
-
+  
+  /**
+   * Creates an empty <code>DocumentFragment</code> object. 
+   * @return a non-null DTM reference.
+   */
+  public abstract DTM createDocumentFragment();
+  
+  /**
+   * Release a DTM either to a lru pool, or completely remove reference.
+   * DTMs without system IDs are always hard deleted.
+   * State: experimental.
+   * 
+   * @param dtm The DTM to be released.
+   * @param shouldHardDelete True if the DTM should be removed no matter what.
+   * @return true if the DTM was removed, false if it was put back in a lru pool.
+   */
+  public abstract boolean release(DTM dtm, boolean shouldHardDelete);
+  
 
   /**
    * Create a new <code>DTMIterator</code> based on an XPath
@@ -157,8 +174,18 @@ public abstract class DTMManager
    * @param entityReferenceExpansion The value of this flag determines
    *   whether entity reference nodes are expanded.
    *
-   * @return The newly created <code>NodeIterator</code>.
+   * @return The newly created <code>DTMIterator</code>.
    */
   public abstract DTMIterator createDTMIterator(int whatToShow,
           DTMFilter filter, boolean entityReferenceExpansion);
+          
+  /**
+   * Create a new <code>DTMIterator</code> that holds exactly one node.
+   *
+   * @param node The node handle that the DTMIterator will iterate to.
+   *
+   * @return The newly created <code>DTMIterator</code>.
+   */
+  public abstract DTMIterator createDTMIterator(int node);
+
 }
