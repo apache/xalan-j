@@ -71,6 +71,7 @@ import javax.xml.transform.TransformerException;
 import org.apache.xml.utils.SAXSourceLocator;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTM;
 
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.ErrorListener;
@@ -136,6 +137,30 @@ public abstract class Expression implements java.io.Serializable
     // For now, the current node is already pushed.
     return execute(xctxt);
   }
+  
+  /**
+   * Execute an expression in the XPath runtime context, and return the 
+   * result of the expression.
+   *
+   *
+   * @param xctxt The XPath runtime context.
+   * @param currentNode The currentNode.
+   * @param dtm The DTM of the current node.
+   * @param expType The expanded type ID of the current node.
+   *
+   * @return The result of the expression in the form of a <code>XObject</code>.
+   *
+   * @throws javax.xml.transform.TransformerException if a runtime exception 
+   *         occurs.
+   */
+  public XObject execute(XPathContext xctxt, int currentNode, 
+                         DTM dtm, int expType)
+    throws javax.xml.transform.TransformerException
+  {
+    // For now, the current node is already pushed.
+    return execute(xctxt);
+  }
+
 
   /**
    * Execute an expression in the XPath runtime context, and return the 

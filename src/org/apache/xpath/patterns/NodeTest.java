@@ -66,6 +66,7 @@ import org.apache.xpath.WhitespaceStrippingElementMatcher;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.ref.ExpandedNameTable;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -530,6 +531,79 @@ public class NodeTest extends Expression
       return m_score;
 
     int nodeBit = (m_whatToShow & (0x00000001 << (nodeType - 1)));
+
+    switch (nodeBit)
+    {
+    case DTMFilter.SHOW_DOCUMENT_FRAGMENT :
+    case DTMFilter.SHOW_DOCUMENT :
+      return SCORE_OTHER;
+    case DTMFilter.SHOW_COMMENT :
+      return m_score;
+    case DTMFilter.SHOW_CDATA_SECTION :
+    case DTMFilter.SHOW_TEXT :
+
+      // was: 
+      // return (!xctxt.getDOMHelper().shouldStripSourceNode(context))
+      //       ? m_score : SCORE_NONE;
+      return m_score;
+    case DTMFilter.SHOW_PROCESSING_INSTRUCTION :
+      return subPartMatch(dtm.getNodeName(context), m_name)
+             ? m_score : SCORE_NONE;
+
+    // From the draft: "Two expanded names are equal if they 
+    // have the same local part, and either both have no URI or 
+    // both have the same URI."
+    // "A node test * is true for any node of the principal node type. 
+    // For example, child::* will select all element children of the 
+    // context node, and attribute::* will select all attributes of 
+    // the context node."
+    // "A node test can have the form NCName:*. In this case, the prefix 
+    // is expanded in the same way as with a QName using the context 
+    // namespace declarations. The node test will be true for any node 
+    // of the principal type whose expanded name has the URI to which 
+    // the prefix expands, regardless of the local part of the name."
+    case DTMFilter.SHOW_NAMESPACE :
+    {
+      String ns = dtm.getNodeValue(context);
+
+      return (subPartMatch(ns, m_name)) ? m_score : SCORE_NONE;
+    }
+    case DTMFilter.SHOW_ATTRIBUTE :
+    case DTMFilter.SHOW_ELEMENT :
+    {
+      return (m_isTotallyWild || (subPartMatchNS(dtm.getNamespaceURI(context), m_namespace) && subPartMatch(dtm.getLocalName(context), m_name)))
+             ? m_score : SCORE_NONE;
+    }
+    default :
+      return SCORE_NONE;
+    }  // end switch(testType)
+  }
+  
+  /**
+   * Tell what the test score is for the given node.
+   *
+   *
+   * @param xctxt XPath runtime context.
+   * @param context The node being tested.
+   *
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public XObject execute(XPathContext xctxt, int context, 
+                         DTM dtm, int expType)
+          throws javax.xml.transform.TransformerException
+  {
+
+    if (m_whatToShow == DTMFilter.SHOW_ALL)
+      return m_score;
+
+    int nodeBit = (m_whatToShow & (0x00000001 
+                   << ((expType >> ExpandedNameTable.ROTAMOUNT_TYPE) - 1)));
 
     switch (nodeBit)
     {

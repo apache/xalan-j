@@ -274,9 +274,7 @@ public class ElemValueOf extends ElemTemplateElement
       }
       else
       {
-        PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
-
-        xctxt.setNamespaceContext(this);
+        xctxt.pushNamespaceContext(this);
 
         int current = xctxt.getCurrentNode();
 
@@ -302,7 +300,7 @@ public class ElemValueOf extends ElemTemplateElement
             rth.processingInstruction(
               javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
 
-          xctxt.setNamespaceContext(savedPrefixResolver);
+          xctxt.popNamespaceContext();
           xctxt.popCurrentNodeAndExpression();
         }
       }

@@ -504,59 +504,6 @@ public class TemplateList implements java.io.Serializable
   }
   
   /**
-   * Get the head of the most likely list of associations to check, based on 
-   * the name and type of the targetNode argument.
-   *
-   * @param xctxt The XPath runtime context.
-   * @param targetNode The target node that will be checked for a match.
-   * @param dtm The dtm owner for the target node.
-   *
-   * @return The head of a linked list that contains all possible match pattern to 
-   * template associations.
-   */
-  public TemplateSubPatternAssociation getHeadFast(XPathContext xctxt, 
-                                               int targetNode, DTM dtm,
-                                               int expNameID)
-  {
-    TemplateSubPatternAssociation head;
-
-    switch (expNameID >> ExpandedNameTable.ROTAMOUNT_TYPE)
-    {
-    case DTM.ELEMENT_NODE :
-    case DTM.ATTRIBUTE_NODE :
-      head = (TemplateSubPatternAssociation) m_patternTable.get(
-        dtm.getLocalName(targetNode));
-      break;
-    case DTM.TEXT_NODE :
-    case DTM.CDATA_SECTION_NODE :
-      head = m_textPatterns;
-      break;
-    case DTM.ENTITY_REFERENCE_NODE :
-    case DTM.ENTITY_NODE :
-      head = (TemplateSubPatternAssociation) m_patternTable.get(
-        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
-      break;
-    case DTM.PROCESSING_INSTRUCTION_NODE :
-      head = (TemplateSubPatternAssociation) m_patternTable.get(
-        dtm.getLocalName(targetNode));
-      break;
-    case DTM.COMMENT_NODE :
-      head = m_commentPatterns;
-      break;
-    case DTM.DOCUMENT_NODE :
-    case DTM.DOCUMENT_FRAGMENT_NODE :
-      head = m_docPatterns;
-      break;
-    case DTM.NOTATION_NODE :
-    default :
-      head = (TemplateSubPatternAssociation) m_patternTable.get(
-        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
-    }
-
-    return (null == head) ? m_wildCardPatterns : head;
-  }
-  
-  /**
    * Given a target element, find the template that best
    * matches in the given XSL document, according
    * to the rules specified in the xsl draft.  This variation of getTemplate 
@@ -585,17 +532,53 @@ public class TemplateList implements java.io.Serializable
                                 DTM dtm)
             throws TransformerException
   {
+    
+    TemplateSubPatternAssociation head;
 
-    TemplateSubPatternAssociation head = getHeadFast(xctxt, targetNode, 
-                                                     dtm, expTypeID);
-                                                     
+    switch (expTypeID >> ExpandedNameTable.ROTAMOUNT_TYPE)
+    {
+    case DTM.ELEMENT_NODE :
+    case DTM.ATTRIBUTE_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getLocalNameFromExpandedNameID(expTypeID));
+      break;
+    case DTM.TEXT_NODE :
+    case DTM.CDATA_SECTION_NODE :
+      head = m_textPatterns;
+      break;
+    case DTM.ENTITY_REFERENCE_NODE :
+    case DTM.ENTITY_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
+      break;
+    case DTM.PROCESSING_INSTRUCTION_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getLocalName(targetNode));
+      break;
+    case DTM.COMMENT_NODE :
+      head = m_commentPatterns;
+      break;
+    case DTM.DOCUMENT_NODE :
+    case DTM.DOCUMENT_FRAGMENT_NODE :
+      head = m_docPatterns;
+      break;
+    case DTM.NOTATION_NODE :
+    default :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
+    }
+
     if(null == head)
-      return null;
+    {
+      head = m_wildCardPatterns;
+      if(null == head)
+        return null;
+    }                                              
 
     // XSLT functions, such as xsl:key, need to be able to get to 
     // current ElemTemplateElement via a cast to the prefix resolver.
     // Setting this fixes bug idkey03.
-    final PrefixResolver savedPR = xctxt.getNamespaceContext();
+    xctxt.pushNamespaceContextNull();
     try
     {
       do
@@ -607,7 +590,7 @@ public class TemplateList implements java.io.Serializable
         ElemTemplate template = head.getTemplate();        
         xctxt.setNamespaceContext(template);
         
-        if ((head.m_stepPattern.execute(xctxt, targetNode) != NodeTest.SCORE_NONE)
+        if ((head.m_stepPattern.execute(xctxt, targetNode, dtm, expTypeID) != NodeTest.SCORE_NONE)
                 && head.matchMode(mode))
         {
           if (quietConflictWarnings)
@@ -620,7 +603,7 @@ public class TemplateList implements java.io.Serializable
     }
     finally
     {
-      xctxt.setNamespaceContext(savedPR);
+      xctxt.popNamespaceContext();
     }
 
     return null;
@@ -660,11 +643,10 @@ public class TemplateList implements java.io.Serializable
       // XSLT functions, such as xsl:key, need to be able to get to 
       // current ElemTemplateElement via a cast to the prefix resolver.
       // Setting this fixes bug idkey03.
-      PrefixResolver savedPR = xctxt.getNamespaceContext();
+      xctxt.pushNamespaceContextNull();
+      xctxt.pushCurrentNodeAndExpression(targetNode, targetNode);
       try
       {
-        xctxt.pushCurrentNodeAndExpression(targetNode, targetNode);
-
         do
         {
           if ( (maxImportLevel > -1) && (head.getImportLevel() > maxImportLevel) )
@@ -688,7 +670,7 @@ public class TemplateList implements java.io.Serializable
       finally
       {
         xctxt.popCurrentNodeAndExpression();
-        xctxt.setNamespaceContext(savedPR);
+        xctxt.popNamespaceContext();
       }
     }
 

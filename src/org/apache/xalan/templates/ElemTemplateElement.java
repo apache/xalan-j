@@ -234,6 +234,10 @@ public class ElemTemplateElement extends UnImplNode
   public void compose() throws TransformerException
   {
     resolvePrefixTables();
+    ElemTemplateElement t = getFirstChildElem();
+    m_hasTextLitOnly = ((t != null) 
+              && (t.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT) 
+              && (t.getNextSiblingElem() == null));
   }
 
   /**
@@ -598,6 +602,15 @@ public class ElemTemplateElement extends UnImplNode
   {
     return getNodeName();
   }
+  
+  /**
+   * Tell if this element only has one text child, for optimization purposes.
+   * @return true of this element only has one text literal child.
+   */
+  public boolean hasTextLitOnly()
+  {
+    return m_hasTextLitOnly;
+  }
 
   /**
    * Return the base identifier.
@@ -688,6 +701,12 @@ public class ElemTemplateElement extends UnImplNode
    * @serial
    */
   private boolean m_defaultSpace = true;
+
+  /**
+   * Tell if this element only has one text child, for optimization purposes.
+   * @serial
+   */
+  private boolean m_hasTextLitOnly = false;
 
   /**
    * Set the "xml:space" attribute.

@@ -278,9 +278,7 @@ public class XPath implements Serializable
             throws javax.xml.transform.TransformerException
   {
 
-    PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
-
-    xctxt.setNamespaceContext(namespaceContext);
+    xctxt.pushNamespaceContext(namespaceContext);
 
     xctxt.pushCurrentNodeAndExpression(contextNode, contextNode);
 
@@ -324,7 +322,7 @@ public class XPath implements Serializable
     }
     finally
     {
-      xctxt.setNamespaceContext(savedPrefixResolver);
+      xctxt.popNamespaceContext();
 
       xctxt.popCurrentNodeAndExpression();
     }

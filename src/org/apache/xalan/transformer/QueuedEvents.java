@@ -85,10 +85,11 @@ abstract class QueuedEvents
   /** Queued start element          */
   // QueuedStartElement m_startElement = new QueuedStartElement();
   
-  protected boolean m_docPending = false;
+  public boolean m_docPending = false;
   protected boolean m_docEnded = false;
   
-  /** Flag indicating that an event is pending          */
+  /** Flag indicating that an event is pending.  Public for 
+   *  fast access by ElemForEach.         */
   public boolean m_elemIsPending = false;
 
   /** Flag indicating that an event is ended          */

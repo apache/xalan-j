@@ -396,6 +396,51 @@ public class StepPattern extends NodeTest implements SubContextList
   }
   
   /**
+   * Execute an expression in the XPath runtime context, and return the 
+   * result of the expression.
+   *
+   *
+   * @param xctxt The XPath runtime context.
+   * @param currentNode The currentNode.
+   * @param dtm The DTM of the current node.
+   * @param expType The expanded type ID of the current node.
+   *
+   * @return The result of the expression in the form of a <code>XObject</code>.
+   *
+   * @throws javax.xml.transform.TransformerException if a runtime exception 
+   *         occurs.
+   */
+  public XObject execute(XPathContext xctxt, int currentNode, 
+                         DTM dtm, int expType)
+    throws javax.xml.transform.TransformerException
+  {
+    if (m_whatToShow == NodeTest.SHOW_BYFUNCTION)
+    {
+      if (null != m_relativePathPattern)
+      {
+        return m_relativePathPattern.execute(xctxt);
+      }
+      else
+        return NodeTest.SCORE_NONE;
+    }
+
+    XObject score = super.execute(xctxt, currentNode, dtm, expType);
+
+    if (score == NodeTest.SCORE_NONE)
+      return score;
+
+    else if (null != m_relativePathPattern)
+    {
+      return m_relativePathPattern.executeRelativePathPattern(xctxt, this);
+    }
+    else
+    {
+      return score;
+    }
+  }
+
+  
+  /**
    * Get the proximity position index of the current node based on this
    * node test.
    *

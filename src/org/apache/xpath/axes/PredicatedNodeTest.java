@@ -275,7 +275,7 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
     try
     {
       xctxt.pushSubContextList(this);
-      xctxt.setNamespaceContext(m_lpi.getPrefixResolver());
+      xctxt.pushNamespaceContext(m_lpi.getPrefixResolver());
       xctxt.pushCurrentNode(context);
 
       for (int i = 0; i < nPredicates; i++)
@@ -323,7 +323,7 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
     finally
     {
       xctxt.popCurrentNode();
-      xctxt.setNamespaceContext(savedResolver);
+      xctxt.popNamespaceContext();
       xctxt.popSubContextList();
     }
 

@@ -62,6 +62,7 @@ import org.apache.xpath.axes.ContextNodeList;
 import org.apache.xml.utils.NodeVector;
 import org.apache.xml.utils.BoolStack;
 import org.apache.xml.dtm.DTMIterator;
+import org.apache.xalan.templates.ElemTemplateElement;
 
 import java.util.Stack;
 
@@ -111,7 +112,7 @@ class TransformSnapshotImpl implements TransformSnapshot
   /**
    * Is > 0 when we're processing a for-each.
    */
-  private BoolStack m_currentTemplateRuleIsNull = new BoolStack();
+  private BoolStack m_currentTemplateRuleIsNull;
 
   /**
    * A node vector used as a stack to track the current
@@ -119,7 +120,7 @@ class TransformSnapshotImpl implements TransformSnapshot
    * org.apache.xalan.transformer.TransformState interface,
    * so a tool can discover the calling template. 
    */
-  private NodeVector m_currentTemplateElements = new NodeVector(64);
+  private ElemTemplateElement[] m_currentTemplateElements;
 
   /**
    * A node vector used as a stack to track the current
@@ -129,7 +130,7 @@ class TransformSnapshotImpl implements TransformSnapshot
    * so a tool can discover the matched template, and matched
    * node. 
    */
-  private Stack m_currentMatchTemplates = new Stack();
+  private Stack m_currentMatchTemplates;
 
   /**
    * A node vector used as a stack to track the current
@@ -139,19 +140,19 @@ class TransformSnapshotImpl implements TransformSnapshot
    * so a tool can discover the matched template, and matched
    * node. 
    */
-  private NodeVector m_currentMatchNodes = new NodeVector();
+  private NodeVector m_currentMatchNodes;
 
   /**
    * The table of counters for xsl:number support.
    * @see ElemNumber
    */
-  private CountersTable m_countersTable = null;
+  private CountersTable m_countersTable;
 
   /**
    * Stack for the purposes of flagging infinite recursion with
    * attribute sets.
    */
-  private Stack m_attrSetStack = null;
+  private Stack m_attrSetStack;
 
   /** Indicate whether a namespace context was pushed */
   boolean m_nsContextPushed;
@@ -163,9 +164,6 @@ class TransformSnapshotImpl implements TransformSnapshot
 
   /** The number of events queued */
   int m_eventCount;
-
-  /** Queued start element */
-  QueuedStartElement m_startElement;
 
   /**
    * Constructor TransformSnapshotImpl
@@ -215,7 +213,7 @@ class TransformSnapshotImpl implements TransformSnapshot
       m_currentTemplateRuleIsNull =
         (BoolStack) transformer.m_currentTemplateRuleIsNull.clone();
       m_currentTemplateElements =
-        (NodeVector) transformer.m_currentTemplateElements.clone();
+        (ElemTemplateElement[]) transformer.m_currentTemplateElements.clone();
       m_currentMatchTemplates =
         (Stack) transformer.m_currentMatchTemplates.clone();
       m_currentMatchNodes =
@@ -283,7 +281,7 @@ class TransformSnapshotImpl implements TransformSnapshot
       transformer.m_currentTemplateRuleIsNull =
         (BoolStack) m_currentTemplateRuleIsNull.clone();
       transformer.m_currentTemplateElements =
-        (Stack) m_currentTemplateElements.clone();
+        (ElemTemplateElement[]) m_currentTemplateElements.clone();
       transformer.m_currentMatchTemplates =
         (Stack) m_currentMatchTemplates.clone();
       transformer.m_currentMatchedNodes =

@@ -958,7 +958,7 @@ public abstract class LocPathIterator extends PredicatedNodeTest
   private boolean m_isTopLevel = false;
 
   /** The index of the last node in the iteration. */
-  transient private int m_last = 0;
+  transient protected int m_last = 0;
   
   /** The last node that was fetched, usually by nextNode. */
   transient public int m_lastFetched = DTM.NULL;

@@ -537,16 +537,17 @@ public class XString extends XObject implements XMLString
    */
   public int compareToIgnoreCase(XMLString str)
   {
-	// %REVIEW%  Like it says, @since 1.2. Doesn't exist in earlier
-	// versions of Java, hence we can't yet shell out to it. We can implement
-	// it as character-by-character compare, but doing so efficiently
+    // %REVIEW%  Like it says, @since 1.2. Doesn't exist in earlier
+    // versions of Java, hence we can't yet shell out to it. We can implement
+    // it as character-by-character compare, but doing so efficiently
     // is likely to be (ahem) interesting.
-	//  
-	// However, since nobody is actually _using_ this method yet:
+    //  
+    // However, since nobody is actually _using_ this method yet:
     //    return str().compareToIgnoreCase(str.toString());
-	  
-	throw new  java.lang.NoSuchMethodException("Java 1.2 method, not yet implemented");
-  
+    
+    throw new org.apache.xml.utils.WrappedRuntimeException(
+      new java.lang.NoSuchMethodException(
+        "Java 1.2 method, not yet implemented"));
   }
 
   /**

@@ -305,6 +305,10 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public XPathContext()
   {
+    m_prefixResolvers[m_prefixResolversTop++] = null;
+    m_currentNodes[m_currentNodesFirstFree++] = DTM.NULL;
+    m_currentNodes[m_currentExpressionNodesFirstFree++] = DTM.NULL;
+    m_saxLocations[m_saxLocationsTop++] = null;
   }
 
   /**
@@ -319,6 +323,10 @@ public class XPathContext extends DTMManager // implements ExpressionContext
       m_ownerGetErrorListener = m_owner.getClass().getMethod("getErrorListener", new Class[] {});
     }
     catch (NoSuchMethodException nsme) {}
+    m_prefixResolvers[m_prefixResolversTop++] = null;
+    m_currentNodes[m_currentNodesFirstFree++] = DTM.NULL;
+    m_currentNodes[m_currentExpressionNodesFirstFree++] = DTM.NULL;
+    m_saxLocations[m_saxLocationsTop++] = null;
   }
 
   /**
@@ -327,28 +335,57 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   public void reset(){}
 
   /** The current stylesheet locator. */
-  SourceLocator m_saxLocation;
+  SourceLocator[] m_saxLocations = new SourceLocator[RECURSIONLIMIT];
+  int m_saxLocationsTop = 0;
 
   /**
    * Set the current locater in the stylesheet.
-   *
    *
    * @param location The location within the stylesheet.
    */
   public void setSAXLocator(SourceLocator location)
   {
-    m_saxLocation = location;
+    m_saxLocations[m_saxLocationsTop-1] = location;
+  }
+  
+  /**
+   * Set the current locater in the stylesheet.
+   *
+   * @param location The location within the stylesheet.
+   */
+  public void pushSAXLocator(SourceLocator location)
+  {
+    m_saxLocations[m_saxLocationsTop++] = location;
+  }
+  
+  /**
+   * Push a slot on the locations stack so that setSAXLocator can be 
+   * repeatedly called.
+   *
+   * @param location The location within the stylesheet.
+   */
+  public void pushSAXLocatorNull()
+  {
+    m_saxLocationsTop++;
+  }
+
+
+  /**
+   * Pop the current locater.
+   */
+  public void popSAXLocator()
+  {
+    m_saxLocationsTop--;
   }
 
   /**
    * Get the current locater in the stylesheet.
    *
-   *
    * @return The location within the stylesheet, or null if not known.
    */
   public SourceLocator getSAXLocator()
   {
-    return m_saxLocation;
+    return m_saxLocations[m_saxLocationsTop-1];
   }
 
   /** The owner context of this XPathContext.  In the case of XSLT, this will be a
@@ -414,7 +451,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    *
    * @return the variable stack, which should not be null.
    */
-  public VariableStack getVarStack()
+  public final VariableStack getVarStack()
   {
     return m_variableStacks;
   }
@@ -425,7 +462,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    *
    * @param varStack non-null reference to the variable stack.
    */
-  public void setVarStack(VariableStack varStack)
+  public final void setVarStack(VariableStack varStack)
   {
     m_variableStacks = varStack;
   }
@@ -656,13 +693,10 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
 
   /**
-   * The current prefixResolver for the execution context (not
-   * the source tree context).
-   * (Is this really needed?)
+   * The ammount to use for stacks that record information during the 
+   * recursive execution.
    */
-  private PrefixResolver m_currentPrefixResolver = null;
-  
-  private static final int RECURSIONLIMIT = (1024*4);
+  public static final int RECURSIONLIMIT = (1024*4);
 
   /** The stack of <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a> objects.
    *  Not to be confused with the current node list.  %REVIEW% Note that there 
@@ -683,8 +717,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final int getCurrentNode()
   {
-    int i = m_currentNodesFirstFree-1;
-    return (i < 0) ? DTM.NULL : m_currentNodes[i];
+    return m_currentNodes[m_currentNodesFirstFree-1];
   }
   
   /**
@@ -707,6 +740,32 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     m_currentNodesFirstFree--;
     m_currentExpressionNodesFirstFree--;
   }
+  
+  /**
+   * Push the current context node, expression node, and prefix resolver.
+   *
+   * @param cn the <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a>.
+   * @param en the sub-expression context node.
+   * @param nc the namespace context (prefix resolver.
+   */
+  public final void pushExpressionState(int cn, int en, PrefixResolver nc)
+  {
+    m_currentNodes[m_currentNodesFirstFree++] = cn;
+    m_currentExpressionNodes[m_currentExpressionNodesFirstFree++] = cn;
+    m_prefixResolvers[m_prefixResolversTop++] = nc;
+  }
+  
+  /**
+   * Pop the current context node, expression node, and prefix resolver.
+   */
+  public final void popExpressionState()
+  {
+    m_currentNodesFirstFree--;
+    m_currentExpressionNodesFirstFree--;
+    m_prefixResolversTop--;
+  }
+
+
 
   /**
    * Set the current context node.
@@ -822,8 +881,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final int getCurrentExpressionNode()
   {
-    int i = m_currentExpressionNodesFirstFree-1;
-    return (i < 0) ? DTM.NULL : m_currentExpressionNodes[i];
+    return m_currentExpressionNodes[m_currentExpressionNodesFirstFree-1];
   }
 
   /**
@@ -837,12 +895,17 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
 
   /**
-   * Pop the current node that is the expression's context (i.e. for current() support).
+   * Pop the current node that is the expression's context 
+   * (i.e. for current() support).
    */
   public final void popCurrentExpressionNode()
   {
     m_currentExpressionNodesFirstFree--;
   }
+  
+  private PrefixResolver[] m_prefixResolvers 
+                                   = new PrefixResolver[RECURSIONLIMIT];
+  private int m_prefixResolversTop = 0;
 
   /**
    * Get the current namespace context for the xpath.
@@ -852,7 +915,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final PrefixResolver getNamespaceContext()
   {
-    return m_currentPrefixResolver;
+    return m_prefixResolvers[m_prefixResolversTop-1];
   }
 
   /**
@@ -863,7 +926,35 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void setNamespaceContext(PrefixResolver pr)
   {
-    m_currentPrefixResolver = pr;
+    m_prefixResolvers[m_prefixResolversTop-1] = pr;
+  }
+
+  /**
+   * Push a current namespace context for the xpath.
+   *
+   * @param pr the prefix resolver to be used for resolving prefixes to 
+   *         namespace URLs.
+   */
+  public final void pushNamespaceContext(PrefixResolver pr)
+  {
+    m_prefixResolvers[m_prefixResolversTop++] = pr;
+  }
+  
+  /**
+   * Just increment the namespace contest stack, so that setNamespaceContext
+   * can be used on the slot.
+   */
+  public final void pushNamespaceContextNull()
+  {
+    m_prefixResolversTop++;
+  }
+
+  /**
+   * Pop the current namespace context for the xpath.
+   */
+  public final void popNamespaceContext()
+  {
+    m_prefixResolversTop--;
   }
 
   //==========================================================

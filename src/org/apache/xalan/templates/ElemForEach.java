@@ -265,7 +265,7 @@ public class ElemForEach extends ElemTemplateElement
    *
    * @throws TransformerException
    */
-  protected DTMIterator sortNodes(
+  public DTMIterator sortNodes(
           XPathContext xctxt, Vector keys, DTMIterator sourceNodes)
             throws TransformerException
   {
@@ -295,7 +295,7 @@ public class ElemForEach extends ElemTemplateElement
    *
    * @return False, no need to push parameters here.
    */
-  boolean needToPushParams()
+  public boolean needToPushParams()
   {
     return false;
   }
@@ -315,7 +315,7 @@ public class ElemForEach extends ElemTemplateElement
    *
    * @throws TransformerException
    */
-  int pushParams(TransformerImpl transformer, XPathContext xctxt)
+  public int pushParams(TransformerImpl transformer, XPathContext xctxt)
           throws TransformerException
   {
 
@@ -331,7 +331,7 @@ public class ElemForEach extends ElemTemplateElement
    *
    * NEEDSDOC @param xctxt
    */
-  void reMarkParams(XPathContext xctxt){}
+  public void reMarkParams(XPathContext xctxt){}
 
   /**
    * Pop Default parameters from the stack
@@ -342,7 +342,7 @@ public class ElemForEach extends ElemTemplateElement
    * It is just there because ElemApplyTemplates which derives
    * from this needs to restore that value.
    */
-  void popParams(XPathContext xctxt, int savedSearchStart)
+  public void popParams(XPathContext xctxt, int savedSearchStart)
   {
 
     VariableStack vars = xctxt.getVarStack();
@@ -385,7 +385,7 @@ public class ElemForEach extends ElemTemplateElement
 
       final ResultTreeHandler rth = transformer.getResultTreeHandler();
       ContentHandler chandler = rth.getContentHandler();
-      final StylesheetRoot sroot = getStylesheetRoot();
+      final StylesheetRoot sroot = transformer.getStylesheet();
       final TemplateList tl = sroot.getTemplateListComposed();
       final boolean needToFindTemplate = (null == template);
       final boolean quiet = transformer.getQuietConflictWarnings();
@@ -400,9 +400,7 @@ public class ElemForEach extends ElemTemplateElement
 
       // StylesheetComposed stylesheet = getStylesheetComposed();
       boolean didSetVars = false;
-      SourceLocator savedLocator = null;
-      StackGuard guard = null;
-      boolean check = false;
+      // boolean check = false;
       int savedSearchStart = 0;
 
       try
@@ -446,7 +444,8 @@ public class ElemForEach extends ElemTemplateElement
               case DTM.ATTRIBUTE_NODE :
               case DTM.CDATA_SECTION_NODE :
               case DTM.TEXT_NODE :
-                rth.flushPending(true);
+                if(rth.m_elemIsPending || rth.m_docPending)
+                  rth.flushPending(true);
                 dtm.dispatchCharactersEvents(child, chandler, false);
                 continue;
               case DTM.DOCUMENT_NODE :
@@ -463,18 +462,13 @@ public class ElemForEach extends ElemTemplateElement
           if (!didSetVars)
           {
             didSetVars = true;
-            guard = transformer.getStackGuard();
-            check = (guard.m_recursionLimit > -1);
+            // check = (transformer.getStackGuard().m_recursionLimit > -1);
 
-            savedLocator = xctxt.getSAXLocator();
-
+            xctxt.pushSAXLocatorNull();
             xctxt.pushContextNodeList(sourceNodes);
             transformer.pushElemTemplateElement(null);
-
             savedSearchStart = pushParams(transformer, xctxt);
           }
-
-          ElemTemplateElement t = template.m_firstChild;
 
           // If we are processing the default text rule, then just clone 
           // the value directly to the result tree.
@@ -483,8 +477,8 @@ public class ElemForEach extends ElemTemplateElement
             if (needToFindTemplate)
               transformer.pushPairCurrentMatched(template, child);
 
-            if (check)
-              guard.push(this, child);
+            // if (check)
+            //  guard.push(this, child);
 
             // Fire a trace event for the template.
             if (TransformerImpl.S_DEBUG)
@@ -493,7 +487,8 @@ public class ElemForEach extends ElemTemplateElement
             // And execute the child templates.
             // Loop through the children of the template, calling execute on 
             // each of them.
-            for (; t != null; t = t.m_nextSibling)
+            for (ElemTemplateElement t = template.m_firstChild; 
+                 t != null; t = t.m_nextSibling)
             {
               xctxt.setSAXLocator(t);
               transformer.setCurrentElement(t);
@@ -536,7 +531,7 @@ public class ElemForEach extends ElemTemplateElement
                   if (TransformerImpl.S_DEBUG)
                     transformer.getTraceManager().fireTraceEvent(t);
 
-                  super.execute(transformer);
+                  // super.execute(transformer);
                   transformer.executeChildTemplates(t, true);
                 }
                 break;
@@ -552,8 +547,8 @@ public class ElemForEach extends ElemTemplateElement
             if (needToFindTemplate)
               transformer.popCurrentMatched();
 
-            if (check)
-              guard.pop();
+            // if (check)
+            //  guard.pop();
           }
         }
       }
@@ -561,7 +556,7 @@ public class ElemForEach extends ElemTemplateElement
       {
         if (didSetVars)
         {
-          xctxt.setSAXLocator(savedLocator);
+          xctxt.popSAXLocator();
           xctxt.popContextNodeList();
           transformer.popElemTemplateElement();
           popParams(xctxt, savedSearchStart);

@@ -358,6 +358,7 @@ public class TransformerHandlerImpl
     Thread listener = new Thread(m_transformer);
 
     m_transformer.setTransformThread(listener);
+    m_transformer.setSourceTreeDocForThread(m_dtm.getDocument());
     listener.setDaemon(false);
     listener.start();
 

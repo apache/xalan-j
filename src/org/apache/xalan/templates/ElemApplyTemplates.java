@@ -200,126 +200,8 @@ public class ElemApplyTemplates extends ElemCallTemplate
 
           transformer.pushMode(m_mode);
         }
-
-        transformSelectedNodes(transformer, null);
       }
-      else
-      {
-        transformSelectedNodes(transformer, null);
-        // The code below would work, except for the context node list. -sb
-//        try
-//        {
-//          boolean rdebug = TransformerImpl.S_DEBUG;
-//          XPathContext xctxt = transformer.getXPathContext();          
-//          int sourceNode = xctxt.getCurrentNode();
-//
-//          if (rdebug)
-//            transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
-//                    "test", getSelectOrDefault(),
-//                    new org.apache.xpath.objects.XNodeSet(
-//                    getSelectOrDefault().getExpression().asIterator(xctxt, 
-//                    sourceNode))); // ugly as sin.
-//
-//          xctxt.pushContextNodeList((DTMIterator)getSelectOrDefault().getExpression()); // ??  Will it do?
-//          transformer.pushElemTemplateElement(null);
-//
-//          ResultTreeHandler rth = transformer.getResultTreeHandler();
-//          StylesheetRoot sroot = getStylesheetRoot();
-//          TemplateList tl = sroot.getTemplateListComposed();
-//          SourceLocator savedLocator = xctxt.getSAXLocator();
-//          boolean quiet = transformer.getQuietConflictWarnings();
-//
-//          try
-//          {
-//            int child;
-//            DTM dtm = xctxt.getDTM(sourceNode);
-//            DTMAxisTraverser traverser = dtm.getAxisTraverser(Axis.CHILD);
-//
-//            for (child = traverser.first(sourceNode); DTM.NULL != child; 
-//                 child = traverser.next(sourceNode, child))
-//            {
-//
-//              mode = transformer.getMode();
-//
-//              ElemTemplate template = tl.getTemplate(xctxt, child, mode, 
-//                                                     -1, quiet, dtm);
-//
-//              // If that didn't locate a node, fall back to a default template 
-//              // rule. See http://www.w3.org/TR/xslt#built-in-rule.
-//              if (null == template)
-//              {
-//                switch (dtm.getNodeType(child))
-//                {
-//                case DTM.DOCUMENT_FRAGMENT_NODE :
-//                case DTM.ELEMENT_NODE :
-//                  template = sroot.getDefaultRule();
-//                  break;
-//                case DTM.ATTRIBUTE_NODE :
-//                case DTM.CDATA_SECTION_NODE :
-//                case DTM.TEXT_NODE :
-//                  dtm.dispatchCharactersEvents(child, rth, false);
-//
-//                  continue;
-//                case DTM.DOCUMENT_NODE :
-//                  template = sroot.getDefaultRootRule();
-//                  break;
-//                default :
-//
-//                  // No default rules for processing instructions and the like.
-//                  continue;
-//                }
-//              }
-//
-//              ElemTemplateElement t = template.m_firstChild;
-//
-//              // If we are processing the default text rule, then just clone 
-//              // the value directly to the result tree.
-//              try
-//              {
-//                xctxt.pushCurrentNode(child);
-//
-//                transformer.pushPairCurrentMatched(template, child);
-//
-//                // Fire a trace event for the template.
-//                if (rdebug)
-//                  transformer.getTraceManager().fireTraceEvent(template);
-//
-//                // And execute the child templates.
-//                // Loop through the children of the template, calling execute on 
-//                // each of them.
-//                for (; t != null; t = t.m_nextSibling)
-//                {
-//                  xctxt.setSAXLocator(t);
-//                  transformer.setCurrentElement(t);
-//                  t.execute(transformer);
-//                }
-//
-//                // reMarkParams(xctxt);
-//              }
-//              finally
-//              {
-//                xctxt.popCurrentNode();
-//                transformer.popCurrentMatched();
-//              }
-//            }
-//          }
-//          finally
-//          {
-//            xctxt.setSAXLocator(savedLocator);
-//            xctxt.popContextNodeList();
-//            transformer.popElemTemplateElement();
-//            // popParams(xctxt, savedSearchStart);
-//
-//            // if(null != sourceNodes)
-//            //  sourceNodes.detach();                
-//          }
-//        }
-//        catch (SAXException se)
-//        {
-//          transformer.getErrorListener().fatalError(
-//            new TransformerException(se));
-//        }
-      }
+      transformSelectedNodes(transformer, null);
     }
     finally
     {
@@ -336,7 +218,7 @@ public class ElemApplyTemplates extends ElemCallTemplate
    *
    * @return whether or not to push default arguments on the stack
    */
-  boolean needToPushParams()
+  public boolean needToPushParams()
   {
     return true;
   }
@@ -357,11 +239,11 @@ public class ElemApplyTemplates extends ElemCallTemplate
    *
    * @throws TransformerException
    */
-  int pushParams(TransformerImpl transformer, XPathContext xctxt)
+  public int pushParams(TransformerImpl transformer, XPathContext xctxt)
           throws TransformerException
   {
     if(m_isDefaultTemplate)
-      return 0;
+      return -1;
 
     VariableStack vars = xctxt.getVarStack();
     int savedSearchStart = vars.getSearchStart();
@@ -383,7 +265,7 @@ public class ElemApplyTemplates extends ElemCallTemplate
    *
    * NEEDSDOC @param xctxt
    */
-  void reMarkParams(XPathContext xctxt)
+  public void reMarkParams(XPathContext xctxt)
   {
     if(m_isDefaultTemplate)
       return;
@@ -401,7 +283,7 @@ public class ElemApplyTemplates extends ElemCallTemplate
    * @param savedSearchStart Value to restore VariableStack.m_searchStart
    * to. This is used to set where to start the current search for a variable.
    */
-  void popParams(XPathContext xctxt, int savedSearchStart)
+  public void popParams(XPathContext xctxt, int savedSearchStart)
   {
     if(m_isDefaultTemplate)
       return;

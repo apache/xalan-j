@@ -1197,7 +1197,7 @@ public class ResultTreeHandler extends QueuedEvents
    *         has been registered.
    * @see #setContentHandler
    */
-  public ContentHandler getContentHandler()
+  public final ContentHandler getContentHandler()
   {
     return m_contentHandler;
   }

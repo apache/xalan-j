@@ -88,7 +88,13 @@ public class FuncGenerateId extends FunctionDef1Arg
     int which = getArg0AsNode(xctxt);
 
     if (DTM.NULL != which)
-      return new XString("N" + Integer.toHexString(which+1).toUpperCase());
+    {
+      // Uglieness to get the unique ID to match the test gold.
+      int docID = (which & org.apache.xml.dtm.DTMManager.IDENT_DTM_DEFAULT) >> 20;
+      docID = (docID-1) << 20;
+      int id = ((which & org.apache.xml.dtm.DTMManager.IDENT_NODE_DEFAULT)+1) | docID;
+      return new XString("N" + Integer.toHexString(id).toUpperCase());
+    }
     else
       return XString.EMPTYSTRING;
   }
