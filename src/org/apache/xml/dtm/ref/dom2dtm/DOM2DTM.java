@@ -224,6 +224,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
   {
 
     int nodeIndex = m_nodes.size();
+    m_size++;
     ensureSize(nodeIndex);
     
     int type = node.getNodeType();
@@ -306,6 +307,8 @@ public class DOM2DTM extends DTMDefaultBaseIterators
          exnt.getExpandedTypeID(type);
 
     m_exptype[nodeIndex]  = expandedNameID;
+    
+    indexNode(expandedNameID, nodeIndex);
 
     if (DTM.NULL != previousSibling)
       m_nextsib[previousSibling] = nodeIndex;
@@ -467,7 +470,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
       if (null == nextNode)
       {
         m_nextsib[posInfo] = NULL;
-        m_parent[posInfo] = (short)currentIndexHandle;
+        currentIndexHandle = m_parent[posInfo];
         posInfo = currentIndexHandle;
         m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
         pos = pos.getParentNode();
