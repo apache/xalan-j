@@ -2097,15 +2097,16 @@ public class SAX2DTM extends DTMDefaultBaseIterators
       m_textPendingStart = m_chars.size();
       m_coalescedTextType = m_textType;
     }
-
-    m_chars.append(ch, start, length);
-
     // Type logic: If all adjacent text is CDATASections, the
     // concatentated text is treated as a single CDATASection (see
     // initialization above).  If any were ordinary Text, the whole
     // thing is treated as Text. This may be worth %REVIEW%ing.
-    if (m_textType == DTM.TEXT_NODE)
+    else if (m_textType == DTM.TEXT_NODE)
+    {
       m_coalescedTextType = DTM.TEXT_NODE;
+    }
+
+    m_chars.append(ch, start, length);
   }
 
   /**

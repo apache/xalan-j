@@ -1825,6 +1825,9 @@ public class SAX2DTM2 extends SAX2DTM
   // The current index into the m_values Vector.
   private int m_valueIndex = 0;
   
+  // The maximum value of the current node index.
+  private int m_maxNodeIndex;
+  
   // Cache the shift and mask values for the SuballocatedIntVectors.
   protected int m_SHIFT;
   protected int m_MASK;
@@ -1896,6 +1899,8 @@ public class SAX2DTM2 extends SAX2DTM
     // we set the initial size of this Vector to be small and set
     // the increment to a bigger number.
     m_values = new Vector(32, 512);
+    
+    m_maxNodeIndex = 1 << DTMManager.IDENT_DTM_NODE_BITS;
     
     // Set the map0 values in the constructor.
     m_exptype_map0 = m_exptype.getMap0();
@@ -2278,15 +2283,17 @@ public class SAX2DTM2 extends SAX2DTM
       m_prefixMappings.setSize(topContextIndex);
     }
 
-    int lastNode = m_previous;
+    // int lastNode = m_previous;
 
     m_previous = m_parents.pop();
 
     // If lastNode is still DTM.NULL, this element had no children
+    /*
     if (DTM.NULL == lastNode)
       m_firstch.setElementAt(DTM.NULL,m_previous);
     else
       m_nextsib.setElementAt(DTM.NULL,lastNode);
+    */
 
     popShouldStripWhitespace();
   }
@@ -2395,9 +2402,11 @@ public class SAX2DTM2 extends SAX2DTM
     int nodeIndex = m_size++;
 
     // Have we overflowed a DTM Identity's addressing range?
-    if(m_dtmIdent.size() == (nodeIndex>>>DTMManager.IDENT_DTM_NODE_BITS))
+    //if(m_dtmIdent.size() == (nodeIndex>>>DTMManager.IDENT_DTM_NODE_BITS))
+    if (nodeIndex == m_maxNodeIndex)
     {
       addNewDTMID(nodeIndex);
+      m_maxNodeIndex += (1 << DTMManager.IDENT_DTM_NODE_BITS);
     }
 
     m_firstch.addElement(DTM.NULL);
@@ -2408,10 +2417,6 @@ public class SAX2DTM2 extends SAX2DTM
 
     if (m_prevsib != null) {
       m_prevsib.addElement(previousSibling);
-    }
-
-    if (DTM.NULL != previousSibling) {
-      m_nextsib.setElementAt(nodeIndex,previousSibling);
     }
 
     if (m_locator != null && m_useSourceLocationProperty) {
@@ -2430,7 +2435,10 @@ public class SAX2DTM2 extends SAX2DTM
     case DTM.ATTRIBUTE_NODE:
       break;
     default:
-      if (DTM.NULL == previousSibling && DTM.NULL != parentIndex) {
+      if (DTM.NULL != previousSibling) {
+        m_nextsib.setElementAt(nodeIndex,previousSibling);
+      }
+      else if (DTM.NULL != parentIndex) {
         m_firstch.setElementAt(nodeIndex,parentIndex);
       }
       break;
