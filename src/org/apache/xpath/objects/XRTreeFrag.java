@@ -136,36 +136,11 @@ public class XRTreeFrag extends XObject
   public double num()
   {
 
-//    java.text.NumberFormat m_formatter =
-//      java.text.NumberFormat.getNumberInstance();
     double result;
     
     XMLString s = m_dtm.getStringValue(m_dtmRoot);
 
-    if (null != s)
-    {
-//      try
-//      {
-
-        // result = Double.valueOf(s).doubleValue();
-//        Number n = m_formatter.parse(s.trim());
-//
-//        result = n.doubleValue();
-          result = XString.castToNum(s.trim());
-//      }
-//
-//      // catch(NumberFormatException nfe)
-//      catch (java.text.ParseException nfe)
-//      {
-//        result = Double.NaN;
-//      }
-    }
-    else
-    {
-      result = Double.NaN;
-    }
-
-    return result;
+    return s.toDouble();
   }
 
   /**
@@ -179,6 +154,8 @@ public class XRTreeFrag extends XObject
     return true;
   }
   
+  private XMLString m_xmlStr = null;
+  
   /**
    * Cast result object to an XMLString.
    *
@@ -186,8 +163,23 @@ public class XRTreeFrag extends XObject
    */
   public XMLString xstr()
   {
-    return m_dtm.getStringValue(m_dtmRoot);
+    if(null == m_xmlStr)
+      m_xmlStr = m_dtm.getStringValue(m_dtmRoot);
+    
+    return m_xmlStr;
   }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public void appendToFsb(org.apache.xml.utils.FastStringBuffer fsb)
+  {
+    XString xstring = (XString)xstr();
+    xstring.appendToFsb(fsb);
+  }
+
 
   /**
    * Cast result object to a string.
@@ -268,17 +260,17 @@ public class XRTreeFrag extends XObject
       }
       else if (XObject.CLASS_NODESET == obj2.getType())
       {
-        return str().equals(obj2.str());
+        return xstr().equals(obj2.xstr());
       }
       else if (XObject.CLASS_STRING == obj2.getType())
       {
-        return str().equals(obj2.str());
+        return xstr().equals(obj2.xstr());
       }
       else if (XObject.CLASS_RTREEFRAG == obj2.getType())
       {
   
         // Probably not so good.  Think about this.
-        return str().equals(obj2.str());
+        return xstr().equals(obj2.xstr());
       }
       else
       {

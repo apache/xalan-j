@@ -154,7 +154,7 @@ public class XNodeSet extends XObject
    */
   public double getNumberFromNode(int n)
   {
-    return XString.castToNum(getStringFromNode(n));
+    return m_dtmMgr.getDTM(n).getStringValue(n).toDouble();
   }
 
   /**
@@ -214,6 +214,17 @@ public class XNodeSet extends XObject
     int node = nl.nextNode();
 
     return (node != DTM.NULL) ? getStringFromNode(node) : XString.EMPTYSTRING;
+  }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public void appendToFsb(org.apache.xml.utils.FastStringBuffer fsb)
+  {
+    XString xstring = (XString)xstr();
+    xstring.appendToFsb(fsb);
   }
 
 
@@ -446,45 +457,19 @@ public class XNodeSet extends XObject
     }
     else if (XObject.CLASS_RTREEFRAG == type)
     {
+      XMLString s2 = obj2.xstr();
+      DTMIterator list1 = nodeset();
+      int node;
 
-      // hmmm... 
-      // Try first to treat it as a number, so that numeric 
-      // comparisons can be done with it.  I suspect this is bogus...
-      double num2 = obj2.num();
-
-      if (!Double.isNaN(num2))
+      while (DTM.NULL != (node = list1.nextNode()))
       {
-        DTMIterator list1 = nodeset();
-        int node;
+        XMLString s1 = getStringFromNode(node);
 
-        while (DTM.NULL != (node = list1.nextNode()))
+        if (comparator.compareStrings(s1, s2))
         {
-          double num1 = getNumberFromNode(node);
+          result = true;
 
-          if (comparator.compareNumbers(num1, num2))
-          {
-            result = true;
-
-            break;
-          }
-        }
-      }
-      else
-      {
-        XMLString s2 = obj2.xstr();
-        DTMIterator list1 = nodeset();
-        int node;
-
-        while (DTM.NULL != (node = list1.nextNode()))
-        {
-          XMLString s1 = getStringFromNode(node);
-
-          if (comparator.compareStrings(s1, s2))
-          {
-            result = true;
-
-            break;
-          }
+          break;
         }
       }
     }

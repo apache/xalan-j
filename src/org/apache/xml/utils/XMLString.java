@@ -262,6 +262,27 @@ public interface XMLString
   public abstract boolean startsWith(String prefix, int toffset);
 
   /**
+   * Tests if this string starts with the specified prefix beginning
+   * a specified index.
+   *
+   * @param   prefix    the prefix.
+   * @param   toffset   where to begin looking in the string.
+   * @return  <code>true</code> if the character sequence represented by the
+   *          argument is a prefix of the substring of this object starting
+   *          at index <code>toffset</code>; <code>false</code> otherwise.
+   *          The result is <code>false</code> if <code>toffset</code> is
+   *          negative or greater than the length of this
+   *          <code>String</code> object; otherwise the result is the same
+   *          as the result of the expression
+   *          <pre>
+   *          this.subString(toffset).startsWith(prefix)
+   *          </pre>
+   * @exception java.lang.NullPointerException if <code>prefix</code> is
+   *          <code>null</code>.
+   */
+  public abstract boolean startsWith(XMLString prefix, int toffset);
+
+  /**
    * Tests if this string starts with the specified prefix.
    *
    * @param   prefix   the prefix.
@@ -277,6 +298,23 @@ public interface XMLString
    * @since   JDK1. 0
    */
   public abstract boolean startsWith(String prefix);
+
+  /**
+   * Tests if this string starts with the specified prefix.
+   *
+   * @param   prefix   the prefix.
+   * @return  <code>true</code> if the character sequence represented by the
+   *          argument is a prefix of the character sequence represented by
+   *          this string; <code>false</code> otherwise.
+   *          Note also that <code>true</code> will be returned if the
+   *          argument is an empty string or is equal to this
+   *          <code>String</code> object as determined by the
+   *          {@link #equals(Object)} method.
+   * @exception java.lang.NullPointerException if <code>prefix</code> is
+   *          <code>null</code>.
+   * @since   JDK1. 0
+   */
+  public abstract boolean startsWith(XMLString prefix);
 
   /**
    * Tests if this string ends with the specified suffix.
@@ -654,4 +692,20 @@ public interface XMLString
    * @return  the string itself.
    */
   public abstract String toString();
+  
+  /**
+   * Tell if this object contains a java String object.
+   * 
+   * @return true if this XMLString can return a string without creating one.
+   */
+  public abstract boolean hasString();
+  
+  /**
+   * Convert a string to a double -- Allowed input is in fixed
+   * notation ddd.fff.
+   *
+   * @return A double value representation of the string, or return Double.NaN 
+   * if the string can not be converted.
+   */
+  public double toDouble();
 }

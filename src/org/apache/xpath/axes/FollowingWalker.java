@@ -111,7 +111,7 @@ public class FollowingWalker extends AxesWalker
       */
       int e = dtm.getParent(root);
       m_currentNode = e;
-      m_currentAncestor = dtm.getOwnerDocument(root); // Not totally sure why
+      m_currentAncestor = dtm.getDocument(); // Not totally sure why
     } 
     else
       m_currentAncestor = root;

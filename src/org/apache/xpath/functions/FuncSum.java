@@ -98,7 +98,7 @@ public class FuncSum extends FunctionOneArg
       XMLString s = dtm.getStringValue(pos);
 
       if (null != s)
-        sum += XString.castToNum(s);
+        sum += s.toDouble();
     }
     // nodes.detach();
 

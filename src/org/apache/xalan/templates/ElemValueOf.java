@@ -67,10 +67,12 @@ import org.apache.xpath.objects.XString;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XNodeSet;
 import org.apache.xalan.trace.SelectionEvent;
-import org.apache.xml.utils.QName;
 import org.apache.xalan.res.XSLTErrorResources;
 import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.ResultTreeHandler;
+
+import org.apache.xml.utils.QName;
+import org.apache.xml.utils.XMLString;
 
 import javax.xml.transform.TransformerException;
 
@@ -266,7 +268,7 @@ public class ElemValueOf extends ElemTemplateElement
                                                           "select", m_selectExpression, value);
       }
          
-      String s;                                                                                             
+      XMLString s;                                                                                             
       if(DTM.NULL != child)
       {
         DTM dtm = xctxt.getDTM(child);
@@ -282,8 +284,9 @@ public class ElemValueOf extends ElemTemplateElement
         return;
       }
       else
-        s = value.str();
-
+      {
+        s = value.xstr();
+      }
       
       int len = (null != s) ? s.length() : 0;
       if(len > 0)
@@ -293,11 +296,11 @@ public class ElemValueOf extends ElemTemplateElement
         if (m_disableOutputEscaping)
         {
           rth.processingInstruction(javax.xml.transform.Result.PI_DISABLE_OUTPUT_ESCAPING, "");
-          rth.characters(s.toCharArray(), 0, len);
+          s.dispatchCharactersEvents(rth);
           rth.processingInstruction(javax.xml.transform.Result.PI_ENABLE_OUTPUT_ESCAPING, "");
         }
         else
-          rth.characters(s.toCharArray(), 0, len);
+          s.dispatchCharactersEvents(rth);
       }
     }
     catch(SAXException se)

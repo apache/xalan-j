@@ -108,6 +108,9 @@ public class DTMManagerDefault extends DTMManager
 
   /** Set this to true if you want a dump of the DTM after creation. */
   private static final boolean DUMPTREE = false;
+  
+  /** Set this to true if you want a basic diagnostics. */
+  private static final boolean DEBUG = false;
 
   /**
    * Get an instance of a DTM, loaded with the content from the
@@ -131,7 +134,8 @@ public class DTMManagerDefault extends DTMManager
   public DTM getDTM(Source source, boolean unique,
                     DTMWSFilter whiteSpaceFilter, boolean incremental)
   {
-
+    if(DEBUG && null != source)
+      System.out.println("Starting source: "+source.getSystemId());
     XMLStringFactory xstringFactory = m_xsf;
     int documentID = m_dtms.size() << 20;
 
@@ -144,7 +148,6 @@ public class DTMManagerDefault extends DTMManager
 
       if (DUMPTREE)
       {
-        System.out.println("Dumping DOM2DTM");
         dtm.dumpDTM();
       }
 
@@ -200,8 +203,8 @@ public class DTMManagerDefault extends DTMManager
         m_dtms.add(dtm);
 
         boolean haveXercesParser =
-          null != reader
-          && reader instanceof org.apache.xerces.parsers.SAXParser;
+          (null != reader)
+          && (reader instanceof org.apache.xerces.parsers.SAXParser);
 
         if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
@@ -220,7 +223,6 @@ public class DTMManagerDefault extends DTMManager
 
           if (haveXercesParser)
           {
-
             // CoroutineSAXParser_Xerces to avoid threading.
             // System.out.println("Using CoroutineSAXParser_Xerces to avoid threading");
             coParser = new CoroutineSAXParser_Xerces(
@@ -229,7 +231,6 @@ public class DTMManagerDefault extends DTMManager
           }
           else
           {
-
             // Create a CoroutineSAXParser that will run on the secondary thread.
             if (null == reader)
               coParser = new CoroutineSAXParser(coroutineManager,

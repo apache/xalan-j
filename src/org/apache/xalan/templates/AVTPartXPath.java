@@ -159,7 +159,7 @@ public class AVTPartXPath extends AVTPart
 
     if (null != xobj)
     {
-      buf.append(xobj.str());
+      xobj.appendToFsb(buf);
     }
   }
 }

@@ -578,4 +578,15 @@ public class XObject extends Expression implements Serializable
       throw new XPathException(fmsg);
     }
   }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public void appendToFsb(org.apache.xml.utils.FastStringBuffer fsb)
+  {
+    fsb.append(str());
+  }
+
 }

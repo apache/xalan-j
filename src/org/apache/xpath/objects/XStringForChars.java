@@ -59,6 +59,27 @@ public class XStringForChars extends XString
   {
     throw new RuntimeException("fsb() not supported for XStringForChars!");
   }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public void appendToFsb(org.apache.xml.utils.FastStringBuffer fsb)
+  {
+    fsb.append((char[])m_obj, m_start, m_length);
+  }
+
+  
+  /**
+   * Tell if this object contains a java String object.
+   * 
+   * @return true if this XMLString can return a string without creating one.
+   */
+  public boolean hasString()
+  {
+    return (null != m_strCache);
+  }
 
   
   /**

@@ -154,7 +154,7 @@ public class FunctionDef1Arg extends FunctionOneArg
       {
         DTM dtm = xctxt.getDTM(currentNode);
         XMLString str = dtm.getStringValue(currentNode);
-        return XString.castToNum(str);
+        return str.toDouble();
       }
       
     }

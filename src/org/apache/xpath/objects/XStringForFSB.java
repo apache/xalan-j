@@ -124,6 +124,33 @@ public class XStringForFSB extends XString
   {
     return ((FastStringBuffer) m_obj);
   }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public void appendToFsb(org.apache.xml.utils.FastStringBuffer fsb)
+  {
+    // %OPT% !!! FSB has to be updated to take partial fsb's for append.
+    fsb.append(str());
+  }
+
+  /**
+   * Tell if this object contains a java String object.
+   *
+   * @return true if this XMLString can return a string without creating one.
+   */
+  public boolean hasString()
+  {
+    return (null != m_strCache);
+  }
+
+//  /** NEEDSDOC Field strCount */
+//  public static int strCount = 0;
+//
+//  /** NEEDSDOC Field xtable */
+//  static java.util.Hashtable xtable = new java.util.Hashtable();
 
   /**
    * Cast result object to a string.
@@ -134,7 +161,32 @@ public class XStringForFSB extends XString
   {
 
     if (null == m_strCache)
+    {
       m_strCache = fsb().getString(m_start, m_length);
+
+//      strCount++;
+//
+//      RuntimeException e = new RuntimeException("Bad!  Bad!");
+//      java.io.CharArrayWriter writer = new java.io.CharArrayWriter();
+//      java.io.PrintWriter pw = new java.io.PrintWriter(writer);
+//
+//      e.printStackTrace(pw);
+//
+//      String str = writer.toString();
+//
+//      str = str.substring(0, 600);
+//
+//      if (null == xtable.get(str))
+//      {
+//        xtable.put(str, str);
+//        System.out.println(str);
+//      }
+//      System.out.println("strCount: " + strCount);
+
+//      throw e;
+//      e.printStackTrace();
+      // System.exit(-1);
+    }
 
     return m_strCache;
   }
@@ -197,7 +249,7 @@ public class XStringForFSB extends XString
    */
   public char charAt(int index)
   {
-    return fsb().charAt(m_start+index);
+    return fsb().charAt(m_start + index);
   }
 
   /**
@@ -281,6 +333,7 @@ public class XStringForFSB extends XString
         {
           return false;
         }
+
         i++;
         j++;
       }
@@ -323,6 +376,7 @@ public class XStringForFSB extends XString
         {
           return false;
         }
+
         i++;
         j++;
       }
@@ -361,6 +415,7 @@ public class XStringForFSB extends XString
         {
           return false;
         }
+
         i++;
         j++;
       }
@@ -457,6 +512,7 @@ public class XStringForFSB extends XString
       {
         return c1 - c2;
       }
+
       i++;
       j++;
     }
@@ -503,6 +559,7 @@ public class XStringForFSB extends XString
       {
         return c1 - c2;
       }
+
       i++;
       j++;
     }
@@ -537,6 +594,7 @@ public class XStringForFSB extends XString
       for (int i = 0; i < len; i++)
       {
         h = 31 * h + fsb.charAt(off);
+
         off++;
       }
 
@@ -544,6 +602,74 @@ public class XStringForFSB extends XString
     }
 
     return h;
+  }
+
+  /**
+   * Tests if this string starts with the specified prefix beginning
+   * a specified index.
+   *
+   * @param   prefix    the prefix.
+   * @param   toffset   where to begin looking in the string.
+   * @return  <code>true</code> if the character sequence represented by the
+   *          argument is a prefix of the substring of this object starting
+   *          at index <code>toffset</code>; <code>false</code> otherwise.
+   *          The result is <code>false</code> if <code>toffset</code> is
+   *          negative or greater than the length of this
+   *          <code>String</code> object; otherwise the result is the same
+   *          as the result of the expression
+   *          <pre>
+   *          this.subString(toffset).startsWith(prefix)
+   *          </pre>
+   * @exception java.lang.NullPointerException if <code>prefix</code> is
+   *          <code>null</code>.
+   */
+  public boolean startsWith(XMLString prefix, int toffset)
+  {
+
+    FastStringBuffer fsb = fsb();
+    int to = m_start + toffset;
+    int tlim = m_start + m_length;
+    int po = 0;
+    int pc = prefix.length();
+
+    // Note: toffset might be near -1>>>1.
+    if ((toffset < 0) || (toffset > m_length - pc))
+    {
+      return false;
+    }
+
+    while (--pc >= 0)
+    {
+      if (fsb.charAt(to) != prefix.charAt(po))
+      {
+        return false;
+      }
+
+      to++;
+      po++;
+    }
+
+    return true;
+  }
+
+  /**
+   * Tests if this string starts with the specified prefix.
+   *
+   * @param   prefix   the prefix.
+   * @return  <code>true</code> if the character sequence represented by the
+   *          argument is a prefix of the character sequence represented by
+   *          this string; <code>false</code> otherwise.
+   *          Note also that <code>true</code> will be returned if the
+   *          argument is an empty string or is equal to this
+   *          <code>String</code> object as determined by the
+   *          {@link #equals(Object)} method.
+   * @exception java.lang.NullPointerException if <code>prefix</code> is
+   *          <code>null</code>.
+   * @since   JDK1. 0
+   */
+  public boolean startsWith(XMLString prefix)
+  {
+    return startsWith(prefix, 0);
   }
 
   /**
@@ -643,12 +769,15 @@ public class XStringForFSB extends XString
    */
   public XMLString substring(int beginIndex)
   {
+
     int len = m_length - beginIndex;
-    if(len <= 0)
+
+    if (len <= 0)
       return XString.EMPTYSTRING;
     else
     {
-      int start = m_start+beginIndex;
+      int start = m_start + beginIndex;
+
       return new XStringForFSB(fsb(), start, len);
     }
   }
@@ -671,14 +800,18 @@ public class XStringForFSB extends XString
    */
   public XMLString substring(int beginIndex, int endIndex)
   {
+
     int len = endIndex - beginIndex;
-    if(len > m_length)
+
+    if (len > m_length)
       len = m_length;
-    if(len <= 0)
+
+    if (len <= 0)
       return XString.EMPTYSTRING;
     else
     {
-      int start = m_start+beginIndex;
+      int start = m_start + beginIndex;
+
       return new XStringForFSB(fsb(), start, len);
     }
   }
@@ -812,4 +945,99 @@ public class XStringForFSB extends XString
 
     return edit ? xsf.newstr(buf, start, d - start) : this;
   }
+
+  /**
+   * Convert a string to a double -- Allowed input is in fixed
+   * notation ddd.fff.
+   *
+   * @return A double value representation of the string, or return Double.NaN 
+   * if the string can not be converted.
+   */
+  public double toDouble()
+  {
+
+    int start = m_start;
+    int end = m_length+start;
+    
+    if(0 == end)
+      return Double.NaN;
+      
+    double result = 0.0;
+    int punctPos = end-1;
+    FastStringBuffer fsb = fsb();
+    
+    // Scan to first whitespace character.
+    for (int i = start; i < end; i++) 
+    {
+      char c = fsb.charAt(i);
+      if( !Character.isSpaceChar( c ) )
+      {
+        break;
+      }
+      else
+        start++;
+    }
+
+    double sign = 1.0;
+    if (start < end && fsb.charAt(start) == '-')
+    {
+      sign = -1.0;
+
+      start++;
+    }
+    
+    int digitsFound = 0;
+    for (int i = start; i < end; i++)  // parse the string from left to right converting the integer part
+    {
+      char c = fsb.charAt(i);
+      if (c != '.')
+      {
+        if(Character.isSpaceChar(c))
+          break;
+        else if (Character.isDigit(c))
+        {
+          result = result * 10.0 + (c - 0x30);
+          digitsFound++;
+        }
+        else
+        {
+          return Double.NaN;
+        }
+      }
+      else
+      {
+        punctPos = i;
+
+        break;
+      }
+    }
+    
+    if (fsb.charAt(punctPos) == '.')  // parse the string from the end to the '.' converting the fractional part
+    {
+      double fractPart = 0.0;
+      for (int i = end - 1; i > punctPos; i--)
+      {
+        char c = fsb.charAt(i);
+        if(Character.isSpaceChar(c))
+          break;
+        else if (Character.isDigit(c))
+        {
+          fractPart = fractPart / 10.0 + (c - 0x30);
+          digitsFound++;
+        }
+        else
+        {
+          return Double.NaN;
+        }
+      }
+
+      result += fractPart / 10.0;
+    }
+    
+    if(0 == digitsFound)
+      return Double.NaN;
+
+    return result * sign;
+  }
+
 }

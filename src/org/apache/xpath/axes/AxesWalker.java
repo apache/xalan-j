@@ -1212,7 +1212,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
     // different document. 
     while (
       (DTM.NULL != nextNode) && (DTM.NULL != m_prevReturned)
-      && getDTM(nextNode).getOwnerDocument(nextNode) == getDTM(m_prevReturned).getOwnerDocument(m_prevReturned)
+      && getDTM(nextNode).getDocument() == getDTM(m_prevReturned).getDocument()
       && getDTM(nextNode).isNodeAfter(nextNode, m_prevReturned));
 
     m_prevReturned = nextNode;
