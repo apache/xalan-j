@@ -167,51 +167,70 @@ public class DTMManagerDefault extends DTMManager
 
           xmlSource.setSystemId(urlOfSource);
         }
-          
-//        DTMDocumentImpl dtm = new DTMDocumentImpl(this, 
-//                                                  documentID, 
-//                                                  whiteSpaceFilter);
-//
-//        // It looks like you just construct this??
-//        DTMBuilder builder = new DTMBuilder(dtm, xmlSource, reader);
 
-        SAX2DTM dtm = new SAX2DTM(this, 
-                                  source,
-                                  documentID, 
-                                  whiteSpaceFilter);
-                                  
-        reader.setContentHandler(dtm);
-        reader.setDTDHandler(dtm);
-        reader.setErrorHandler(dtm);
-        
-        try 
-        {
-          reader.setProperty("http://xml.org/sax/properties/lexical-handler",
-                                dtm);
-        }
-        catch (org.xml.sax.SAXException se) {}
         try
         {
           reader.setFeature("http://apache.org/xml/features/validation/dynamic",
                             true);
         }
         catch (org.xml.sax.SAXException se) {}
-          
+
+        // Create the basic SAX2DTM.
+        SAX2DTM dtm = new SAX2DTM(this, 
+                                  source,
+                                  documentID, 
+                                  whiteSpaceFilter);
+                                  
+        // Go ahead and add the DTM to the lookup table.  This needs to be 
+        // done before any parsing occurs.
         m_dtms.add(dtm);
         
+        // Create a CoroutineManager to manage the coordination between the 
+        // parser and the transformation.  This will "throttle" between 
+        // the parser and the calling application.
+        CoroutineManager coroutineManager=new CoroutineManager();
+        
+        // Create an CoRoutine ID for the transformation.
+        int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
+        // System.out.println("appCoroutine (mgr): "+appCoroutine);
+        
+        // %TBD% Test for a Xerces Parser, and create a 
+        // CoroutineSAXParser_Xerces to avoid threading.
+                                          
+        // Create a CoroutineSAXParser that will run on the secondary thread.
+        CoroutineSAXParser coParser=new CoroutineSAXParser(coroutineManager, appCoroutine, reader);
+        
+        // Have the DTM set itself up as the CoroutineSAXParser's listener.
+        dtm.setCoroutineParser(coParser, appCoroutine);
+        
+        // Get the parser's CoRoutine ID.
+        int parserCoroutine = coParser.getParserCoroutineID();
+        // System.out.println("parserCoroutine (mgr): "+parserCoroutine);
+    
+        
+        // %TBD%  It's probably OK to have these bypass the CoRoutine stuff??
+        // Or maybe not?
+        reader.setDTDHandler(dtm);
+        reader.setErrorHandler(dtm);
+                          
         try
         {
-          reader.parse(xmlSource);
+          // This is a strange way to start the parse.
+          coParser.doParse(xmlSource, appCoroutine);
         }
         catch(RuntimeException re)
         {
-          re.printStackTrace();
+          coroutineManager.co_exit(appCoroutine);
           throw re;
         }
         catch(Exception e)
         {
-          e.printStackTrace();
+          coroutineManager.co_exit(appCoroutine);
           throw new org.apache.xml.utils.WrappedRuntimeException(e);
+        }
+        finally
+        {
+          // coroutineManager.co_exit(appCoroutine);
         }
 
         if(DUMPTREE)

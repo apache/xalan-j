@@ -75,12 +75,13 @@ import org.apache.xml.utils.NodeVector;
 import javax.xml.transform.Source;
 
 /**
- * The <code>DTMDefaultBase</code> class serves as a helper base for DTMs.  
- * It sets up structures for navigation and type, while leaving data 
+ * The <code>DTMDefaultBase</code> class serves as a helper base for DTMs.
+ * It sets up structures for navigation and type, while leaving data
  * management and construction to the derived classes.
  */
 public abstract class DTMDefaultBase implements DTM
 {
+
   /**
    * This is extra information about the node objects.  Each information
    * block is composed of several array members.  The size of this will always
@@ -113,7 +114,7 @@ public abstract class DTMDefaultBase implements DTM
 
   /**
    * This represents the number of integers per node in the
-   * <code>m_info</code> member variable, if the derived class 
+   * <code>m_info</code> member variable, if the derived class
    * does not add information.
    */
   protected static final int DEFAULTNODEINFOBLOCKSIZE = 7;
@@ -123,7 +124,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   protected static final int NOTPROCESSED = DTM.NULL - 1;
 
-  /** NEEDSDOC Field NODEIDENTITYBITS */
+  /** Not sure if this is used? */
   protected static final int NODEIDENTITYBITS = 0x000FFFFF;
 
   /**
@@ -139,16 +140,16 @@ public abstract class DTMDefaultBase implements DTM
 
   /** %TBD% Doc */
   protected String m_documentBaseURI;
-  
+
   /**
    * The whitespace filter that enables elements to strip whitespace or not.
    */
   protected DTMWSFilter m_wsfilter;
-  
-  /** Flag indicating whether to strip whitespace nodes          */
+
+  /** Flag indicating whether to strip whitespace nodes */
   protected boolean m_shouldStripWS = false;
 
-  /** Stack of flags indicating whether to strip whitespace nodes          */
+  /** Stack of flags indicating whether to strip whitespace nodes */
   protected BoolStack m_shouldStripWhitespaceStack;
 
   /**
@@ -156,12 +157,13 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @param mgr The DTMManager who owns this DTM.
    * @param domSource the DOM source that this DTM will wrap.
+   * NEEDSDOC @param source
    * @param dtmIdentity The DTM identity ID for this DTM.
-   * @param whiteSpaceFilter The white space filter for this DTM, which may 
+   * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
    */
-  public DTMDefaultBase(DTMManager mgr, Source source, 
-                 int dtmIdentity, DTMWSFilter whiteSpaceFilter)
+  public DTMDefaultBase(DTMManager mgr, Source source, int dtmIdentity,
+                        DTMWSFilter whiteSpaceFilter)
   {
 
     m_mgr = mgr;
@@ -169,9 +171,11 @@ public abstract class DTMDefaultBase implements DTM
     m_dtmIdent = dtmIdentity;
     m_mask = mgr.getNodeIdentityMask();
     m_wsfilter = whiteSpaceFilter;
-    if(null != whiteSpaceFilter)
+
+    if (null != whiteSpaceFilter)
     {
       m_shouldStripWhitespaceStack = new BoolStack();
+
       pushShouldStripWhitespace(false);
     }
   }
@@ -184,23 +188,32 @@ public abstract class DTMDefaultBase implements DTM
    * @return identity+1, or DTM.NULL.
    */
   protected abstract int getNextNodeIdentity(int identity);
-  
+
   /**
    * This method should try and build one or more nodes in the table.
    *
-   * @return The true if a next node is found or false if 
+   * @return The true if a next node is found or false if
    *         there are no more nodes.
    */
   protected abstract boolean nextNode();
-  
+
   /**
    * Return the number of integers in each node info block.
+   *
+   * NEEDSDOC ($objectName$) @return
    */
   protected int getNodeInfoBlockSize()
   {
     return DEFAULTNODEINFOBLOCKSIZE;
   }
-  
+
+  /**
+   * Get the number of nodes that have been added.
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  protected abstract int getNumberOfNodes();
+
   /**
    * Get a node handle that is relative to the given node.
    *
@@ -212,28 +225,29 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int base = (identity * getNodeInfoBlockSize());
-    // System.out.println("identity: "+identity+", base: "+
-    //                     base+", blockSize: "+getNodeInfoBlockSize());
-    int info = m_info.elementAt(base + offsetValue);
+    int info = (identity >= getNumberOfNodes())
+               ? NOTPROCESSED : m_info.elementAt(base + offsetValue);
 
     // Check to see if the information requested has been processed, and, 
     // if not, advance the iterator until we the information has been 
     // processed.
     while (info == NOTPROCESSED)
     {
-      // System.out.println("NOT PROCESSED! getNodeInfo: "+getNodeName(identity)+" identity: "+identity);
       nextNode();
 
-      info = m_info.elementAt(base + offsetValue);
+      if (identity >= getNumberOfNodes())
+        info = NOTPROCESSED;
+      else
+        info = m_info.elementAt(base + offsetValue);
     }
 
     return info;
   }
-  
+
   /**
-   * Get a node handle that is relative to the given node, but don't check for 
-   * the NOTPROCESSED flag.  A class will need to use this call to get values 
-   * that may be negative.  Also, it's a tiny bit faster than getNodeInfo if 
+   * Get a node handle that is relative to the given node, but don't check for
+   * the NOTPROCESSED flag.  A class will need to use this call to get values
+   * that may be negative.  Also, it's a tiny bit faster than getNodeInfo if
    * you know that NOTPROCESSED is not a possibility.
    *
    * @param identity The node identity.
@@ -242,98 +256,136 @@ public abstract class DTMDefaultBase implements DTM
    */
   protected int getNodeInfoNoWait(int identity, int offsetValue)
   {
-
-    return m_info.elementAt((identity * getNodeInfoBlockSize()) + offsetValue);
+    return m_info.elementAt((identity * getNodeInfoBlockSize())
+                            + offsetValue);
   }
-    
+
   /**
    * Diagnostics function to dump the DTM.
    */
   public void dumpDTM()
   {
-    while(nextNode()){}
-    
+
+    while (nextNode()){}
+
     int sizePerRecord = getNodeInfoBlockSize();
     int nRecords = m_info.size() / sizePerRecord;
-    System.out.println("Total nodes: "+nRecords);
-    
-    for (int i = 0; i < nRecords; i++) 
+
+    System.out.println("Total nodes: " + nRecords);
+
+    for (int i = 0; i < nRecords; i++)
     {
-      int offset = i*sizePerRecord;
-      System.out.println("=========== "+i+" ===========");
-      System.out.println("NodeName: "+getNodeName(i));
-      System.out.println("NodeNameX: "+getNodeNameX(i));
-      System.out.println("LocalName: "+getLocalName(i));
-      System.out.println("NamespaceURI: "+getNamespaceURI(i));
-      System.out.println("Prefix: "+getPrefix(i));
-      
+      int offset = i * sizePerRecord;
+
+      System.out.println("=========== " + i + " ===========");
+      System.out.println("NodeName: " + getNodeName(i));
+      System.out.println("NodeNameX: " + getNodeNameX(i));
+      System.out.println("LocalName: " + getLocalName(i));
+      System.out.println("NamespaceURI: " + getNamespaceURI(i));
+      System.out.println("Prefix: " + getPrefix(i));
+
       int exTypeID = getExpandedNameID(i);
-      System.out.println("Expanded Type ID: "+Integer.toHexString(exTypeID));
+
+      System.out.println("Expanded Type ID: "
+                         + Integer.toHexString(exTypeID));
 
       int type = getNodeType(i);
       String typestring;
-      switch (type) 
+
+      switch (type)
       {
-        case DTM.ATTRIBUTE_NODE: typestring = "ATTRIBUTE_NODE"; break;
-        case DTM.CDATA_SECTION_NODE: typestring = "CDATA_SECTION_NODE"; break;
-        case DTM.COMMENT_NODE: typestring = "COMMENT_NODE"; break;
-        case DTM.DOCUMENT_FRAGMENT_NODE: typestring = "DOCUMENT_FRAGMENT_NODE"; break;
-        case DTM.DOCUMENT_NODE: typestring = "DOCUMENT_NODE"; break;
-        case DTM.DOCUMENT_TYPE_NODE: typestring = "DOCUMENT_NODE"; break;
-        case DTM.ELEMENT_NODE: typestring = "ELEMENT_NODE"; break;
-        case DTM.ENTITY_NODE: typestring = "ENTITY_NODE"; break;
-        case DTM.ENTITY_REFERENCE_NODE: typestring = "ENTITY_REFERENCE_NODE"; break;
-        case DTM.NAMESPACE_NODE: typestring = "NAMESPACE_NODE"; break;
-        case DTM.NOTATION_NODE: typestring = "NOTATION_NODE"; break;
-        case DTM.NULL: typestring = "NULL"; break;
-        case DTM.PROCESSING_INSTRUCTION_NODE: typestring = "PROCESSING_INSTRUCTION_NODE"; break;
-        case DTM.TEXT_NODE: typestring = "TEXT_NODE"; break;
-        default: typestring = "Unknown!"; break;
+      case DTM.ATTRIBUTE_NODE :
+        typestring = "ATTRIBUTE_NODE";
+        break;
+      case DTM.CDATA_SECTION_NODE :
+        typestring = "CDATA_SECTION_NODE";
+        break;
+      case DTM.COMMENT_NODE :
+        typestring = "COMMENT_NODE";
+        break;
+      case DTM.DOCUMENT_FRAGMENT_NODE :
+        typestring = "DOCUMENT_FRAGMENT_NODE";
+        break;
+      case DTM.DOCUMENT_NODE :
+        typestring = "DOCUMENT_NODE";
+        break;
+      case DTM.DOCUMENT_TYPE_NODE :
+        typestring = "DOCUMENT_NODE";
+        break;
+      case DTM.ELEMENT_NODE :
+        typestring = "ELEMENT_NODE";
+        break;
+      case DTM.ENTITY_NODE :
+        typestring = "ENTITY_NODE";
+        break;
+      case DTM.ENTITY_REFERENCE_NODE :
+        typestring = "ENTITY_REFERENCE_NODE";
+        break;
+      case DTM.NAMESPACE_NODE :
+        typestring = "NAMESPACE_NODE";
+        break;
+      case DTM.NOTATION_NODE :
+        typestring = "NOTATION_NODE";
+        break;
+      case DTM.NULL :
+        typestring = "NULL";
+        break;
+      case DTM.PROCESSING_INSTRUCTION_NODE :
+        typestring = "PROCESSING_INSTRUCTION_NODE";
+        break;
+      case DTM.TEXT_NODE :
+        typestring = "TEXT_NODE";
+        break;
+      default :
+        typestring = "Unknown!";
+        break;
       }
-      System.out.println("Type: "+typestring);
-      
-      int firstChild = m_info.elementAt(offset+OFFSET_FIRSTCHILD);
-      if(DTM.NULL == firstChild)
+
+      System.out.println("Type: " + typestring);
+
+      int firstChild = m_info.elementAt(offset + OFFSET_FIRSTCHILD);
+
+      if (DTM.NULL == firstChild)
         System.out.println("First child: DTM.NULL");
-      else if(NOTPROCESSED == firstChild)
+      else if (NOTPROCESSED == firstChild)
         System.out.println("First child: NOTPROCESSED");
       else
-        System.out.println("First child: "+firstChild);
-        
-      int prevSibling = m_info.elementAt(offset+OFFSET_PREVSIBLING);
-      if(DTM.NULL == prevSibling)
+        System.out.println("First child: " + firstChild);
+
+      int prevSibling = m_info.elementAt(offset + OFFSET_PREVSIBLING);
+
+      if (DTM.NULL == prevSibling)
         System.out.println("Prev sibling: DTM.NULL");
-      else if(NOTPROCESSED == prevSibling)
+      else if (NOTPROCESSED == prevSibling)
         System.out.println("Prev sibling: NOTPROCESSED");
       else
-        System.out.println("Prev sibling: "+prevSibling);
+        System.out.println("Prev sibling: " + prevSibling);
 
-      int nextSibling = m_info.elementAt(offset+OFFSET_NEXTSIBLING);
-      if(DTM.NULL == nextSibling)
+      int nextSibling = m_info.elementAt(offset + OFFSET_NEXTSIBLING);
+
+      if (DTM.NULL == nextSibling)
         System.out.println("Next sibling: DTM.NULL");
-      else if(NOTPROCESSED == nextSibling)
+      else if (NOTPROCESSED == nextSibling)
         System.out.println("Next sibling: NOTPROCESSED");
       else
-        System.out.println("Next sibling: "+nextSibling);
-        
-      int parent = m_info.elementAt(offset+OFFSET_PARENT);
-      if(DTM.NULL == parent)
+        System.out.println("Next sibling: " + nextSibling);
+
+      int parent = m_info.elementAt(offset + OFFSET_PARENT);
+
+      if (DTM.NULL == parent)
         System.out.println("Parent: DTM.NULL");
-      else if(NOTPROCESSED == parent)
+      else if (NOTPROCESSED == parent)
         System.out.println("Parent: NOTPROCESSED");
       else
-        System.out.println("Parent: "+parent);
+        System.out.println("Parent: " + parent);
 
-      int level = m_info.elementAt(offset+OFFSET_LEVEL);
-      System.out.println("Level: "+level);
+      int level = m_info.elementAt(offset + OFFSET_LEVEL);
 
-      System.out.println("Node Value: "+getNodeValue(i));      
-      System.out.println("String Value: "+getStringValue(i));      
+      System.out.println("Level: " + level);
+      System.out.println("Node Value: " + getNodeValue(i));
+      System.out.println("String Value: " + getStringValue(i));
     }
-    
   }
-
-
 
   // ========= DTM Implementation Control Functions. ==============
 
@@ -425,7 +477,7 @@ public abstract class DTMDefaultBase implements DTM
    *   attribute.
    */
   public abstract int getAttributeNode(int nodeHandle, String namespaceURI,
-                              String name);
+                                       String name);
 
   /**
    * Given a node handle, get the index of the node's first attribute.
@@ -446,6 +498,7 @@ public abstract class DTMDefaultBase implements DTM
 
       while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
+
         // Assume this can not be null.
         type = getNodeType(identity);
 
@@ -534,67 +587,93 @@ public abstract class DTMDefaultBase implements DTM
 
     return DTM.NULL;
   }
-  
-  private Vector m_namespaceLists = null; // on demand
-  
+
+  /** NEEDSDOC Field m_namespaceLists          */
+  private Vector m_namespaceLists = null;  // on demand
+
+  /**
+   * NEEDSDOC Method getNamespaceList 
+   *
+   *
+   * NEEDSDOC @param baseHandle
+   *
+   * NEEDSDOC (getNamespaceList) @return
+   */
   protected NodeVector getNamespaceList(int baseHandle)
   {
-    if(null == m_namespaceLists)
+
+    if (null == m_namespaceLists)
       m_namespaceLists = new Vector();
     else
     {
       int n = m_namespaceLists.size();
-      for (int i = (n-1); i >= 0; i--) 
+
+      for (int i = (n - 1); i >= 0; i--)
       {
-        NodeVector ivec = (NodeVector)m_namespaceLists.elementAt(i);
-        if(ivec.elementAt(0) == baseHandle)
+        NodeVector ivec = (NodeVector) m_namespaceLists.elementAt(i);
+
+        if (ivec.elementAt(0) == baseHandle)
           return ivec;
       }
     }
+
     NodeVector ivec = buildNamespaceList(baseHandle);
+
     m_namespaceLists.addElement(ivec);
+
     return ivec;
   }
-  
+
+  /**
+   * NEEDSDOC Method buildNamespaceList 
+   *
+   *
+   * NEEDSDOC @param baseHandle
+   *
+   * NEEDSDOC (buildNamespaceList) @return
+   */
   private NodeVector buildNamespaceList(int baseHandle)
   {
+
     NodeVector ivec = new NodeVector(7);
+
     ivec.addElement(-1);  // for base handle.
-    
+
     int nodeHandle = baseHandle;
     int type = getNodeType(baseHandle);
-
     int namespaceHandle = DTM.NULL;
 
     if (DTM.ELEMENT_NODE == type)
     {
+
       // We have to return in document order, so we actually want to find the 
       // first namespace decl of the last element that has a namespace decl.
-
       // Assume that attributes and namespaces immediately follow the element.
       int identity = nodeHandle & m_mask;
-      
+
       while (DTM.NULL != identity)
       {
         identity = getNextNodeIdentity(identity);
-        
         type = (DTM.NULL == identity) ? -1 : getNodeType(identity);
 
         if (type == DTM.NAMESPACE_NODE)
         {
           namespaceHandle = identity | m_dtmIdent;
+
           ivec.insertInOrder(namespaceHandle);
         }
         else if (DTM.ATTRIBUTE_NODE != type)
         {
-          if(identity > 0)
+          if (identity > 0)
           {
             nodeHandle = getParent(nodeHandle);
-            // System.out.println("parent: "+nodeHandle);
-            if(nodeHandle == DTM.NULL)
+
+            if (nodeHandle == DTM.NULL)
               break;
+
             identity = nodeHandle & m_mask;
-            if(identity == 0)
+
+            if (identity == 0)
               break;
           }
           else
@@ -602,11 +681,12 @@ public abstract class DTMDefaultBase implements DTM
         }
       }
     }
+
     ivec.setElementAt(baseHandle, 0);
+
     return ivec;
   }
 
-  
   /**
    * Given a node handle, get the index of the node's first child.
    * If not yet resolved, waits for more nodes to be added to the document and
@@ -627,23 +707,26 @@ public abstract class DTMDefaultBase implements DTM
 
     if (DTM.ELEMENT_NODE == type)
     {
-      if(inScope)
+      if (inScope)
       {
         NodeVector namespaces = getNamespaceList(nodeHandle);
         int n = namespaces.size();
-        if(n > 1)
+
+        if (n > 1)
           return namespaces.elementAt(1);
       }
       else
       {
+
         // Assume that attributes and namespaces immediately follow the element.
         int identity = nodeHandle & m_mask;
-  
+
         while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
         {
+
           // Assume this can not be null.
           type = getNodeType(identity);
-  
+
           if (type == DTM.NAMESPACE_NODE)
           {
             return identity | m_dtmIdent;
@@ -659,44 +742,49 @@ public abstract class DTMDefaultBase implements DTM
     return DTM.NULL;
   }
 
-
   /**
    * Given a namespace handle, advance to the next namespace.
    *
-   * @param baseHandle handle to original node from where the first namespace 
+   * @param baseHandle handle to original node from where the first namespace
    * was relative to (needed to return nodes in document order).
    * @param namespaceHandle handle to node which must be of type
    * NAMESPACE_NODE.
+   * NEEDSDOC @param nodeHandle
+   * NEEDSDOC @param inScope
    * @return handle of next namespace, or DTM.NULL to indicate none exists.
    */
-  public int getNextNamespaceNode(int baseHandle, int nodeHandle, boolean inScope)
+  public int getNextNamespaceNode(int baseHandle, int nodeHandle,
+                                  boolean inScope)
   {
+
     int type = getNodeType(nodeHandle);
 
     if (DTM.NAMESPACE_NODE == type)
     {
-      if(inScope)
+      if (inScope)
       {
         NodeVector namespaces = getNamespaceList(baseHandle);
         int n = namespaces.size();
-        for (int i = 1; i < n; i++) // start from 1 on purpose 
+
+        for (int i = 1; i < n; i++)  // start from 1 on purpose 
         {
-          if(nodeHandle == namespaces.elementAt(i))
+          if (nodeHandle == namespaces.elementAt(i))
           {
-            if(i+1 < n)
-              return namespaces.elementAt(i+1);
+            if (i + 1 < n)
+              return namespaces.elementAt(i + 1);
           }
         }
       }
       else
       {
+
         // Assume that attributes and namespace nodes immediately follow the element.
         int identity = nodeHandle & m_mask;
-  
+
         while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
         {
           type = getNodeType(identity);
-  
+
           if (type == DTM.NAMESPACE_NODE)
           {
             return identity | m_dtmIdent;
@@ -772,11 +860,11 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    // System.out.println("identity: "+identity);
-    if(identity > 0)
+
+    if (identity > 0)
     {
       int parent = getNodeInfo(identity, OFFSET_PARENT);
-  
+
       return parent | m_dtmIdent;
     }
     else
@@ -831,7 +919,6 @@ public abstract class DTMDefaultBase implements DTM
    */
   public abstract String getStringValue(int nodeHandle);
 
-
   /**
    * Get number of character array chunks in
    * the string-value of a node.
@@ -849,6 +936,7 @@ public abstract class DTMDefaultBase implements DTM
 
     // %TBD%
     error("getStringValueChunkCount not yet supported!");
+
     return 0;
   }
 
@@ -871,6 +959,7 @@ public abstract class DTMDefaultBase implements DTM
 
     // %TBD%
     error("getStringValueChunk not yet supported!");
+
     return null;
   }
 
@@ -886,6 +975,7 @@ public abstract class DTMDefaultBase implements DTM
 
     int identity = nodeHandle & m_mask;
     int expandedNameID = getNodeInfo(identity, OFFSET_EXPANDEDNAMEID);
+
     return expandedNameID;
   }
 
@@ -896,6 +986,7 @@ public abstract class DTMDefaultBase implements DTM
    * expanded name will use this ID.
    *
    * @param nodeHandle The handle to the node in question.
+   * NEEDSDOC @param type
    *
    * NEEDSDOC @param namespace
    * NEEDSDOC @param localName
@@ -918,6 +1009,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   public String getLocalNameFromExpandedNameID(int ExpandedNameID)
   {
+
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
     return ent.getLocalName(ExpandedNameID);
@@ -932,6 +1024,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   public String getNamespaceFromExpandedNameID(int ExpandedNameID)
   {
+
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
     return ent.getNamespace(ExpandedNameID);
@@ -964,7 +1057,7 @@ public abstract class DTMDefaultBase implements DTM
 
     return null;
   }
-  
+
   /**
    * Given a node handle, return its XPath-style localname.
    * (As defined in Namespaces, this is the portion of the name after any
@@ -1044,7 +1137,7 @@ public abstract class DTMDefaultBase implements DTM
     int identity = nodeHandle & m_mask;
 
     // Apparently, the axis walker stuff requires levels to count from 1.
-    return (short) (getNodeInfo(identity, OFFSET_LEVEL)+1);
+    return (short) (getNodeInfo(identity, OFFSET_LEVEL) + 1);
   }
 
   // ============== Document query functions ============== 
@@ -1275,10 +1368,10 @@ public abstract class DTMDefaultBase implements DTM
   public boolean isNodeAfter(int nodeHandle1, int nodeHandle2)
   {
 
-      int index1 = nodeHandle1 & m_mask;
-      int index2 = nodeHandle2 & m_mask;
+    int index1 = nodeHandle1 & m_mask;
+    int index2 = nodeHandle2 & m_mask;
 
-      return index1 <= index2;
+    return index1 <= index2;
   }
 
   /**
@@ -1320,7 +1413,6 @@ public abstract class DTMDefaultBase implements DTM
    */
   public boolean isDocumentAllDeclarationsProcessed(int documentHandle)
   {
-
     return true;
   }
 
@@ -1353,9 +1445,9 @@ public abstract class DTMDefaultBase implements DTM
    * @throws org.xml.sax.SAXException
    */
   public abstract void dispatchCharactersEvents(
-          int nodeHandle, org.xml.sax.ContentHandler ch)
-            throws org.xml.sax.SAXException;
-  
+    int nodeHandle, org.xml.sax.ContentHandler ch)
+      throws org.xml.sax.SAXException;
+
   /**
    * Directly create SAX parser events from a subtree.
    *
@@ -1364,8 +1456,9 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @throws org.xml.sax.SAXException
    */
-  public abstract void dispatchToEvents(int nodeHandle, org.xml.sax.ContentHandler ch)
-          throws org.xml.sax.SAXException;
+  public abstract void dispatchToEvents(
+    int nodeHandle, org.xml.sax.ContentHandler ch)
+      throws org.xml.sax.SAXException;
 
   // ==== Construction methods (may not be supported by some implementations!) =====
 
@@ -1399,17 +1492,19 @@ public abstract class DTMDefaultBase implements DTM
   {
     error("appendTextChild not yet supported!");
   }
-  
+
   /**
    * Simple error for asserts and the like.
+   *
+   * NEEDSDOC @param msg
    */
   protected void error(String msg)
   {
     throw new DTMException(msg);
   }
-  
-    /**
-   * Find out whether or not to strip whispace nodes.  
+
+  /**
+   * Find out whether or not to strip whispace nodes.
    *
    *
    * @return whether or not to strip whispace nodes.
@@ -1420,7 +1515,7 @@ public abstract class DTMDefaultBase implements DTM
   }
 
   /**
-   * Set whether to strip whitespaces and push in current value of   
+   * Set whether to strip whitespaces and push in current value of
    * m_shouldStripWS in m_shouldStripWhitespaceStack.
    *
    * @param shouldStrip Flag indicating whether to strip whitespace nodes
@@ -1430,33 +1525,34 @@ public abstract class DTMDefaultBase implements DTM
 
     m_shouldStripWS = shouldStrip;
 
-    if(null != m_shouldStripWhitespaceStack)
+    if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWhitespaceStack.push(shouldStrip);
   }
 
   /**
-   * Set whether to strip whitespaces at this point by popping out  
-   * m_shouldStripWhitespaceStack. 
+   * Set whether to strip whitespaces at this point by popping out
+   * m_shouldStripWhitespaceStack.
    *
    */
   protected void popShouldStripWhitespace()
   {
-    if(null != m_shouldStripWhitespaceStack)
+    if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWS = m_shouldStripWhitespaceStack.popAndTop();
   }
 
   /**
-   * Set whether to strip whitespaces and set the top of the stack to 
-   * the current value of m_shouldStripWS.  
+   * Set whether to strip whitespaces and set the top of the stack to
+   * the current value of m_shouldStripWS.
    *
    *
    * @param shouldStrip Flag indicating whether to strip whitespace nodes
    */
   protected void setShouldStripWhitespace(boolean shouldStrip)
   {
-    
+
     m_shouldStripWS = shouldStrip;
-    if(null != m_shouldStripWhitespaceStack)
+
+    if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWhitespaceStack.setTop(shouldStrip);
   }
 }

@@ -233,6 +233,15 @@ public class DOM2DTM extends DTMDefaultBase
   {
     return NODEINFOBLOCKSIZE;
   }
+  
+  /**
+   * Get the number of nodes that have been added.
+   */
+  protected int getNumberOfNodes()
+  {
+    return m_nodes.size();
+  }
+
 
   /**
    * This method iterates to the next node that will be added to the table.
