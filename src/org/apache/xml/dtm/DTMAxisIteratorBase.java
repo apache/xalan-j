@@ -62,30 +62,41 @@ package org.apache.xml.dtm;
 public abstract class DTMAxisIteratorBase implements DTMAxisIterator
 {
 
-  /** The position of the last node in the iteration, as defined by XPath. */
+  /** The position of the last node within the iteration, as defined by XPath.
+   * (Note that this is _not_ the node's handle within the DTM!)
+   */
   private int _last = -1;
 
-  /** The position of the current node in the iteration, as defined by XPath. */
+  /** The position of the current node within the iteration, as defined by XPath.
+   * (Note that this is _not_ the node's handle within the DTM!)
+   */
   private int _position = 0;
 
-  /** The position of the marked node in the iteration. */
+  /** The position of the marked node within the iteration.
+   * (A saved itaration state that we may want to come back to.)
+   */
   protected int _markedNode;
 
-  /** The handle to the start, or root of the iteration. */
+  /** The handle to the start, or root, of the iteration.
+   * Set this to END to construct an empty iterator.
+   */
   protected int _startNode = DTMAxisIterator.END;
 
-  /** Flag to tell if the start node should be included in the iteration.   */
+  /** True if the start node should be considered part of the iteration.
+   * False will cause it to be skipped.
+   */
   protected boolean _includeSelf = false;
 
-  /** Flag to tell if the iterator is restartable.   */
+  /** True if this iteration can be restarted. False otherwise (eg, if
+   * we are iterating over a stream that can not be re-scanned, or if
+   * the iterator is a clone.)
+   */
   protected boolean _isRestartable = true;
 
   /**
-   * Resets the iterator to the last start node.
-   *
-   * @return A DTMAxisIterator, which may or may not be the same as this 
-   *         iterator.
-   */
+   * @return A DTMAxisIterator which has been reset to the start node,
+   * which may or may not be the same as this iterator.
+   * */
   public DTMAxisIterator reset()
   {
 
@@ -104,8 +115,10 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
    * Set the flag to include the start node in the iteration. 
    *
    *
-   * @return This default method returns just returns itself, after setting the
-   *         flag.
+   * @return This default method returns just returns this DTMAxisIterator,
+   * after setting the flag.
+   * (Returning "this" permits C++-style chaining of
+   * method calls into a single expression.)
    */
   public DTMAxisIterator includeSelf()
   {
@@ -115,30 +128,34 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
     return this;
   }
 
-  /**
-   * Returns the number of elements in this iterator.  This may be an expensive 
-   * operation when called the first time.
+  /** Returns the position of the last node within the iteration, as
+   * defined by XPath.  (Note that this is _not_ the node's handle
+   * within the DTM!)
    *
-   * @return The number of elements in this iterator.
+   * This may be an expensive operation when called the first time, since
+   * it may have to iterate all the way through the subtree.
+   *
+   * @return The number of nodes in this iterator.
    */
   public int getLast()
   {
 
-    if (_last == -1)
+    if (_last == -1)		// Not previously established
     {
-      final int temp = _position;
+      // %REVIEW% I'm confused about the difference between setMark() and
+      // the local temp variable...?
 
+      final int temp = _position; // Save state
       setMark();
-      reset();
 
+      reset();			// Count the nodes found by this iterator
       do
       {
         _last++;
       }
       while (next() != END);
 
-      gotoMark();
-
+      gotoMark();		// Restore saved state
       _position = temp;
     }
 
@@ -146,9 +163,8 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /**
-   * Returns the position of the current node in the set.
-   *
-   * @return The position of the current node in the set, as defined by XPath.
+   * @return The position of the current node within the set, as defined by
+   * XPath. Note that this is one-based, not zero-based.
    */
   public int getPosition()
   {
@@ -156,9 +172,7 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /**
-   * True if this iterator has a reversed axis.
-   *
-   * @return true if this iterator has a reversed axis.
+   * @return true if this iterator has a reversed axis, else false
    */
   public boolean isReverse()
   {
@@ -166,7 +180,9 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /**
-   * Returns a deep copy of this iterator.
+   * Returns a deep copy of this iterator. Cloned iterators may not be
+   * restartable, though the original they are cloned from is not
+   * necessarily further restricted by being cloned.
    *
    * @return a deep copy of this iterator.
    */
@@ -188,16 +204,25 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
   }
 
   /**
-   * Simply return the node that is passed in, after incrementing the position.
+   * Do any final cleanup that is required before returning the node that was
+   * passed in, and then return it. The intended use is
+   * <br />
+   * <code>return returnNode(node);</code>
    *
+   * %REVIEW% If we're calling it purely for side effects, should we really
+   * be bothering with a return value? Something like
+   * <br />
+   * <code> accept(node); return node; </code>
+   * <br />
+   * would probably optimize just about as well and avoid questions
+   * about whether what's returned could ever be different from what's
+   * passed in.
    *
-   * @param node Node handle.
+   * @param node Node handle which iteration is about to yield.
    *
-   * @return The node handle passed in.
-   */
+   * @return The node handle passed in.  */
   protected final int returnNode(final int node)
   {
-
     _position++;
 
     return node;
@@ -205,6 +230,8 @@ public abstract class DTMAxisIteratorBase implements DTMAxisIterator
 
   /**
    * Reset the position to zero.
+   *
+   * %REVIEW% Document how this dffers from reset() and setStartNode().
    *
    *
    * @return This instance.

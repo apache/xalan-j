@@ -2319,7 +2319,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
    *
    * @param axis One of Axes.ANCESTORORSELF, etc.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisIterator, or null if the given axis isn't supported.
    */
   public DTMAxisTraverser getAxisTraverser(final int axis)
   {
@@ -2334,7 +2334,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
    *
    * @param axis One of Axes.ANCESTORORSELF, etc.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisIterator, or null if the given axis isn't supported.
    */
   public DTMAxisIterator getAxisIterator(final int axis)
   {
@@ -2350,7 +2350,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
    * @param axis 
    * @param type An extended type ID.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisIterator, or null if the given axis isn't supported.
    */
   public DTMAxisIterator getTypedAxisIterator(final int axis, final int type)
   {

@@ -81,15 +81,12 @@ public interface DTMAxisIterator extends Cloneable
   public DTMAxisIterator reset();
 
   /**
-   * Returns the last element in this interation.
-   *
-   * @return the last element in this interation.
+   * @return the number of nodes in this iterator.  This may be an expensive 
+   * operation when called the first time.
    */
   public int getLast();
 
   /**
-   * Returns the position of the current node in the set.
-   *
    * @return The position of the current node in the set, as defined by XPath.
    */
   public int getPosition();
@@ -115,15 +112,11 @@ public interface DTMAxisIterator extends Cloneable
   public DTMAxisIterator setStartNode(int node);
 
   /**
-   * True if this iterator has a reversed axis.
-   *
-   * @return true if this iterator has a reversed axis.
+   * @return true if this iterator has a reversed axis, else false.
    */
   public boolean isReverse();
 
   /**
-   * Returns a deep copy of this iterator.
-   *
    * @return a deep copy of this iterator.
    */
   public DTMAxisIterator cloneIterator();
