@@ -498,164 +498,11 @@ public class TransformerImpl extends Transformer
   public void transform(Source source) 
     throws TransformerException
   {
-    if(source instanceof DOMSource)
-    {
-      DOMSource dsource = (DOMSource)source;
-      m_urlOfSource = dsource.getSystemId();
-      // %TBD%
-//      Node dNode = dsource.getNode();
-//      if (null != dNode)
-//      {  
-//        if(null != m_urlOfSource)
-//        {
-//          // System.out.println("Putting document in cache: "+m_urlOfSource);
-//          this.getXPathContext().getSourceTreeManager().putDocumentInCache(dNode, dsource);
-//        }
-//        this.transformNode(dsource.getNode());
-//        return;
-//      }
-//      else
-//      {
-//        String messageStr = XSLMessages.createMessage(XSLTErrorResources.ER_ILLEGAL_DOMSOURCE_INPUT, null);
-//        throw new IllegalArgumentException(messageStr);
-//      } 
-    }
-    InputSource xmlSource = SAXSource.sourceToInputSource(source);
-    if(null == xmlSource)
-    {
-      m_errorHandler.fatalError(new TransformerException("Can't transform a Source of type "+
-        source.getClass().getName()+"!"));
-    }
-    
-    if (null != xmlSource.getSystemId())
-    {     
-      m_urlOfSource = org.apache.xml.utils.SystemIDResolver.getAbsoluteURI(xmlSource.getSystemId());
-      xmlSource.setSystemId(m_urlOfSource);
-    }
-
     try
     {
-      m_hasTransformThreadErrorCatcher = true;
-      XMLReader reader = null;
-      if(source instanceof SAXSource)
-        reader = ((SAXSource)source).getXMLReader();
-
-      if (null == reader)
-      {
-      // Use JAXP1.1 ( if possible )      
-        try {
-          javax.xml.parsers.SAXParserFactory factory=
-                                                     javax.xml.parsers.SAXParserFactory.newInstance();
-          factory.setNamespaceAware( true );
-          javax.xml.parsers.SAXParser jaxpParser=
-                                                 factory.newSAXParser();
-          reader=jaxpParser.getXMLReader();
-          
-        } catch( javax.xml.parsers.ParserConfigurationException ex ) {
-          throw new org.xml.sax.SAXException( ex );
-        } catch( javax.xml.parsers.FactoryConfigurationError ex1 ) {
-            throw new org.xml.sax.SAXException( ex1.toString() );
-        } catch( NoSuchMethodError ex2 ) {
-        }
-        catch (AbstractMethodError ame){}
-      }
-      if (null == reader)
-      {        
-        reader = XMLReaderFactory.createXMLReader();
-      }
-
-      try
-      {
-        reader.setFeature("http://xml.org/sax/features/namespace-prefixes",
-                          true);
-        reader.setFeature("http://apache.org/xml/features/validation/dynamic",
-                          true);
-      }
-      catch (org.xml.sax.SAXException se)
-      {
-        // We don't care.
-      }
-
-      // Get the input content handler, which will handle the 
-      // parse events and create the source tree. 
-      ContentHandler inputHandler = getInputContentHandler();
-
-      reader.setContentHandler(inputHandler);
-      if(inputHandler instanceof org.xml.sax.DTDHandler)
-        reader.setDTDHandler((org.xml.sax.DTDHandler)inputHandler);
-      try
-      {
-        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
-          reader.setProperty("http://xml.org/sax/properties/lexical-handler",
-                             inputHandler);
-        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
-          reader.setProperty("http://xml.org/sax/properties/declaration-handler",
-                             inputHandler);
-      }
-      catch(org.xml.sax.SAXException se) {}
-      try
-      {
-        if(inputHandler instanceof org.xml.sax.ext.LexicalHandler)
-          reader.setProperty("http://xml.org/sax/handlers/LexicalHandler",
-                             inputHandler);
-        if(inputHandler instanceof org.xml.sax.ext.DeclHandler)
-          reader.setProperty("http://xml.org/sax/handlers/DeclHandler",
-                             inputHandler);
-      }
-      catch(org.xml.sax.SAXNotRecognizedException snre)
-      {
-      }
-
-      // Set the reader for cloning purposes.
-      getXPathContext().setPrimaryReader(reader);
-
-      this.m_exceptionThrown = null;
-
-      if (inputHandler instanceof SourceTreeHandler)
-      {
-        SourceTreeHandler sth = (SourceTreeHandler) inputHandler;
-
-        sth.setInputSource(source);
-        sth.setUseMultiThreading(true);
-
-        int doc = sth.getDTMRoot();
-
-        if (DTM.NULL != doc)
-        {
-          SourceTreeManager stm = getXPathContext().getSourceTreeManager();
-          // stm.putDocumentInCache(doc, source);
-
-          m_xmlSource = source;
-          // m_doc = doc;
-
-          if (isParserEventsOnMain())
-          {
-            m_isTransformDone = false;
-            try
-            {
-            getXPathContext().getPrimaryReader().parse(xmlSource);
-            }
-            catch(Exception e)
-            {
-              e.printStackTrace();
-            }
-          }
-          else
-          {
-            Thread t = createTransformThread();
-//            m_reportInPostExceptionFromThread = false;
-            t.start();
-            
-            // transformNode(doc);
-          }
-        }
-      }
-      else
-      {
-
-        // ??
-        reader.parse(xmlSource);
-      }
+      DTMManager mgr = this.getXPathContext().getDTMManager();
+      DTM dtm = mgr.getDTM(source, false, this);
+      this.transformNode(dtm.getDocument());
 
       // Kick off the parse.  When the ContentHandler gets 
       // the startDocument event, it will call transformNode( node ).
@@ -708,10 +555,6 @@ public class TransformerImpl extends Transformer
     catch(org.xml.sax.SAXException se)
     {
       m_errorHandler.fatalError(new TransformerException( se ));
-    }
-    catch (IOException ioe)
-    {
-      m_errorHandler.fatalError(new TransformerException( ioe ));
     }
     finally
     {

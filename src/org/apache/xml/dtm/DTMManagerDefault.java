@@ -58,23 +58,39 @@ package org.apache.xml.dtm;
 
 import java.util.Vector;
 
+// JAXP 1.1
 import javax.xml.parsers.*;
-
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.transform.Source;
+import javax.xml.transform.SourceLocator;
 
+// Apache XML Utilities
 import org.apache.xml.utils.PrefixResolver;
-
+import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.dtm.dom2dtm.DOM2DTM;
 
+// W3C DOM
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+
+// SAX2
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.helpers.XMLReaderFactory;
+import org.xml.sax.ext.DeclHandler;
+import org.xml.sax.ext.LexicalHandler;
 
 /**
  * The default implementation for the DTMManager.
  */
 public class DTMManagerDefault extends DTMManager
 {
+
+  /** NEEDSDOC Field m_dtms          */
   protected Vector m_dtms = new Vector();
 
   /**
@@ -95,29 +111,149 @@ public class DTMManagerDefault extends DTMManager
    * @param source the specification of the source object.
    * @param unique true if the returned DTM must be unique, probably because it
    * is going to be mutated.
-   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
+   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may
    *                         be null.
    *
    * @return a non-null DTM reference.
    */
-  public DTM getDTM(Source source, boolean unique, DTMWSFilter whiteSpaceFilter)
+  public DTM getDTM(Source source, boolean unique,
+                    DTMWSFilter whiteSpaceFilter)
   {
 
-    if(source instanceof DOMSource)
+    int documentID = m_dtms.size() << 20;
+
+    if (source instanceof DOMSource)
     {
-      int documentID = m_dtms.size() << 20;
-      DTM dtm = new DOM2DTM(this, (DOMSource)source, documentID, whiteSpaceFilter);
+      DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
+                            whiteSpaceFilter);
+
       m_dtms.add(dtm);
+
       return dtm;
     }
     else
     {
-      throw new DTMException("Not supported: "+source);
+      boolean isSAXSource = (source instanceof SAXSource);
+      boolean isStreamSource = (source instanceof StreamSource);
+
+      if (isSAXSource || isStreamSource)
+      {
+        XMLReader reader = getXMLReader(source);
+
+        // transformer.setIsTransformDone(false);
+        InputSource xmlSource = SAXSource.sourceToInputSource(source);
+        String urlOfSource = xmlSource.getSystemId();
+
+        if (null != urlOfSource)
+        {
+          try
+          {
+            urlOfSource = SystemIDResolver.getAbsoluteURI(urlOfSource);
+          }
+          catch (Exception e)
+          {
+
+            // %REVIEW% Is there a better way to send a warning?
+            System.err.println("Can not absolutize URL: " + urlOfSource);
+          }
+
+          xmlSource.setSystemId(urlOfSource);
+        }
+          
+        DTMDocumentImpl dtm = new DTMDocumentImpl(this, 
+                                                  documentID, 
+                                                  whiteSpaceFilter);
+
+        // It looks like you just construct this??
+        DTMBuilder builder = new DTMBuilder(dtm, xmlSource, reader);
+        
+        m_dtms.add(dtm);
+
+        return dtm;
+      }
+      else
+      {
+
+        // It should have been handled by a derived class or the caller 
+        // made a mistake.
+        throw new DTMException("Not supported: " + source);
+      }
     }
   }
 
   /**
-   * NEEDSDOC Method getDTM 
+   * This method returns the SAX2 parser to use with the InputSource
+   * obtained from this URI.
+   * It may return null if any SAX2-conformant XML parser can be used,
+   * or if getInputSource() will also return null. The parser must
+   * be free for use (i.e.
+   * not currently in use for another parse().
+   *
+   * @param inputSource The value returned from the URIResolver.
+   * @returns a SAX2 XMLReader to use to resolve the inputSource argument.
+   *
+   * @return non-null XMLReader reference ready to parse.
+   */
+  public XMLReader getXMLReader(Source inputSource)
+  {
+
+    try
+    {
+      XMLReader reader = (inputSource instanceof SAXSource)
+                         ? ((SAXSource) inputSource).getXMLReader() : null;
+
+      if (null == reader)
+      {
+        try
+        {
+          javax.xml.parsers.SAXParserFactory factory =
+            javax.xml.parsers.SAXParserFactory.newInstance();
+
+          factory.setNamespaceAware(true);
+
+          javax.xml.parsers.SAXParser jaxpParser = factory.newSAXParser();
+
+          reader = jaxpParser.getXMLReader();
+        }
+        catch (javax.xml.parsers.ParserConfigurationException ex)
+        {
+          throw new org.xml.sax.SAXException(ex);
+        }
+        catch (javax.xml.parsers.FactoryConfigurationError ex1)
+        {
+          throw new org.xml.sax.SAXException(ex1.toString());
+        }
+        catch (NoSuchMethodError ex2){}
+        catch (AbstractMethodError ame){}
+
+        if (null == reader)
+          reader = XMLReaderFactory.createXMLReader();
+      }
+
+      try
+      {
+        reader.setFeature("http://xml.org/sax/features/namespace-prefixes",
+                          true);
+        reader.setFeature("http://apache.org/xml/features/validation/dynamic",
+                          true);
+      }
+      catch (org.xml.sax.SAXException se)
+      {
+
+        // What can we do?
+        // TODO: User diagnostics.
+      }
+
+      return reader;
+    }
+    catch (org.xml.sax.SAXException se)
+    {
+      throw new DTMException(se.getMessage(), se);
+    }
+  }
+
+  /**
+   * NEEDSDOC Method getDTM
    *
    *
    * NEEDSDOC @param nodeHandle
@@ -126,12 +262,13 @@ public class DTMManagerDefault extends DTMManager
    */
   public DTM getDTM(int nodeHandle)
   {
+
     // Performance critical function.
-    return (DTM)m_dtms.elementAt(nodeHandle >> 20);
+    return (DTM) m_dtms.elementAt(nodeHandle >> 20);
   }
-  
+
   /**
-   * NEEDSDOC Method getDTMIdentity 
+   * NEEDSDOC Method getDTMIdentity
    *
    *
    * NEEDSDOC @param dtm
@@ -143,18 +280,20 @@ public class DTMManagerDefault extends DTMManager
 
     // A backwards search should normally be the fastest.
     int n = m_dtms.size();
-    for (int i = (n-1); i >= 0; i--) 
+
+    for (int i = (n - 1); i >= 0; i--)
     {
-      DTM tdtm = (DTM)m_dtms.elementAt(i);
-      if(tdtm == dtm)
+      DTM tdtm = (DTM) m_dtms.elementAt(i);
+
+      if (tdtm == dtm)
         return i;
     }
-    
+
     return -1;
   }
 
   /**
-   * NEEDSDOC Method release 
+   * NEEDSDOC Method release
    *
    *
    * NEEDSDOC @param dtm
@@ -164,9 +303,11 @@ public class DTMManagerDefault extends DTMManager
    */
   public boolean release(DTM dtm, boolean shouldHardDelete)
   {
+
     int i = getDTMIdentity(dtm);
+
     // %TBD% Recover space.
-    if(i >= 0)
+    if (i >= 0)
     {
       m_dtms.setElementAt(null, i);
     }
@@ -174,33 +315,36 @@ public class DTMManagerDefault extends DTMManager
     /** @todo: implement this org.apache.xml.dtm.DTMManager abstract method */
     return true;
   }
-  
+
   /**
-   * NEEDSDOC Method createDocumentFragment 
+   * NEEDSDOC Method createDocumentFragment
    *
    *
    * NEEDSDOC (createDocumentFragment) @return
    */
   public DTM createDocumentFragment()
   {
+
     try
     {
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+
       dbf.setNamespaceAware(true);
+
       DocumentBuilder db = dbf.newDocumentBuilder();
       Document doc = db.newDocument();
       Node df = doc.createDocumentFragment();
-  
+
       return getDTM(new DOMSource(df), true, null);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       throw new DTMException(e);
     }
   }
-  
+
   /**
-   * NEEDSDOC Method createDTMIterator 
+   * NEEDSDOC Method createDTMIterator
    *
    *
    * NEEDSDOC @param whatToShow
@@ -218,7 +362,7 @@ public class DTMManagerDefault extends DTMManager
   }
 
   /**
-   * NEEDSDOC Method createDTMIterator 
+   * NEEDSDOC Method createDTMIterator
    *
    *
    * NEEDSDOC @param xpathString
@@ -235,7 +379,7 @@ public class DTMManagerDefault extends DTMManager
   }
 
   /**
-   * NEEDSDOC Method createDTMIterator 
+   * NEEDSDOC Method createDTMIterator
    *
    *
    * NEEDSDOC @param node
@@ -250,7 +394,7 @@ public class DTMManagerDefault extends DTMManager
   }
 
   /**
-   * NEEDSDOC Method createDTMIterator 
+   * NEEDSDOC Method createDTMIterator
    *
    *
    * NEEDSDOC @param xpathCompiler
@@ -264,5 +408,4 @@ public class DTMManagerDefault extends DTMManager
     /** @todo: implement this org.apache.xml.dtm.DTMManager abstract method */
     return null;
   }
-
 }

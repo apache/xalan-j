@@ -28,87 +28,87 @@ public class TestDTM {
      *   <C>My Anaconda<D/>Words</C>
      *  </top> */
 
-    DTMDocumentImpl doc = new DTMDocumentImpl(0);
+    DTMDocumentImpl doc = new DTMDocumentImpl(null, 0, null);
 
     try
       {
-	doc.startDocument();
+        doc.startDocument();
 
-	doc.startElement("", "top", "top", null);
+        doc.startElement("", "top", "top", null);
 
-	doc.startElement("", "A", "A", null);
+        doc.startElement("", "A", "A", null);
 
-	AttributesImpl atts = new AttributesImpl();
-	atts.addAttribute("", "", "hat", "CDATA", "new");
-	atts.addAttribute("", "", "car", "CDATA", "Honda");
-	atts.addAttribute("", "", "dog", "CDATA", "Boxer");
-	doc.startElement("","B","B", atts);
-	text="Life is good";
-	doc.characters(text.toCharArray(),0,text.length());
-	doc.endElement("","B","B");
+        AttributesImpl atts = new AttributesImpl();
+        atts.addAttribute("", "", "hat", "CDATA", "new");
+        atts.addAttribute("", "", "car", "CDATA", "Honda");
+        atts.addAttribute("", "", "dog", "CDATA", "Boxer");
+        doc.startElement("","B","B", atts);
+        text="Life is good";
+        doc.characters(text.toCharArray(),0,text.length());
+        doc.endElement("","B","B");
 
-	doc.endElement("","A","A");
-	doc.startElement("","C","C", null);
+        doc.endElement("","A","A");
+        doc.startElement("","C","C", null);
 
-	text="My Anaconda";
-	doc.characters(text.toCharArray(),0,text.length());
-	doc.startElement("","D","D",null);
-	doc.endElement("","D","D");
-	text="Words";
-	doc.characters(text.toCharArray(),0,text.length());
+        text="My Anaconda";
+        doc.characters(text.toCharArray(),0,text.length());
+        doc.startElement("","D","D",null);
+        doc.endElement("","D","D");
+        text="Words";
+        doc.characters(text.toCharArray(),0,text.length());
 
-	doc.endElement("", "C", "C");
+        doc.endElement("", "C", "C");
 
-	boolean BUILDPURCHASEORDER=false;
-	if(BUILDPURCHASEORDER)
-	  {
-	    int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
+        boolean BUILDPURCHASEORDER=false;
+        if(BUILDPURCHASEORDER)
+          {
+            int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
 
-	    doc.startElement(null,"PurchaseOrderList","PurchaseOrderList", null);
+            doc.startElement(null,"PurchaseOrderList","PurchaseOrderList", null);
 
-	    for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 10; i++) {
 
-	      doc.startElement("","PurchaseOrder","PurchaseOrder", null);
+              doc.startElement("","PurchaseOrder","PurchaseOrder", null);
 
-	      doc.startElement("","Item","Item", null);
-	      text="Basketball" + " - " + i;
-	      doc.characters(text.toCharArray(),0,text.length());
-		      
-	      doc.endElement("", "Item", "Item");
+              doc.startElement("","Item","Item", null);
+              text="Basketball" + " - " + i;
+              doc.characters(text.toCharArray(),0,text.length());
+                      
+              doc.endElement("", "Item", "Item");
 
-	      doc.startElement("","Description","Description", null);
-	      // c2.createAttribute();
-	      text="Professional Leather Michael Jordan Signatured Basketball";
-	      doc.characters(text.toCharArray(),0,text.length());
-		      
-	      doc.endElement("", "Description", "Description");
+              doc.startElement("","Description","Description", null);
+              // c2.createAttribute();
+              text="Professional Leather Michael Jordan Signatured Basketball";
+              doc.characters(text.toCharArray(),0,text.length());
+                      
+              doc.endElement("", "Description", "Description");
 
-	      doc.startElement("","UnitPrice","UnitPrice", null);
-	      text="$12.99";
-	      doc.characters(text.toCharArray(),0,text.length());
-		      
-	      doc.endElement("", "UnitPrice", "UnitPrice");
+              doc.startElement("","UnitPrice","UnitPrice", null);
+              text="$12.99";
+              doc.characters(text.toCharArray(),0,text.length());
+                      
+              doc.endElement("", "UnitPrice", "UnitPrice");
 
-	      doc.startElement("","Quantity","Quantity", null);
-	      text="50";
-	      doc.characters(text.toCharArray(),0,text.length());
-		      
-	      doc.endElement("", "Quantity", "Quantity");
+              doc.startElement("","Quantity","Quantity", null);
+              text="50";
+              doc.characters(text.toCharArray(),0,text.length());
+                      
+              doc.endElement("", "Quantity", "Quantity");
 
-	      doc.endElement("", "PurchaseOrder", "PurchaseOrder");
-	    }
+              doc.endElement("", "PurchaseOrder", "PurchaseOrder");
+            }
 
-	    doc.endElement("", "PurchaseOrderList", "PurchaseOrderList");
-	  } // if(BUILDPURCHASEORDER)
+            doc.endElement("", "PurchaseOrderList", "PurchaseOrderList");
+          } // if(BUILDPURCHASEORDER)
 
-	doc.endElement("", "top", "top");
-	doc.endDocument();
+        doc.endElement("", "top", "top");
+        doc.endDocument();
       }
     catch(org.xml.sax.SAXException e)
       {
-	e.printStackTrace();
+        e.printStackTrace();
       }
-		
+                
 
     TestDTMNodes.printNodeTable(doc);
   }
