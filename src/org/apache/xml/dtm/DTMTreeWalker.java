@@ -131,24 +131,25 @@ public class DTMTreeWalker
     m_dtm = dtm;
   }
   
-  /**
-   * Perform a pre-order traversal non-recursive style.
+  /** Perform a non-recursive pre-order/post-order traversal,
+   * operating as a Visitor. startNode (preorder) and endNode
+   * (postorder) are invoked for each node as we traverse over them,
+   * with the result that the node is written out to m_contentHandler.
    *
-   * @param pos Node in the tree where to start traversal
+   * @param pos Node in the tree at which to start (and end) traversal --
+   * in other words, the root of the subtree to traverse over.
    *
-   * @throws TransformerException
-   */
+   * @throws TransformerException */
   public void traverse(int pos) throws org.xml.sax.SAXException
   {
+    // %REVIEW% Why isn't this just traverse(pos,pos)?
 
-    int top = pos;
+    int top = pos;		// Remember the root of this subtree
 
     while (DTM.NULL != pos)
     {
       startNode(pos);
-
       int nextNode = m_dtm.getFirstChild(pos);
-
       while (DTM.NULL == nextNode)
       {
         endNode(pos);
@@ -164,6 +165,8 @@ public class DTMTreeWalker
 
           if ((DTM.NULL == pos) || (top == pos))
           {
+	    // %REVIEW% This condition isn't tested in traverse(pos,top)
+	    // -- bug?
             if (DTM.NULL != pos)
               endNode(pos);
 
@@ -178,23 +181,27 @@ public class DTMTreeWalker
     }
   }
 
-  /**
-   * Perform a pre-order traversal non-recursive style.
+  /** Perform a non-recursive pre-order/post-order traversal,
+   * operating as a Visitor. startNode (preorder) and endNode
+   * (postorder) are invoked for each node as we traverse over them,
+   * with the result that the node is written out to m_contentHandler.
    *
    * @param pos Node in the tree where to start traversal
-   * @param top Node in the tree where to end traversal
+   * @param top Node in the tree where to end traversal.
+   * If top==DTM.NULL, run through end of document.
    *
    * @throws TransformerException
    */
   public void traverse(int pos, int top) throws org.xml.sax.SAXException
   {
+    // %OPT% Can we simplify the loop conditionals by adding:
+    //		if(top==DTM.NULL) top=0
+    // ?
 
     while (DTM.NULL != pos)
     {
       startNode(pos);
-
       int nextNode = m_dtm.getFirstChild(pos);
-
       while (DTM.NULL == nextNode)
       {
         endNode(pos);
