@@ -653,7 +653,7 @@ public class DOM2DTM implements DTM
     while (child != DTM.NULL)
     {
       lastChild = child;
-      child = getNodeInfo(identity, OFFSET_NEXTSIBLING);
+      child = getNodeInfo(child, OFFSET_NEXTSIBLING);
     }
 
     return lastChild | m_dtmIdent;
@@ -780,10 +780,9 @@ public class DOM2DTM implements DTM
   public int getPreviousSibling(int nodeHandle)
   {
 
-    int identity = nodeHandle & m_mask;
-    int firstChild = getNodeInfo(identity, OFFSET_PREVSIBLING);
+    int firstChild = getNodeInfo(nodeHandle & m_mask, OFFSET_PREVSIBLING);
 
-    return nodeHandle | m_dtmIdent;
+    return firstChild | m_dtmIdent;
   }
 
   /**
