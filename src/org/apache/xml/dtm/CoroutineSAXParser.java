@@ -603,8 +603,25 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
         // should never arise during normal operation.
         // Should this rethrow the parse exception?
         if (result instanceof Exception) {
-          System.out.println("\nParser threw exception:");
-          ((Exception)result).printStackTrace();
+          if(result instanceof SAXException)
+          {
+            SAXException se = (SAXException)result;
+            Exception e = se.getException();
+            if(null != e)
+            {
+              e.printStackTrace();
+            }
+            else
+            {
+              System.out.println("\nParser threw exception:");
+              se.printStackTrace();
+            }
+          }
+          else
+          {
+            System.out.println("\nParser threw exception:");
+            ((Exception)result).printStackTrace();
+          }
         }
 
         return result;

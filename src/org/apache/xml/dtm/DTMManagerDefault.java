@@ -216,16 +216,23 @@ public class DTMManagerDefault extends DTMManager
         try
         {
           // This is a strange way to start the parse.
-          coParser.doParse(xmlSource, appCoroutine);
+          Object gotMore = coParser.doParse(xmlSource, appCoroutine);
+          if (gotMore != Boolean.TRUE)
+          {
+      
+            dtm.clearCoRoutine();
+          }
         }
         catch(RuntimeException re)
         {
-          coroutineManager.co_exit(appCoroutine);
+          // coroutineManager.co_exit(appCoroutine);
+          dtm.clearCoRoutine();
           throw re;
         }
         catch(Exception e)
         {
-          coroutineManager.co_exit(appCoroutine);
+          // coroutineManager.co_exit(appCoroutine);
+          dtm.clearCoRoutine();
           throw new org.apache.xml.utils.WrappedRuntimeException(e);
         }
         finally

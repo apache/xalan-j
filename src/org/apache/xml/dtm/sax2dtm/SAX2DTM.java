@@ -157,6 +157,9 @@ public class SAX2DTM extends DTMDefaultBase
 
   /** pool of string values that come as strings. */
   private DTMStringPool m_valuesOrPrefixes = new DTMStringPool();
+  
+  /** End document has been reached. */
+  private boolean m_endDocumentOccured = false;
 
   /**
    * This represents the number of integers per node in the
@@ -259,6 +262,18 @@ public class SAX2DTM extends DTMDefaultBase
   public int getAppCoroutineID()
   {
     return m_appCoroutineID;
+  }
+  
+  /**
+   * Ask the CoRoutine parser to doTerminate and clear the reference.
+   */
+  public void clearCoRoutine()
+  {
+    if(null != m_coroutineParser)
+    {
+      m_coroutineParser.doTerminate(m_appCoroutineID);
+      m_coroutineParser = null;
+    }
   }
 
   /**
@@ -626,9 +641,16 @@ public class SAX2DTM extends DTMDefaultBase
 
     if (null == m_coroutineParser)
       return false;
+    
+    if(m_endDocumentOccured)
+    {
+      clearCoRoutine();
+
+      return false;
+    }
 
     Object gotMore = m_coroutineParser.doMore(true, m_appCoroutineID);
-
+   
     // gotMore may be a Boolean (TRUE if still parsing, FALSE if
     // EOF) or an exception if CoroutineParser malfunctioned
     // (code error rather than user error).
@@ -640,8 +662,7 @@ public class SAX2DTM extends DTMDefaultBase
     {
 
       // for now...
-      m_coroutineParser.doTerminate(m_appCoroutineID);
-      m_coroutineParser = null;
+      clearCoRoutine();
 
       return false;
 
@@ -652,8 +673,7 @@ public class SAX2DTM extends DTMDefaultBase
     {
 
       // EOF reached without satisfying the request
-      m_coroutineParser.doTerminate(m_appCoroutineID);
-      m_coroutineParser = null;  // Drop connection, stop trying
+      clearCoRoutine();  // Drop connection, stop trying
 
       // %TBD% deregister as its listener?
     }
@@ -1414,6 +1434,8 @@ public class SAX2DTM extends DTMDefaultBase
 
     m_level--;
     
+    m_endDocumentOccured = true;
+    
   }
 
   /**
@@ -1719,7 +1741,7 @@ public class SAX2DTM extends DTMDefaultBase
 
     if (m_textPending)
     {
-      int lastNodeIdentity = m_previous;
+      int lastNodeIdentity = m_size;
 
       dataIndex = getNodeInfoNoWait(lastNodeIdentity, OFFSET_DATA_OR_QNAME)
                   + 1;
