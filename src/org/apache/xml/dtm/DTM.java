@@ -610,7 +610,7 @@ public interface DTM
    *
    * @return the public identifier String object, or null if there is none.
    */
-  public int getDocumentTypeDeclarationPublicIdentifier();
+  public String getDocumentTypeDeclarationPublicIdentifier();
 
   /**
    * Returns the <code>Element</code> whose <code>ID</code> is given by 
