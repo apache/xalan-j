@@ -4,6 +4,10 @@
  *   - set DTMStringPool pointers
  *   - create element and text nodes with default append
  *   - dump the content of the DTM document created
+ *
+ * Rewritten to create the document via a simulated SAX2 stream rather than
+ * using "internal" DTM interfaces.
+ *
  *<P>Status - work in progress</p>
  */
 import org.apache.xml.dtm.CustomStringPool;
@@ -73,36 +77,53 @@ public class ComposeDTM {
 	// compose a PurchaseOrder document
 	public void composeDoc() {
 		int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
+		String text;
+		
+		try 
+		  {
+		    
+		    newDoc.startDocument();
 
-		root = newDoc.createElement("PurchaseOrderList", null);
-		// root.createAttribute("version", "1.1"));
+		    newDoc.startElement(null,"PurchaseOrderList","PurchaseOrderList", null);
+		    // root.createAttribute("version", "1.1"));
 
-		for (int i = 0; i < 10; i++) {
+		    for (int i = 0; i < 10; i++) {
 
-			h = newDoc.createElement("PurchaseOrder", null);
+		      newDoc.startElement(null,"PurchaseOrder","PurchaseOrder", null);
 
-			c1 = newDoc.createElement("Item", null);
-			// c1.createAttribute();
-			c1_text = newDoc.createTextNode("Basketball" + " - " + i);
-			newDoc.endElement(null, "Item");
+		      newDoc.startElement(null,"Item","Item", null);
+		      // c1.createAttribute();
+		      text="Basketball" + " - " + i;
+		      newDoc.characters(text.toCharArray(),0,text.length());
+		      newDoc.endElement(null, "Item", "Item");
 
-			c2 = newDoc.createElement("Description", null);
-			// c2.createAttribute();
-			c2_text = newDoc.createTextNode("Professional Leather Michael Jordan Signatured Basketball");
-			newDoc.endElement(null, "Description");
+		      newDoc.startElement(null,"Description","Description", null);
+		      // c2.createAttribute();
+		      text="Professional Leather Michael Jordan Signatured Basketball";
+		      newDoc.characters(text.toCharArray(),0,text.length());
+		      newDoc.endElement(null, "Description", "Description");
 
-			c3 = newDoc.createElement("UnitPrice", null);
-			c3_text = newDoc.createTextNode("$12.99");
-			newDoc.endElement(null, "UnitPrice");
+		      newDoc.startElement(null,"UnitPrice","UnitPrice", null);
+		      text="$12.99";
+		      newDoc.characters(text.toCharArray(),0,text.length());
+		      newDoc.endElement(null, "UnitPrice", "UnitPrice");
 
-			c4 = newDoc.createElement("Quanity", null);
-			c4_text = newDoc.createTextNode("50");
-			newDoc.endElement(null, "Quanity");
+		      newDoc.startElement(null,"Quantity","Quantity", null);
+		      text="50";
+		      newDoc.characters(text.toCharArray(),0,text.length());
+		      newDoc.endElement(null, "Quantity", "Quantity");
 
-			newDoc.endElement(null, "PurchaseOrder");
-		}
+		      newDoc.endElement(null, "PurchaseOrder", "PurchaseOrder");
+		    }
 
-		newDoc.endElement(null, "PurchaseOrderList");
+		    newDoc.endElement(null, "PurchaseOrderList", "PurchaseOrderList");
+
+		    newDoc.endDocument();
+		  }
+		catch(org.xml.sax.SAXException e)
+		  {
+		    e.printStackTrace();
+		  }
 	}
 
 	// traverse the PurchaseOrder document and print out the content
