@@ -88,6 +88,7 @@ public abstract class NodeSortRecord {
      * A reference to a locale. May be updated by subclass if the stylesheet
      * specifies a different language.
      */
+    protected static final Locale DEFAULT_LOCALE = Locale.getDefault();
     protected Locale _locale = Locale.getDefault();
 
     /**
@@ -119,6 +120,9 @@ public abstract class NodeSortRecord {
      */ 
     public NodeSortRecord(int node) {
 	_node = node;
+	if (_locale != DEFAULT_LOCALE) {
+	    _collator = Collator.getInstance(_locale);
+	}
     }
 
     public NodeSortRecord() {

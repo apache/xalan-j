@@ -78,6 +78,10 @@ public class DOMWSFilter implements DTMWSFilter {
     
     // The Hashtable for DTM to mapping array
     private Hashtable m_mappings;
+    
+    // Cache the DTM and mapping that are used last time
+    private DTM m_currentDTM;
+    private short[] m_currentMapping;
 
     /**
      * Construct an adapter connecting the <code>DTMWSFilter</code> interface
@@ -118,13 +122,22 @@ public class DOMWSFilter implements DTMWSFilter {
             if (dtm instanceof SAXImpl) {
                 SAXImpl saxImpl = (SAXImpl)dtm;
                 
-                short[] mapping = (short[])m_mappings.get(dtm);
-                if (mapping == null) {
-                    mapping = saxImpl.getMapping(m_translet.getNamesArray());
-                    m_mappings.put(dtm, mapping);
+                short[] mapping;
+                if (dtm == m_currentDTM) {
+                    mapping = m_currentMapping;
+                }
+                else {  
+                    mapping = (short[])m_mappings.get(dtm);
+                    if (mapping == null) {
+                        mapping = saxImpl.getMapping(m_translet.getNamesArray());
+                        m_mappings.put(dtm, mapping);
+                        m_currentDTM = saxImpl;
+                        m_currentMapping = mapping;
+                    }
                 }
                 
-                int expType = saxImpl.getExpandedTypeID(node);
+                //int expType = saxImpl.getExpandedTypeID(node);
+                int expType = saxImpl._exptype(saxImpl.makeNodeIdentity(node));
                 
                 // %OPT% The mapping array does not have information about all the
                 // exptypes. However it does contain enough information about all names

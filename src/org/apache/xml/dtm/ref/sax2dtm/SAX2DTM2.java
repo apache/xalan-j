@@ -1847,7 +1847,12 @@ public class SAX2DTM2 extends SAX2DTM
    */
   public final int _type2(int identity)
   {
-    int eType = _exptype2(identity);
+    //int eType = _exptype2(identity);
+    int eType;
+    if (identity < m_blocksize)
+      eType = m_exptype_map0[identity];
+    else
+      eType = m_exptype_map[identity>>>m_SHIFT][identity&m_MASK];    
   	
     if (NULL != eType)
       return m_extendedTypes[eType].getNodeType();
@@ -1872,7 +1877,17 @@ public class SAX2DTM2 extends SAX2DTM
   public final int getExpandedTypeID(int nodeHandle)
   {
     int nodeID = makeNodeIdentity(nodeHandle);
-    return (nodeID != NULL) ? _exptype2(nodeID) : NULL;
+    
+    //return (nodeID != NULL) ? _exptype2(nodeID) : NULL;
+    
+    if (nodeID != NULL) {
+      if (nodeID < m_blocksize)
+        return m_exptype_map0[nodeID];
+      else
+        return m_exptype_map[nodeID>>>m_SHIFT][nodeID&m_MASK]; 
+    }
+    else
+      return NULL;
   }
 
   /**
@@ -1961,7 +1976,6 @@ public class SAX2DTM2 extends SAX2DTM
     if(m_indexing)
       indexNode(exName, elemNode);
     
-
     m_parents.push(elemNode);
 
     int startDecls = m_contextIndexes.peek();
