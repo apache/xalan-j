@@ -115,7 +115,9 @@ public final class MultiDOM implements DOM {
 
 
         public void setRestartable(boolean flag) {
-            _source.setRestartable(flag);
+            if (_source != null) {
+                _source.setRestartable(flag);
+            }
         }
 
         public DTMAxisIterator setStartNode(final int node) {
@@ -151,11 +153,21 @@ public final class MultiDOM implements DOM {
         }
     
         public int getLast() {
-            return _source.getLast();
+            if (_source != null) {
+                return _source.getLast();
+            }
+            else {
+                return END;
+            }
         }
 
         public int getPosition() {
-            return _source.getPosition();
+            if (_source != null) {
+                return _source.getPosition();
+            }
+            else {
+                return END;
+            }
         }
     
         public boolean isReverse() {
@@ -163,16 +175,22 @@ public final class MultiDOM implements DOM {
         }
     
         public void setMark() {
-            _source.setMark();
+            if (_source != null) {
+                _source.setMark();
+            }
         }
     
         public void gotoMark() {
-            _source.gotoMark();
+            if (_source != null) {
+                _source.gotoMark();
+            }
         }
     
         public DTMAxisIterator cloneIterator() {
             final AxisIterator clone = new AxisIterator(_axis, _type);
-            clone._source = _source.cloneIterator();
+            if (_source != null) {
+                clone._source = _source.cloneIterator();
+            }
             clone._mask = _mask;
             return clone;
         }

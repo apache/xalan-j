@@ -86,6 +86,10 @@ public final class StringValueHandler extends TransletOutputBase {
 	System.arraycopy(ch, off, _buffer, _free, len);
 	_free += len;
 	*/
+	if (_str != null) {
+	    _buffer.append(_str);
+	    _str = null;
+	}
 	_buffer.append(ch, off, len);
     }
 
