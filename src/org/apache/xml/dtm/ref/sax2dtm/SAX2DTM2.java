@@ -2736,14 +2736,12 @@ public class SAX2DTM2 extends SAX2DTM
 
     if (type == DTM.ELEMENT_NODE || type == DTM.DOCUMENT_NODE)
     {
-      int firstChild = _firstch2(identity);
-      if (DTM.NULL != firstChild)
+      int startNode = identity;
+      identity = _firstch2(identity);
+      if (DTM.NULL != identity)
       {
 	int offset = -1;
 	int length = 0;
-	int startNode = identity;
-
-	identity = firstChild;
 
 	do 
 	{
@@ -2849,14 +2847,12 @@ public class SAX2DTM2 extends SAX2DTM
 
     if (type == DTM.ELEMENT_NODE || type == DTM.DOCUMENT_NODE)
     {
-      int firstChild = _firstch2(identity);
-      if (DTM.NULL != firstChild)
+      int startNode = identity;
+      identity = _firstch2(identity);
+      if (DTM.NULL != identity)
       {
 	int offset = -1;
 	int length = 0;
-	int startNode = identity;
-
-	identity = firstChild;
 
 	do 
 	{
