@@ -70,7 +70,6 @@ import org.apache.xalan.xsltc.TransletOutputHandler;
 import org.apache.xalan.xsltc.runtime.Hashtable;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMAxisIterator;
-import org.apache.xml.dtm.ref.DTMDefaultBase;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -78,7 +77,6 @@ import org.w3c.dom.NodeList;
 public final class DOMAdapter implements DOM {
 
     // Mutually exclusive casting of DOM interface to known implementations
-    private DOMImpl _domImpl;
     private SAXImpl _saxImpl;
 
     private DOM _dom;
@@ -99,9 +97,7 @@ public final class DOMAdapter implements DOM {
     public DOMAdapter(DOM dom,
                       String[] namesArray,
                       String[] namespaceArray) {
-      if (dom instanceof DOMImpl) {
-          _domImpl = (DOMImpl) dom;
-      } else if (dom instanceof SAXImpl){
+      if (dom instanceof SAXImpl){
           _saxImpl = (SAXImpl) dom;
       }
 
@@ -130,20 +126,16 @@ public final class DOMAdapter implements DOM {
 
     private short[] getMapping() {
         if (_mapping == null) {
-            if (_domImpl != null) {
-                _mapping = _domImpl.getMapping(_namesArray);
-            } else {
+            if (_saxImpl != null) {
                 _mapping = _saxImpl.getMapping(_namesArray);
-            }
+            } 
         }
         return _mapping;
     }
 
     private int[] getReverse() {
 	if (_reverse == null) {
-            if (_domImpl != null) {
-	        _reverse = _domImpl.getReverseMapping(_namesArray);
-            } else if (_saxImpl != null){
+            if (_saxImpl != null) {
 	        _reverse = _saxImpl.getReverseMapping(_namesArray);
             }
 	}
@@ -152,9 +144,7 @@ public final class DOMAdapter implements DOM {
 
     private short[] getNSMapping() {
 	if (_NSmapping == null) {
-            if (_domImpl != null) {
-	        _NSmapping = _domImpl.getNamespaceMapping(_namespaceArray);
-            } else {
+            if (_saxImpl != null) {
 	        _NSmapping = _saxImpl.getNamespaceMapping(_namespaceArray);
             }
 	}
@@ -163,10 +153,7 @@ public final class DOMAdapter implements DOM {
 
     private short[] getNSReverse() {
 	if (_NSreverse == null) {
-            if (_domImpl != null) {
-	        _NSreverse =
-                        _domImpl.getReverseNamespaceMapping(_namespaceArray);
-            } else {
+            if (_saxImpl != null) {
 	        _NSreverse =
                         _saxImpl.getReverseNamespaceMapping(_namespaceArray);
             }
@@ -216,9 +203,6 @@ public final class DOMAdapter implements DOM {
 
       if (_saxImpl != null) {
           return _saxImpl.getTypedChildren(reverse[type]);
-      }
-      else if (_domImpl != null) {
-          return _domImpl.getTypedChildren(reverse[type]);
       }
       else {
           return _dom.getTypedChildren(type);
@@ -275,8 +259,6 @@ public final class DOMAdapter implements DOM {
           }
       } else if (_saxImpl != null) {
           return _saxImpl.getTypedAxisIterator(axis, reverse[type]);
-      } else if (_domImpl != null) {
-          return _domImpl.getTypedAxisIterator(axis, reverse[type]);
       } else {
           return _dom.getTypedAxisIterator(axis, type);
       }
@@ -442,18 +424,16 @@ public final class DOMAdapter implements DOM {
 
     public void setDocumentURI(String uri) 
     {
-      if (_domImpl != null)
-        _domImpl.setDocumentURI(uri);
-      else
+      if (_saxImpl != null)
         _saxImpl.setDocumentURI(uri);
     }
 
-    public String getDocumentURI() 
+    public String getDocumentURI()
     {
-      if (_domImpl != null)
-        return _domImpl.getDocumentURI();
-      else
+      if (_saxImpl != null)
         return _saxImpl.getDocumentURI();
+      else
+        return "";
     }
 
     public String getDocumentURI(int node) 

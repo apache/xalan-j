@@ -77,7 +77,6 @@ import org.apache.xalan.xsltc.Translet;
 import org.apache.xalan.xsltc.TransletException;
 import org.apache.xalan.xsltc.TransletOutputHandler;
 import org.apache.xalan.xsltc.dom.DOMAdapter;
-import org.apache.xalan.xsltc.dom.DOMImpl;
 import org.apache.xalan.xsltc.dom.KeyIndex;
 import org.apache.xalan.xsltc.dom.SAXImpl;
 import org.apache.xalan.xsltc.runtime.output.TransletOutputHandlerFactory;
@@ -137,12 +136,7 @@ public abstract class AbstractTranslet implements Translet {
      */
     public final DOMAdapter makeDOMAdapter(DOM dom)
 	throws TransletException {
-	if (dom instanceof DOMImpl)
-	    return new DOMAdapter((DOMImpl)dom, namesArray, namespaceArray);
-	else if (dom instanceof SAXImpl)
-	    return new DOMAdapter((SAXImpl)dom, namesArray, namespaceArray);
-	//BasisLibrary.runTimeError(BasisLibrary.DOM_ADAPTER_INIT_ERR);
-	return null;
+	return new DOMAdapter(dom, namesArray, namespaceArray);
     }
 
     /************************************************************************
@@ -321,39 +315,41 @@ public abstract class AbstractTranslet implements Translet {
      * The index contains the element node index (int) and Id value (String).
      */
     private final void buildIDIndex(DOM document) {
-        // %MK% %REVISIT% We can pursue another way of handling the id() function
-        // %MK% %REVISIT% without using the KeyIndex, e.g. introducing a function idF() 
-        // %MK% %REVISIT% in BasisLibrary. We need to investigate the performance impact
-        // %MK% %REVISIT% of both solutions and see which one is better.
-        //
-        // In the DOM case, we create an empty KeyIndex at the moment.
-        // The id vs. node mapping is created later when KeyIndex.lookupId() is called.
-        if (document instanceof DOMImpl) {
-            buildKeyIndex(ID_INDEX_NAME, document);
-        }
-        else {
-            final Hashtable elementsByID = document.getElementsWithIDs();
-
-            if (elementsByID == null) {
-            	return;
+        
+        if (document instanceof SAXImpl) {
+            SAXImpl saxImpl = (SAXImpl)document;
+            
+            // If the input source is DOMSource, the KeyIndex table is not
+            // built at this time. It will be built later by the lookupId()
+            // and containsId() methods of the KeyIndex class.
+            if (saxImpl.hasDOMSource()) {
+                buildKeyIndex(ID_INDEX_NAME, document);
+                return;
             }
+            else {
+                final Hashtable elementsByID = saxImpl.getElementsWithIDs();
 
-            // Given a Hashtable of DTM nodes indexed by ID attribute values,
-            // loop through the table copying information to a KeyIndex
-            // for the mapping from ID attribute value to DTM node
-            final Enumeration idValues = elementsByID.keys();
-            boolean hasIDValues = false;
+                if (elementsByID == null) {
+            	    return;
+                }
 
-            while (idValues.hasMoreElements()) {
-            	final Object idValue = idValues.nextElement();
-            	final int element = ((Integer)elementsByID.get(idValue)).intValue();
+                // Given a Hashtable of DTM nodes indexed by ID attribute values,
+                // loop through the table copying information to a KeyIndex
+                // for the mapping from ID attribute value to DTM node
+                final Enumeration idValues = elementsByID.keys();
+                boolean hasIDValues = false;
 
-            	buildKeyIndex(ID_INDEX_NAME, element, idValue);
-            	hasIDValues = true;
-            }
+                while (idValues.hasMoreElements()) {
+            	    final Object idValue = idValues.nextElement();
+            	    final int element = ((Integer)elementsByID.get(idValue)).intValue();
 
-            if (hasIDValues) {
-            	setKeyIndexDom(ID_INDEX_NAME, document);
+            	    buildKeyIndex(ID_INDEX_NAME, element, idValue);
+            	    hasIDValues = true;
+                }
+
+                if (hasIDValues) {
+            	    setKeyIndexDom(ID_INDEX_NAME, document);
+                }
             }
         }
     }

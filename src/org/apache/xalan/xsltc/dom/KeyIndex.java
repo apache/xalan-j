@@ -90,6 +90,8 @@ public class KeyIndex extends DTMAxisIteratorBase {
      * id() function.
      */
     private DOM        _dom;
+    
+    private SAXImpl    _saxImpl;
 
     /**
      * Store position after call to setMark()
@@ -146,7 +148,7 @@ public class KeyIndex extends DTMAxisIteratorBase {
             final String token = (String) values.nextElement();
 	    IntegerArray nodes = (IntegerArray) _index.get(token);
 
-            if (nodes == null && _dom instanceof DOMImpl) {
+            if (nodes == null && _saxImpl != null && _saxImpl.hasDOMSource()) {
                 nodes = getDOMNodeById(token);
             }
 
@@ -169,10 +171,8 @@ public class KeyIndex extends DTMAxisIteratorBase {
      */
     public IntegerArray getDOMNodeById(String id) {
         IntegerArray nodes = null;
-        if (_dom instanceof DOMImpl) {
-            DOMImpl domImpl = (DOMImpl)_dom;
-            int node = domImpl.getElementById(id);
-            int ident = domImpl.getNodeIdent(node);
+        if (_saxImpl != null) {
+            int ident = _saxImpl.getElementById(id);
             if (ident != DTM.NULL) {
 	        nodes = new IntegerArray();
 	    	_index.put(id, nodes);
@@ -210,7 +210,7 @@ public class KeyIndex extends DTMAxisIteratorBase {
                 final String token = (String) values.nextElement();
 		IntegerArray nodes = (IntegerArray) _index.get(token);
 
-		if (nodes == null && _dom instanceof DOMImpl) {
+		if (nodes == null && _saxImpl != null && _saxImpl.hasDOMSource()) {
 		    nodes = getDOMNodeById(token);	
 		}
 		if (nodes != null && nodes.indexOf(node) >= 0) {
@@ -221,7 +221,7 @@ public class KeyIndex extends DTMAxisIteratorBase {
 	}
 	else {
 	    IntegerArray nodes = (IntegerArray) _index.get(value);
-            if (nodes == null && _dom instanceof DOMImpl) {
+            if (nodes == null && _saxImpl != null && _saxImpl.hasDOMSource()) {
                 nodes = getDOMNodeById(string);
             }
 	    return (nodes != null && nodes.indexOf(node) >= 0) ? 1 : 0;
@@ -311,5 +311,8 @@ public class KeyIndex extends DTMAxisIteratorBase {
     
     public void setDom(DOM dom) {
     	_dom = dom;
+    	if (dom instanceof SAXImpl) {
+    	    _saxImpl = (SAXImpl)dom;
+    	}
     }
 }

@@ -68,8 +68,7 @@ import org.apache.xml.dtm.ref.DTMManagerDefault;
 import org.apache.xml.res.XMLErrorResources;
 import org.apache.xml.res.XMLMessages;
 import org.apache.xml.utils.SystemIDResolver;
-import org.apache.xml.utils.XMLStringFactory;
-import org.apache.xml.utils.XMLStringFactoryDefault;
+import org.apache.xalan.xsltc.trax.DOM2SAX;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXNotRecognizedException;
@@ -110,7 +109,6 @@ public class XSLTCDTMManager extends DTMManagerDefault
   public static XSLTCDTMManager newInstance()
   {
     XSLTCDTMManager factoryImpl = new XSLTCDTMManager();
-    factoryImpl.setXMLStringFactory(new XMLStringFactoryDefault());
     return factoryImpl;
     
     /*
@@ -245,31 +243,41 @@ public class XSLTCDTMManager extends DTMManagerDefault
 			 " source: "+source.getSystemId()
 			 );
 
-    XMLStringFactory xstringFactory = m_xsf;
     int dtmPos = getFirstFreeDTMID();
     int documentID = dtmPos << IDENT_DTM_NODE_BITS;
 
     if ((null != source) && source instanceof DOMSource)
     {
-      DOMImpl dtm;
+      final DOMSource domsrc = (DOMSource) source;
+      final org.w3c.dom.Node node = domsrc.getNode();
+      final DOM2SAX dom2sax = new DOM2SAX(node);
+      
+      SAXImpl dtm;
 
       if (size <= 0) {
-        dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, xstringFactory, doIndexing);
+        dtm = new SAXImpl(this, source, documentID,
+                          whiteSpaceFilter, null, doIndexing, buildIdIndex);
       } else {
-        dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, xstringFactory, doIndexing, size);
+        dtm = new SAXImpl(this, source, documentID,
+                          whiteSpaceFilter, null, doIndexing, size, buildIdIndex);
       }
+      
+      dtm.setDocumentURI(source.getSystemId());
 
-      addDTM(dtm, dtmPos);
-
-      dtm.createMappings();
-
-//      if (DUMPTREE)
-//      {
-//        dtm.dumpDTM();
-//      }
-
+      addDTM(dtm, dtmPos, 0);
+      
+      dom2sax.setContentHandler(dtm);
+      
+      try {
+        dom2sax.parse();
+      }
+      catch (RuntimeException re) {
+        throw re;
+      }
+      catch (Exception e) {
+        throw new org.apache.xml.utils.WrappedRuntimeException(e);
+      }
+      
       return dtm;
     }
     else

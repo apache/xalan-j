@@ -126,10 +126,7 @@ public final class LoadDocument {
             if (newDom instanceof SAXImpl) {
                 return new SingletonIterator(((SAXImpl)newDom).getDocument(),
                                              true);
-            } else {
-                return new SingletonIterator(((DOMImpl)newDom).getDocument(),
-                                             true);
-            }
+            } 
         }
 
         // Check if we can get the DOM from a DOMCache

@@ -68,6 +68,7 @@ package org.apache.xalan.xsltc.dom;
 import java.util.Enumeration;
 
 import javax.xml.transform.Source;
+import javax.xml.transform.dom.DOMSource;
 
 import org.apache.xalan.xsltc.runtime.BasisLibrary;
 import org.apache.xalan.xsltc.runtime.Hashtable;
@@ -77,6 +78,11 @@ import org.apache.xml.utils.XMLStringFactory;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.Document;
+import org.w3c.dom.DocumentType;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Entity;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.apache.xml.dtm.ref.sax2dtm.SAX2DTM2;
@@ -172,6 +178,17 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
     // Object used to map TransletOutputHandler events to SAX events
     private CH2TOH _ch2toh = new CH2TOH();
+    
+    // The owning Document when the input source is DOMSource. 
+    private Document _document;
+    
+    // The hashtable for org.w3c.dom.Node to node id mapping.
+    // This is only used when the input is a DOMSource and the
+    // buildIdIndex flag is true.
+    private Hashtable _node2Ids = null;
+    
+    // True if the input source is a DOMSource.
+    private boolean _hasDOMSource = false;
     
     // The DTMManager
     private XSLTCDTMManager _dtmManager;
@@ -1040,25 +1057,25 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Construct a SAXImpl object using the default block size.
      */
-    public SAXImpl(XSLTCDTMManager mgr, Source saxSource,
+    public SAXImpl(XSLTCDTMManager mgr, Source source,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing, boolean buildIdIndex)
     {
-      this(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
+      this(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
            doIndexing, DEFAULT_BLOCKSIZE, buildIdIndex);
     }
-
+    
     /**
      * Construct a SAXImpl object using the given block size.
      */
-    public SAXImpl(XSLTCDTMManager mgr, Source saxSource,
+    public SAXImpl(XSLTCDTMManager mgr, Source source,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing, int blocksize, 
                  boolean buildIdIndex)
     {
-      super(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
+      super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory,
             doIndexing, blocksize, false, buildIdIndex);
       
       _dtmManager = mgr;      
@@ -1070,7 +1087,48 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       //                            : size * DEFAULT_TEXT_FACTOR);
                                   
        /* From DOMBuilder */ 
-      _xmlSpaceStack[0] = DTMDefaultBase.ROOTNODE;                            
+      _xmlSpaceStack[0] = DTMDefaultBase.ROOTNODE;
+      
+      // If the input source is DOMSource, set the _document field and
+      // create the node2Ids table.
+      if (source instanceof DOMSource) {
+        _hasDOMSource = true;
+        DOMSource domsrc = (DOMSource)source;
+        Node node = domsrc.getNode();
+        if (node instanceof Document) {
+          _document = (Document)node;
+        }
+        else {
+          _document = node.getOwnerDocument();
+        }
+        _node2Ids = new Hashtable();
+      }                          
+    }
+        
+    /**
+     * Return the node identity for a given id String
+     * 
+     * @param idString The id String
+     * @return The identity of the node whose id is the given String.
+     */
+    public int getElementById(String idString)
+    {
+        Node node = _document.getElementById(idString);
+        if (node != null) {
+            Integer id = (Integer)_node2Ids.get(node);
+            return (id != null) ? id.intValue() : DTM.NULL;
+        }
+        else {
+            return DTM.NULL;
+        }
+    }
+    
+    /**
+     * Return true if the input source is DOMSource.
+     */
+    public boolean hasDOMSource()
+    {
+        return _hasDOMSource;	
     }
 
     /**
@@ -1296,6 +1354,18 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
   }
 
+    public void startElement(String uri, String localName,
+                              String qname, Attributes attributes,
+                              Node node)
+        throws SAXException
+    {
+    	this.startElement(uri, localName, qname, attributes);
+    	
+    	if (m_buildIdIndex) {
+    	    _node2Ids.put(node, new Integer(m_parents.peek()));
+    	}
+    }
+    
     /**
      * SAX2: Receive notification of the beginning of an element.
      */
@@ -2179,7 +2249,44 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         return idAttrsTable;
     }
 
-    public boolean compareNodeToString(int node, String value) {
-        return getStringValueX(node).equals(value);
+    /**
+     * The getUnparsedEntityURI function returns the URI of the unparsed
+     * entity with the specified name in the same document as the context
+     * node (see [3.3 Unparsed Entities]). It returns the empty string if
+     * there is no such entity.
+     */
+    public String getUnparsedEntityURI(String name)
+    {
+        // Special handling for DOM input
+        if (_document != null) {
+            String uri = "";
+            DocumentType doctype = _document.getDoctype();
+            if (doctype != null) {
+                NamedNodeMap entities = doctype.getEntities();
+                
+                if (entities == null) {
+                    return uri;
+                }
+                
+                Entity entity = (Entity) entities.getNamedItem(name);
+                
+                if (entity == null) {
+                    return uri;
+                }
+                
+                String notationName = entity.getNotationName();
+                if (notationName != null) {
+                    uri = entity.getSystemId();
+                    if (uri == null) {
+                        uri = entity.getPublicId();
+                    }
+                }
+            }
+            return uri;
+        }
+        else {
+            return super.getUnparsedEntityURI(name);
+        }	
     }
+
 }

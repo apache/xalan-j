@@ -149,20 +149,8 @@ public class DOMWSFilter implements DTMWSFilter {
                 else
                   type = -1;
                 
-            } else if (dtm instanceof DOMImpl) {
-                DOMImpl domImpl = (DOMImpl)dtm;
-                short[] mapping = (short[])m_mappings.get(dtm);
-                if (mapping == null) {
-                    mapping = domImpl.getMapping(m_translet.getNamesArray());
-                    m_mappings.put(dtm, mapping);
-                }
-                
-                int expType = domImpl.getExpandedTypeID(node);
-                if (expType >= 0 && expType < mapping.length)
-                  type = mapping[expType];
-                else
-                  type = -1;
-            } else {
+            } 
+            else {
                 return INHERIT;
             }
 

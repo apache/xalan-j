@@ -84,7 +84,7 @@ import org.apache.xalan.xsltc.TransletOutputHandler;
 import org.apache.xalan.xsltc.dom.AbsoluteIterator;
 import org.apache.xalan.xsltc.dom.Axis;
 import org.apache.xalan.xsltc.dom.DOMAdapter;
-import org.apache.xalan.xsltc.dom.DOMImpl;
+import org.apache.xalan.xsltc.dom.SAXImpl;
 import org.apache.xalan.xsltc.dom.MultiDOM;
 import org.apache.xalan.xsltc.dom.SingletonIterator;
 import org.apache.xalan.xsltc.dom.StepIterator;
@@ -1176,9 +1176,9 @@ public final class BasisLibrary implements Operators {
 
 	    DTMDefaultBase dtm = (DTMDefaultBase)((DOMAdapter)multiDOM.getMain()).getDOMImpl();
 	    DTMManager dtmManager = dtm.getManager();
-	    DOMImpl idom = (DOMImpl)dtmManager.getDTM(new DOMSource(doc), false,
+	    
+	    SAXImpl idom = (SAXImpl)dtmManager.getDTM(new DOMSource(doc), false,
 						      null, true, false);
-
 	    // Create DOMAdapter and register with MultiDOM
 	    DOMAdapter domAdapter = new DOMAdapter(idom, 
                 translet.getNamesArray(),

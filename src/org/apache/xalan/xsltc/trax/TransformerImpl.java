@@ -101,7 +101,6 @@ import org.apache.xalan.xsltc.TransletException;
 import org.apache.xalan.xsltc.TransletOutputHandler;
 import org.apache.xalan.xsltc.compiler.util.ErrorMsg;
 import org.apache.xalan.xsltc.dom.DOMBuilder;
-import org.apache.xalan.xsltc.dom.DOMImpl;
 import org.apache.xalan.xsltc.dom.DOMWSFilter;
 import org.apache.xalan.xsltc.dom.SAXImpl;
 import org.apache.xalan.xsltc.dom.XSLTCDTMManager;
@@ -431,6 +430,7 @@ public final class TransformerImpl extends Transformer
 	throws TransformerException {
 	try {
 	    DOM dom = null;
+	    SAXImpl saxImpl = null;
 	    DTMWSFilter wsfilter;
 	    if (_translet != null && _translet instanceof StripFilter) {
 	        wsfilter = new DOMWSFilter(_translet);
@@ -459,34 +459,30 @@ public final class TransformerImpl extends Transformer
 
 		// Create a new internal DOM and set up its builder to trap
 		// all content/lexical events
-		XSLTCDTMManager dtmManager = 
-                   (XSLTCDTMManager) XSLTCDTMManager.newInstance();
+		XSLTCDTMManager dtmManager = XSLTCDTMManager.newInstance();
 
                 //dtmManager.setIncremental(_isIncremental);
-		dom = (SAXImpl)dtmManager.getDTM(sax, false, wsfilter, true, false,
+		saxImpl = (SAXImpl)dtmManager.getDTM(sax, false, wsfilter, true, false,
                                                  hasUserReader, 0, hasIdCall);
-		final DOMBuilder builder = ((SAXImpl)dom).getBuilder();
+		//final DOMBuilder builder = ((SAXImpl)dom).getBuilder();
 		try {
-		    reader.setProperty(LEXICAL_HANDLER_PROPERTY, builder);
+		    reader.setProperty(LEXICAL_HANDLER_PROPERTY, saxImpl);
 		}
 		catch (SAXException e) {
 		    // quitely ignored
 		}
-		reader.setContentHandler(builder);
-		reader.setDTDHandler(builder);
-		((SAXImpl)dom).setDocumentURI(_sourceSystemId);
+		reader.setContentHandler(saxImpl);
+		reader.setDTDHandler(saxImpl);
+		saxImpl.setDocumentURI(_sourceSystemId);
 	    }
 	    else if (source instanceof DOMSource) {
-		final DOMSource domsrc = (DOMSource) source;
-
 		// Create a new internal DTM and build it directly from DOM
-		XSLTCDTMManager dtmManager =
-                     (XSLTCDTMManager)XSLTCDTMManager.newInstance();
+		XSLTCDTMManager dtmManager = XSLTCDTMManager.newInstance();
     
                 //dtmManager.setIncremental(_isIncremental);
-		dom = (DOMImpl)dtmManager.getDTM(domsrc, false, wsfilter, true,
+		saxImpl = (SAXImpl)dtmManager.getDTM(source, false, wsfilter, true,
                                                  false, hasIdCall);
-		((DOMImpl)dom).setDocumentURI(_sourceSystemId);
+		saxImpl.setDocumentURI(_sourceSystemId);
 	    }
 	    // Handle StreamSource input
 	    else if (source instanceof StreamSource) {
@@ -498,8 +494,7 @@ public final class TransformerImpl extends Transformer
 
 		// Create a new internal DOM and set up its builder to trap
 		// all content/lexical events
-		XSLTCDTMManager dtmManager =
-                         (XSLTCDTMManager) XSLTCDTMManager.newInstance();
+		XSLTCDTMManager dtmManager = XSLTCDTMManager.newInstance();
 
 		//dtmManager.setIncremental(_isIncremental);
 		
@@ -518,10 +513,10 @@ public final class TransformerImpl extends Transformer
 		    ErrorMsg err = new ErrorMsg(ErrorMsg.JAXP_NO_SOURCE_ERR);
 		    throw new TransformerException(err.toString());
 		}
-		dom = (SAXImpl)dtmManager.getDTM(new SAXSource(reader, input),
+		saxImpl = (SAXImpl)dtmManager.getDTM(new SAXSource(reader, input),
                                                  false, wsfilter, true,
                                                  false, hasIdCall);
-		((SAXImpl)dom).setDocumentURI(_sourceSystemId);
+		saxImpl.setDocumentURI(_sourceSystemId);
 	    }
 	    else if (source instanceof XSLTCSource) {
 		final XSLTCSource xsltcsrc = (XSLTCSource)source;
@@ -535,11 +530,16 @@ public final class TransformerImpl extends Transformer
 		return null;
 	    }
 
+	    if (saxImpl != null) {
+	        dom = saxImpl;
+	    }
+	    
 	    if (!_isIdentity) {
                 // Give the translet the opportunity to make a prepass of
                 // the document, in case it can extract useful information early
 		_translet.prepassDocument(dom);
 	    }
+	    	    
 	    return dom;
 
 	}
