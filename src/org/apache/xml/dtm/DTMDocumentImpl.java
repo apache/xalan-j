@@ -316,7 +316,7 @@ public class DTMDocumentImpl implements DTM {
           *
           * @return FastStringBuffer reference to an instance of buffer
           */
-         void getContentBuffer() {
+         FastStringBuffer getContentBuffer() {
                  return m_char;
          }
 
@@ -950,7 +950,7 @@ public class DTMDocumentImpl implements DTM {
 	 * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
 	 * @return handle of next namespace, or DTM.NULL to indicate none exists.
 	 */
-	public int getNextNamespaceNode(int namespaceHandle, boolean inScope) {
+	public int getNextNamespaceNode(int baseHandle,int namespaceHandle, boolean inScope) {
 		// ###shs need to work on namespace
 		return NULL;
 	}
@@ -1125,11 +1125,22 @@ public class DTMDocumentImpl implements DTM {
 	 * for the definition of a node's string-value).
 	 * Note that a single text node may have multiple text chunks.
 	 *
+	 * EXPLANATION: This method is an artifact of the fact that the
+	 * underlying m_chars object may not store characters in a
+	 * single contiguous array -- for example,the current
+	 * FastStringBuffer may split a single node's text across
+	 * multiple allocation units.  This call tells us how many
+	 * separate accesses will be required to retrieve the entire
+	 * content. PLEASE NOTE that this may not be the same as the
+	 * number of SAX characters() events that caused the text node
+	 * to be built in the first place, since m_chars buffering may
+	 * be on different boundaries than the parser's buffers.
+	 *
 	 * @param nodeHandle The node ID.
 	 *
 	 * @return number of character array chunks in
 	 *         the string-value of a node.
-	 */
+	 * */
 	//###zaj - tbd
 	public int getStringValueChunkCount(int nodeHandle)
 	{
@@ -1143,13 +1154,24 @@ public class DTMDocumentImpl implements DTM {
 	 * for the definition of a node's string-value).
 	 * Note that a single text node may have multiple text chunks.
 	 *
+	 * EXPLANATION: This method is an artifact of the fact that
+	 * the underlying m_chars object may not store characters in a
+	 * single contiguous array -- for example,the current
+	 * FastStringBuffer may split a single node's text across
+	 * multiple allocation units.  This call retrieves a single
+	 * contiguous portion of the text -- as much as m-chars was
+	 * able to store in a single allocation unit.  PLEASE NOTE
+	 * that this may not be the same granularityas the SAX
+	 * characters() events that caused the text node to be built
+	 * in the first place, since m_chars buffering may be on
+	 * different boundaries than the parser's buffers.
+	 *
 	 * @param nodeHandle The node ID.
 	 * @param chunkIndex Which chunk to get.
 	 * @param startAndLen An array of 2 where the start position and length of
 	 *                    the chunk will be returned.
 	 *
-	 * @return The character array reference where the chunk occurs.
-	 */
+	 * @return The character array reference where the chunk occurs.  */
 	//###zaj - tbd 
 	public char[] getStringValueChunk(int nodeHandle, int chunkIndex,
 																		int[] startAndLen) {return new char[0];}
@@ -1178,7 +1200,7 @@ public class DTMDocumentImpl implements DTM {
         }
 
 
-	/**
+        /**
 	 * Given an expanded name, return an ID.  If the expanded-name does not
 	 * exist in the internal tables, the entry will be created, and the ID will
 	 * be returned.  Any additional nodes that are created that have this
@@ -1188,13 +1210,16 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @return the expanded-name id of the node.
 	 */
-	public int getExpandedNameID(String namespace, String localName) {
-          
+        public int getExpandedNameID(String namespace, String localName, int type) {
 	   // Create expanded name
+	  // %TBD% jjk Expanded name is bitfield-encoded as
+	  // typeID[4]nsuriID[14]localID[14]. Switch to that form, and to
+	  // accessing the ns/local via their tables rather than confusing
+	  // nsnames and expandednames.
 	   String expandedName = namespace + ":" + localName;
 	   int expandedNameID = m_nsNames.stringToIndex(expandedName);
 
-        return expandedNameID;
+	   return expandedNameID;
 	}
 
 
@@ -1486,7 +1511,7 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @return the public identifier String object, or null if there is none.
 	 */
-	public int getDocumentTypeDeclarationPublicIdentifier() {return 0;}
+	public String getDocumentTypeDeclarationPublicIdentifier() {return null;}
 
 	/**
 	 * Returns the <code>Element</code> whose <code>ID</code> is given by
