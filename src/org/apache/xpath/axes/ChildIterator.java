@@ -83,7 +83,7 @@ public class ChildIterator extends LocPathIterator
    * @param compiler A reference to the Compiler that contains the op map.
    * @param opPos The position within the op map, which contains the
    * location path expression for this itterator.
-   * NEEDSDOC @param analysis
+   * @param analysis Analysis bits of the entire pattern.
    *
    * @throws javax.xml.transform.TransformerException
    */

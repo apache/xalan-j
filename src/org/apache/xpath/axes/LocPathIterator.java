@@ -95,38 +95,9 @@ import org.apache.xpath.VariableStack;
  * the case where the LocPathIterator is "owned" by a UnionPathIterator,
  * in which case the UnionPathIterator will cache the nodes.</p>
  */
-public class LocPathIterator extends PredicatedNodeTest
+public abstract class LocPathIterator extends PredicatedNodeTest
         implements Cloneable, DTMIterator, java.io.Serializable
 {
-
-  /**
-   * Get the waiting walker at the given index.
-   *
-   *
-   * @param i The walker index.
-   *
-   * @return non-null reference to an AxesWalker.
-   */
-  AxesWalker getWaiting(int i)
-  {
-    return (AxesWalker) m_waiting.elementAt(i);
-  }
-
-  /**
-   * Get the number of waiters waiting in the current expression execution.
-   * Note that this may not be the same as the total number of waiters in
-   * the waiting list.
-   *
-   *
-   * @return the number of waiters waiting in the current expression execution.
-   */
-  int getWaitingCount()
-  {
-    if(null == m_waiting)
-      return 0;
-    else
-      return m_waiting.size() - m_waitingBottom;
-  }
 
   /**
    * Create a LocPathIterator object.
@@ -179,18 +150,7 @@ public class LocPathIterator extends PredicatedNodeTest
           Compiler compiler, int opPos, int analysis, boolean shouldLoadWalkers)
             throws javax.xml.transform.TransformerException
   {
-    m_analysis = analysis;
-
     setLocPathIterator(this);
-
-    int firstStepPos = compiler.getFirstChildPos(opPos);
-
-    if (shouldLoadWalkers)
-    {
-      m_firstWalker = WalkerFactory.loadWalkers(this, compiler, firstStepPos,
-                                                0);
-      m_lastUsedWalker = m_firstWalker;
-    }
   }
   
   /**
@@ -660,45 +620,21 @@ public class LocPathIterator extends PredicatedNodeTest
     return clone;
   }
 
-  /**
-   * Get a cloned LocPathIterator that holds the same
-   * position as this iterator.
-   *
-   * @return A clone of this iterator that holds the same node position.
-   *
-   * @throws CloneNotSupportedException
-   */
-  public Object clone() throws CloneNotSupportedException
-  {
-
-    LocPathIterator clone = (LocPathIterator) super.clone();
-
-    //    clone.m_varStackPos = this.m_varStackPos;
-    //    clone.m_varStackContext = this.m_varStackContext;
-    if (null != m_firstWalker)
-    {
-      // If we have waiting walkers, we have to check for duplicates.
-      Vector clones = (null != m_waiting) ? new Vector() : null;
-
-      clone.m_firstWalker = m_firstWalker.cloneDeep(clone, clones);
-
-      if (null != m_waiting)
-      {
-        clone.m_waiting = (Vector) m_waiting.clone();  // or is new Vector faster?
-
-        int n = m_waiting.size();
-
-        for (int i = 0; i < n; i++)
-        {
-          AxesWalker waiting = (AxesWalker) m_waiting.elementAt(i);
-
-          clone.m_waiting.setElementAt(waiting.cloneDeep(clone, clones), i);
-        }
-      }
-    }
-
-    return clone;
-  }
+//  /**
+//   * Get a cloned LocPathIterator that holds the same
+//   * position as this iterator.
+//   *
+//   * @return A clone of this iterator that holds the same node position.
+//   *
+//   * @throws CloneNotSupportedException
+//   */
+//  public Object clone() throws CloneNotSupportedException
+//  {
+//
+//    LocPathIterator clone = (LocPathIterator) super.clone();
+//
+//    return clone;
+//  }
 
   /**
    * Reset the iterator.
@@ -711,16 +647,6 @@ public class LocPathIterator extends PredicatedNodeTest
     m_lastFetched = DTM.NULL;
     m_next = 0;
     m_last = 0;
-    m_waitingBottom = 0;
-
-    if (null != m_firstWalker)
-    {
-      m_lastUsedWalker = m_firstWalker;
-
-      m_firstWalker.setRoot(m_context);
-      if(null != m_waiting)
-        m_waiting.removeAllElements();
-    }
   }
 
   /**
@@ -730,69 +656,7 @@ public class LocPathIterator extends PredicatedNodeTest
    * @return  The next <code>Node</code> in the set being iterated over, or
    *   <code>null</code> if there are no more members in that set.
    */
-  public int nextNode()
-  {
-
-    // If the cache is on, and the node has already been found, then 
-    // just return from the list.
-    if ((null != m_cachedNodes)
-            && (m_next < m_cachedNodes.size()))
-    {
-      int next = m_cachedNodes.elementAt(m_next);
-    
-      incrementNextPosition();
-      m_currentContextNode = next;
-
-      return next;
-    }
-
-    // If the variable stack position is not -1, we'll have to 
-    // set our position in the variable stack, so our variable access 
-    // will be correct.  Iterators that are at the top level of the 
-    // expression need to reset the variable stack, while iterators 
-    // in predicates do not need to, and should not, since their execution
-    // may be much later than top-level iterators.  
-    // m_varStackPos is set in initContext, which is called 
-    // from the execute method.
-    if (-1 == m_varStackPos)
-    {
-      if (DTM.NULL == m_firstWalker.getRoot())
-      {
-        this.setNextPosition(0);
-        m_firstWalker.setRoot(m_context);
-
-        m_lastUsedWalker = m_firstWalker;
-      }
-
-      return returnNextNode(m_firstWalker.nextNode());
-    }
-    else
-    {
-      VariableStack vars = m_execContext.getVarStack();
-
-      // These three statements need to be combined into one operation.
-      int savedStart = vars.getSearchStart();
-
-      vars.setSearchStart(m_varStackPos);
-      vars.pushContextPosition(m_varStackContext);
-
-      if (DTM.NULL == m_firstWalker.getRoot())
-      {
-        this.setNextPosition(0);
-        m_firstWalker.setRoot(m_context);
-
-        m_lastUsedWalker = m_firstWalker;
-      }
-
-      int n = returnNextNode(m_firstWalker.nextNode());
-
-      // These two statements need to be combined into one operation.
-      vars.setSearchStart(savedStart);
-      vars.popContextPosition();
-
-      return n;
-    }
-  }
+  public abstract int nextNode();
 
   /**
    * Bottleneck the return of a next node, to make returns
@@ -860,74 +724,6 @@ public class LocPathIterator extends PredicatedNodeTest
           break;
       }
     }
-  }
-
-  /**
-   * <meta name="usage" content="advanced"/>
-   * Get the head of the walker list.
-   *
-   * @return The head of the walker list, or null
-   * if this iterator does not implement walkers.
-   */
-  public final AxesWalker getFirstWalker()
-  {
-    return m_firstWalker;
-  }
-
-  /**
-   * <meta name="usage" content="advanced"/>
-   * Set the last used walker.
-   *
-   * @param walker The last used walker, or null.
-   */
-  public final void setLastUsedWalker(AxesWalker walker)
-  {
-    m_lastUsedWalker = walker;
-  }
-
-  /**
-   * <meta name="usage" content="advanced"/>
-   * Get the last used walker.
-   *
-   * @return The last used walker, or null.
-   */
-  public final AxesWalker getLastUsedWalker()
-  {
-    return m_lastUsedWalker;
-  }
-
-  /**
-   * <meta name="usage" content="advanced"/>
-   * Add a walker to the waiting list.
-   *
-   * @param walker A walker that is waiting for
-   * other step walkers to complete, before it can
-   * continue.
-   *
-   * @see org.apache.xpath.axes.AxesWalker
-   */
-  public final void addToWaitList(AxesWalker walker)
-  {
-    if (null == m_waiting)
-    {
-      m_waiting = new Vector();
-    }
-    
-    m_waiting.addElement(walker);
-  }
-
-  /**
-   * <meta name="usage" content="advanced"/>
-   * Remove a walker from the waiting list.
-   *
-   * @param walker A walker that is no longer waiting.
-   *
-   * @see org.apache.xpath.axes.AxesWalker
-   */
-  public final void removeFromWaitList(AxesWalker walker)
-  {
-    if(null != m_waiting) // defensive check.
-      m_waiting.removeElement(walker);
   }
 
   /**
@@ -1067,47 +863,25 @@ public class LocPathIterator extends PredicatedNodeTest
     return pos;
   }
   
-  /**
-   * Get the analysis pattern built by the WalkerFactory.
-   *
-   * @return The analysis pattern built by the WalkerFactory.
-   */
-  int getAnalysis()
-  {
-    return m_analysis;
-  }
+//  /**
+//   * Get the analysis pattern built by the WalkerFactory.
+//   *
+//   * @return The analysis pattern built by the WalkerFactory.
+//   */
+//  int getAnalysis()
+//  {
+//    return m_analysis;
+//  }
 
-  /**
-   * Set the analysis pattern built by the WalkerFactory.
-   *
-   * @param a The analysis pattern built by the WalkerFactory.
-   */
-  void setAnalysis(int a)
-  {
-    m_analysis = a;
-  }
-  
-  /**
-   * Tell if this expression or it's subexpressions can traverse outside 
-   * the current subtree.
-   * 
-   * @return true if traversal outside the context node's subtree can occur.
-   */
-   public boolean canTraverseOutsideSubtree()
-   {
-    if((m_analysis & WalkerFactory.BITMASK_TRAVERSES_OUTSIDE_SUBTREE) != 0)
-    {
-      return true;
-    }
-    // We have to ask subwalkers about their predicates.
-    if(null != m_firstWalker)
-    {
-      if(m_firstWalker.canTraverseOutsideSubtree())
-        return true;
-    }
-    return super.canTraverseOutsideSubtree();
-   }
-
+//  /**
+//   * Set the analysis pattern built by the WalkerFactory.
+//   *
+//   * @param a The analysis pattern built by the WalkerFactory.
+//   */
+//  void setAnalysis(int a)
+//  {
+//    m_analysis = a;
+//  }
   
   //============= State Data =============
   
@@ -1117,9 +891,6 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   transient protected DTM m_cdtm;
   
-  /** The starting point in m_waiting where the waiting step walkers are. */
-  transient int m_waitingBottom = 0;
-
   /**
    * An index to the point in the variable stack where we should
    * begin variable searches for this iterator.
@@ -1160,14 +931,6 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   transient NodeSet m_cachedNodes;
 
-  /** The last used step walker in the walker list.
-   *  @serial */
-  protected AxesWalker m_lastUsedWalker;
-
-  /** The head of the step walker list.
-   *  @serial */
-  protected AxesWalker m_firstWalker;
-
   /** This is true if nextNode returns null. */
   transient protected boolean m_foundLast = false;
 
@@ -1205,17 +968,11 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   transient protected int m_next = 0;
 
-  /**
-   * The list of "waiting" step walkers.
-   * @see org.apache.xpath.axes.AxesWalker
-   */
-  transient private Vector m_waiting = null;
-  
-  /**
-   * The analysis pattern built by the WalkerFactory.
-   * TODO: Move to LocPathIterator.
-   * @see org.apache.xpath.axes.WalkerFactory
-   * @serial
-   */
-  protected int m_analysis = 0x00000000;
+//  /**
+//   * The analysis pattern built by the WalkerFactory.
+//   * TODO: Move to LocPathIterator.
+//   * @see org.apache.xpath.axes.WalkerFactory
+//   * @serial
+//   */
+//  protected int m_analysis = 0x00000000;
 }

@@ -58,6 +58,7 @@ package org.apache.xpath.axes;
 
 import org.apache.xpath.compiler.OpCodes;
 import org.apache.xpath.compiler.Compiler;
+import org.apache.xpath.compiler.FunctionTable;
 import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.patterns.StepPattern;
 import org.apache.xpath.patterns.ContextMatchStepPattern;
@@ -93,7 +94,7 @@ public class WalkerFactory
    * @throws javax.xml.transform.TransformerException
    */
   static AxesWalker loadOneWalker(
-          LocPathIterator lpi, Compiler compiler, int stepOpCodePos)
+          WalkingIterator lpi, Compiler compiler, int stepOpCodePos)
             throws javax.xml.transform.TransformerException
   {
 
@@ -131,7 +132,7 @@ public class WalkerFactory
    * @throws javax.xml.transform.TransformerException
    */
   static AxesWalker loadWalkers(
-          LocPathIterator lpi, Compiler compiler, int stepOpCodePos, int stepIndex)
+          WalkingIterator lpi, Compiler compiler, int stepOpCodePos, int stepIndex)
             throws javax.xml.transform.TransformerException
   {
 
@@ -168,9 +169,16 @@ public class WalkerFactory
     return firstWalker;
   }
   
-  public static boolean isSet(int analysis, int bit)
+  public static boolean isSet(int analysis, int bits)
   {
-    return (0 != (analysis & bit));
+    return (0 != (analysis & bits));
+  }
+  
+  public static void diagnoseIterator(String name, int analysis, Compiler compiler)
+  {
+    System.out.println(compiler.toString()+", "+name+", "
+                             + Integer.toBinaryString(analysis) + ", "
+                             + getAnalysisString(analysis));
   }
 
   /**
@@ -192,22 +200,28 @@ public class WalkerFactory
 
     int firstStepPos = compiler.getFirstChildPos(opPos);
     int analysis = analyze(compiler, firstStepPos, 0);
+    boolean isOneStep = isOneStep(analysis);
 
+    // Is the iteration a one-step attribute pattern (i.e. select="@foo")?
+    if (isOneStep && walksSelfOnly(analysis) && 
+        isWild(analysis) && !hasPredicate(analysis))
+    {
+      if (DEBUG_ITERATOR_CREATION)
+        diagnoseIterator("SelfIteratorNoPredicate", analysis, compiler);
+
+      // Then use a simple iteration of the attributes, with node test 
+      // and predicate testing.
+      return new SelfIteratorNoPredicate(compiler, opPos, analysis);
+    }
     // Is the iteration exactly one child step?
-    if ((BIT_CHILD | 0x00000001) == (analysis & (BIT_CHILD | BITS_COUNT)))
+    else if (walksChildrenOnly(analysis) && isOneStep)
     {
 
-      //                 BIT_NODETEST_ANY: 1000000000000000000000000000000
-      //                 BIT_PREDICATE:                      1000000000000
-      // new iterator:  ChildIterator: 1000000000000010000000000000001, node()
       // Does the pattern specify *any* child with no predicate? (i.e. select="child::node()".
-      if ((BIT_NODETEST_ANY == (analysis & BIT_NODETEST_ANY))
-              &&!(BIT_PREDICATE == (analysis & BIT_PREDICATE)))
+      if (isWild(analysis) && !hasPredicate(analysis))
       {
         if (DEBUG_ITERATOR_CREATION)
-          System.out.println("new iterator:  ChildIterator: "
-                             + Integer.toBinaryString(analysis) + ", "
-                             + compiler.toString());
+          diagnoseIterator("ChildIterator", analysis, compiler);
 
         // Use simple child iteration without any test.
         return new ChildIterator(compiler, opPos, analysis);
@@ -215,27 +229,43 @@ public class WalkerFactory
       else
       {
         if (DEBUG_ITERATOR_CREATION)
-          System.out.println("new iterator:  ChildTestIterator: "
-                             + Integer.toBinaryString(analysis) + ", "
-                             + compiler.toString());
+          diagnoseIterator("ChildTestIterator", analysis, compiler);
 
         // Else use simple node test iteration with predicate test.
         return new ChildTestIterator(compiler, opPos, analysis);
       }
     }
-
     // Is the iteration a one-step attribute pattern (i.e. select="@foo")?
-    else if ((BIT_ATTRIBUTE | 0x00000001)
-             == (analysis & (BIT_ATTRIBUTE | BITS_COUNT)))
+    else if (isOneStep && walksAttributes(analysis))
     {
       if (DEBUG_ITERATOR_CREATION)
-        System.out.println("new iterator:  AttributeIterator: "
-                           + Integer.toBinaryString(analysis) + ", "
-                           + compiler.toString());
+        diagnoseIterator("AttributeIterator", analysis, compiler);
 
       // Then use a simple iteration of the attributes, with node test 
       // and predicate testing.
       return new AttributeIterator(compiler, opPos, analysis);
+    }
+    else if(isOneStep && !walksFilteredList(analysis))
+    {
+      if( !walksNamespaces(analysis) 
+      && (walksInDocOrder(analysis) || isSet(analysis, BIT_PARENT)))
+      {
+        if (false || DEBUG_ITERATOR_CREATION)
+          diagnoseIterator("OneStepIteratorForward", analysis, compiler);
+  
+        // Then use a simple iteration of the attributes, with node test 
+        // and predicate testing.
+        return new OneStepIteratorForward(compiler, opPos, analysis);
+      }
+      else
+      {
+        if (false || DEBUG_ITERATOR_CREATION)
+          diagnoseIterator("OneStepIterator", analysis, compiler);
+  
+        // Then use a simple iteration of the attributes, with node test 
+        // and predicate testing.
+        return new OneStepIterator(compiler, opPos, analysis);
+      }
     }
 
     // Analysis of "//center":
@@ -250,60 +280,330 @@ public class WalkerFactory
     // "//table[3]", because this has to be analyzed as 
     // "/descendant-or-self::node()/table[3]" in order for the indexes 
     // to work right.
-    else if (0 == (BIT_PREDICATE
-                   & analysis) && (((BIT_DESCENDANT | BIT_DESCENDANT_OR_SELF
-                                     | 0x00000001) == (analysis
-                                       & (BIT_DESCENDANT | BIT_DESCENDANT_OR_SELF | BITS_COUNT))) || ((BIT_DESCENDANT_OR_SELF
-                                         | BIT_SELF
-                                         | 0x00000002) == (analysis
-                                           & (BIT_DESCENDANT_OR_SELF
-                                              | BIT_SELF | BITS_COUNT)))
-
-    /* ".//center" -- 1000010000001010000000000000011 */
-    || ((BIT_DESCENDANT_OR_SELF | BIT_SELF | BIT_CHILD | BIT_NODETEST_ANY
-            | 0x00000003) == (analysis
-              & (BIT_DESCENDANT_OR_SELF | BIT_SELF | BIT_CHILD
-                 | BIT_NODETEST_ANY | BITS_COUNT)))
-
-    /* "//center" -- 1001000000001010000000000000011 */
-    || ((BIT_DESCENDANT_OR_SELF | BIT_ROOT | BIT_CHILD | BIT_NODETEST_ANY
-            | BIT_ANY_DESCENDANT_FROM_ROOT
-            | 0x00000003) == (analysis
-              & (BIT_DESCENDANT_OR_SELF | BIT_ROOT | BIT_CHILD
-                 | BIT_NODETEST_ANY | BIT_ANY_DESCENDANT_FROM_ROOT
-                 | BITS_COUNT)))))
+    else if (isOptimizableForDescendantIterator(compiler, firstStepPos, 0)
+             && getStepCount(analysis) <= 3 
+             && walksDescendants(analysis) 
+             && walksSubtreeOnlyFromRootOrContext(analysis))
     {
       if (DEBUG_ITERATOR_CREATION)
-        System.out.println("new iterator:  DescendantIterator: "
-                           + Integer.toBinaryString(analysis) + ", "
-                           + compiler.toString());
+        diagnoseIterator("DescendantIterator", analysis, compiler);
 
       return new DescendantIterator(compiler, opPos, analysis);
     }
     else
     { 
-      if(true || isSet(analysis, BIT_NAMESPACE) || isSet(analysis, BIT_FILTER))
+      if(canCrissCross(analysis) && !isSet(analysis, BIT_NAMESPACE) && 
+         !isSet(analysis, BIT_FILTER))
       {
-        if (false || DEBUG_ITERATOR_CREATION)
-        {
-          System.out.println("new iterator:  LocPathIterator: "
-                             + Integer.toBinaryString(analysis) + ", "
-                             + compiler.toString());
-          System.out.println("   "+getAnalysisString(analysis));
-        }
-  
-        return new LocPathIterator(compiler, opPos, analysis, true);
-      }
-      else
-      {        
         if (DEBUG_ITERATOR_CREATION)
-          System.out.println("new iterator:  MatchPatternIterator: " 
-                            + Integer.toBinaryString(analysis) + ", "
-                             + compiler.toString());
+          diagnoseIterator("MatchPatternIterator", analysis, compiler);
 
         return new MatchPatternIterator(compiler, opPos, analysis);
       }
+      else
+      {
+        if (false || DEBUG_ITERATOR_CREATION)
+        {
+          diagnoseIterator("WalkingIterator", analysis, compiler);
+        }
+  
+        return new WalkingIterator(compiler, opPos, analysis, true);
+      }
     }
+  }
+  
+  /**
+   * Special purpose function to see if we can optimize the pattern for 
+   * a DescendantIterator.
+   *
+   * @param compiler non-null reference to compiler object that has processed
+   *                 the XPath operations into an opcode map.
+   * @param stepOpCodePos The opcode position for the step.
+   * @param stepIndex The top-level step index withing the iterator.
+   *
+   * @return 32 bits as an integer that give information about the location
+   * path as a whole.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public static int getAxisFromStep(
+          Compiler compiler, int stepOpCodePos)
+            throws javax.xml.transform.TransformerException
+  {
+
+    int ops[] = compiler.getOpMap();
+    int stepType = ops[stepOpCodePos];
+
+    switch (stepType)
+    {
+    case OpCodes.FROM_FOLLOWING :
+      return Axis.FOLLOWING;
+    case OpCodes.FROM_FOLLOWING_SIBLINGS :
+      return Axis.FOLLOWINGSIBLING;
+    case OpCodes.FROM_PRECEDING :
+      return Axis.PRECEDING;
+    case OpCodes.FROM_PRECEDING_SIBLINGS :
+      return Axis.PRECEDINGSIBLING;
+    case OpCodes.FROM_PARENT :
+      return Axis.PARENT;
+    case OpCodes.FROM_NAMESPACE :
+      return Axis.NAMESPACE;
+    case OpCodes.FROM_ANCESTORS :
+      return Axis.ANCESTOR;
+    case OpCodes.FROM_ANCESTORS_OR_SELF :
+      return Axis.ANCESTORORSELF;
+    case OpCodes.FROM_ATTRIBUTES :
+      return Axis.ATTRIBUTE;
+    case OpCodes.FROM_ROOT :
+      return Axis.ROOT;
+    case OpCodes.FROM_CHILDREN :
+      return Axis.CHILD;
+    case OpCodes.FROM_DESCENDANTS_OR_SELF :
+      return Axis.DESCENDANTORSELF;
+    case OpCodes.FROM_DESCENDANTS :
+      return Axis.DESCENDANT;
+    case OpCodes.FROM_SELF :
+      return Axis.SELF;
+    case OpCodes.OP_EXTFUNCTION :
+    case OpCodes.OP_FUNCTION :
+    case OpCodes.OP_GROUP :
+    case OpCodes.OP_VARIABLE :
+      return Axis.FILTEREDLIST;
+    }
+
+    throw new RuntimeException("Programmer's assertion: unknown opcode: "
+                               + stepType);
+  }
+  
+  static boolean functionProximateOrContainsProximate(Compiler compiler, 
+                                                      int opPos)
+  {
+    int endFunc = opPos + compiler.getOp(opPos + 1) - 1;
+    opPos = compiler.getFirstChildPos(opPos);
+    int funcID = compiler.getOp(opPos);
+    //  System.out.println("funcID: "+funcID);
+    //  System.out.println("opPos: "+opPos);
+    //  System.out.println("endFunc: "+endFunc);
+    switch(funcID)
+    {
+      case FunctionTable.FUNC_LAST:
+      case FunctionTable.FUNC_POSITION:
+        return true;
+      default:
+        opPos++;
+        int i = 0;
+        for (int p = opPos; p < endFunc; p = compiler.getNextOpPos(p), i++)
+        {
+          int innerExprOpPos = p+2;
+          int argOp = compiler.getOp(innerExprOpPos);
+          boolean prox = isProximateInnerExpr(compiler, innerExprOpPos);
+          if(prox)
+            return true;
+        }
+
+    }
+    return false;
+  }
+  
+  static boolean isProximateInnerExpr(Compiler compiler, int opPos)
+  {
+    int op = compiler.getOp(opPos);
+    int innerExprOpPos = opPos+2;
+    switch(op)
+    {
+      case OpCodes.OP_ARGUMENT:
+        if(isProximateInnerExpr(compiler, innerExprOpPos))
+          return true;
+        break;
+      case OpCodes.OP_VARIABLE:
+      case OpCodes.OP_NUMBERLIT:
+      case OpCodes.OP_LITERAL:
+      case OpCodes.OP_LOCATIONPATH:
+        break; // OK
+      case OpCodes.OP_FUNCTION:
+        boolean isProx 
+          = functionProximateOrContainsProximate(compiler, op);
+        if(isProx)
+          return true;
+        break;
+      case OpCodes.OP_GT:
+      case OpCodes.OP_GTE:
+      case OpCodes.OP_LT:
+      case OpCodes.OP_LTE:
+      case OpCodes.OP_EQUALS:
+        int leftPos = compiler.getFirstChildPos(op);
+        int rightPos = compiler.getNextOpPos(leftPos);
+        isProx = isProximateInnerExpr(compiler, leftPos);
+        if(isProx)
+          return true;
+        isProx = isProximateInnerExpr(compiler, rightPos);
+        if(isProx)
+          return true;
+        break;
+      default:
+        return true; // be conservative...
+    }
+    return false;
+  }
+    
+  /**
+   * Tell if the predicates need to have proximity knowledge.
+   */
+  static boolean mightBeProximate(Compiler compiler, int opPos, int stepType)
+          throws javax.xml.transform.TransformerException
+  {
+
+    boolean mightBeProximate = false;
+    int argLen;
+
+    switch (stepType)
+    {
+    case OpCodes.OP_VARIABLE :
+    case OpCodes.OP_EXTFUNCTION :
+    case OpCodes.OP_FUNCTION :
+    case OpCodes.OP_GROUP :
+      argLen = compiler.getArgLength(opPos);
+      break;
+    default :
+      argLen = compiler.getArgLengthOfStep(opPos);
+    }
+
+    int predPos = compiler.getFirstPredicateOpPos(opPos);
+    int count = 0;
+
+    while (OpCodes.OP_PREDICATE == compiler.getOp(predPos))
+    {
+      count++;
+      
+      int innerExprOpPos = predPos+2;
+      int predOp = compiler.getOp(innerExprOpPos);
+
+      switch(predOp)
+      {
+        case OpCodes.OP_VARIABLE:
+        case OpCodes.OP_LOCATIONPATH:
+          // OK.
+          break;
+        case OpCodes.OP_NUMBER:
+        case OpCodes.OP_NUMBERLIT:
+          return true; // that's all she wrote!
+        case OpCodes.OP_FUNCTION:
+          boolean isProx 
+            = functionProximateOrContainsProximate(compiler, innerExprOpPos);
+          if(isProx)
+            return true;
+          break;
+        case OpCodes.OP_GT:
+        case OpCodes.OP_GTE:
+        case OpCodes.OP_LT:
+        case OpCodes.OP_LTE:
+        case OpCodes.OP_EQUALS:
+          int leftPos = compiler.getFirstChildPos(innerExprOpPos);
+          int rightPos = compiler.getNextOpPos(leftPos);
+          isProx = isProximateInnerExpr(compiler, leftPos);
+          if(isProx)
+            return true;
+          isProx = isProximateInnerExpr(compiler, rightPos);
+          if(isProx)
+            return true;
+          break;
+        default:
+          return true; // be conservative...
+      }
+
+      predPos = compiler.getNextOpPos(predPos);
+    }
+
+    return mightBeProximate;
+  }
+  
+  /**
+   * Special purpose function to see if we can optimize the pattern for 
+   * a DescendantIterator.
+   *
+   * @param compiler non-null reference to compiler object that has processed
+   *                 the XPath operations into an opcode map.
+   * @param stepOpCodePos The opcode position for the step.
+   * @param stepIndex The top-level step index withing the iterator.
+   *
+   * @return 32 bits as an integer that give information about the location
+   * path as a whole.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  private static boolean isOptimizableForDescendantIterator(
+          Compiler compiler, int stepOpCodePos, int stepIndex)
+            throws javax.xml.transform.TransformerException
+  {
+
+    int stepType;
+    int ops[] = compiler.getOpMap();
+    int stepCount = 0;
+    boolean foundDorDS = false;
+    boolean foundSelf = false;
+    boolean foundDS = false;
+    
+    while (OpCodes.ENDOP != (stepType = ops[stepOpCodePos]))
+    {
+      stepCount++;
+      if(stepCount > 3)
+        return false;
+        
+      boolean mightBeProximate = mightBeProximate(compiler, stepOpCodePos, stepType);
+      if(mightBeProximate)
+        return false;
+
+      switch (stepType)
+      {
+      case OpCodes.FROM_FOLLOWING :
+      case OpCodes.FROM_FOLLOWING_SIBLINGS :
+      case OpCodes.FROM_PRECEDING :
+      case OpCodes.FROM_PRECEDING_SIBLINGS :
+      case OpCodes.FROM_PARENT :
+      case OpCodes.OP_VARIABLE :
+      case OpCodes.OP_EXTFUNCTION :
+      case OpCodes.OP_FUNCTION :
+      case OpCodes.OP_GROUP :
+      case OpCodes.FROM_NAMESPACE :
+      case OpCodes.FROM_ANCESTORS :
+      case OpCodes.FROM_ANCESTORS_OR_SELF :
+      case OpCodes.FROM_ATTRIBUTES :
+      case OpCodes.MATCH_ATTRIBUTE :
+      case OpCodes.MATCH_ANY_ANCESTOR :
+      case OpCodes.MATCH_IMMEDIATE_ANCESTOR :
+        return false;
+      case OpCodes.FROM_ROOT :
+        if(1 != stepCount)
+          return false;
+        break;
+      case OpCodes.FROM_CHILDREN :
+        if(!foundDS && !(foundDorDS && foundSelf))
+          return false;
+        break;
+      case OpCodes.FROM_DESCENDANTS_OR_SELF :
+        foundDS = true;
+      case OpCodes.FROM_DESCENDANTS :
+        if(3 == stepCount)
+          return false;
+        foundDorDS = true;
+        break;
+      case OpCodes.FROM_SELF :
+        if(1 != stepCount)
+          return false;
+        foundSelf = true;
+        break;
+      default :
+        throw new RuntimeException("Programmer's assertion: unknown opcode: "
+                                   + stepType);
+      }
+
+      stepOpCodePos = compiler.getNextStepPos(stepOpCodePos);
+
+      if (stepOpCodePos < 0)
+        break;
+    }
+
+    return true;
   }
 
   /**
@@ -825,7 +1125,7 @@ public class WalkerFactory
    * @throws RuntimeException if the input is bad.
    */
   private static AxesWalker createDefaultWalker(Compiler compiler, int opPos,
-          LocPathIterator lpi, int analysis)
+          WalkingIterator lpi, int analysis)
   {
 
     AxesWalker ai;
@@ -1096,6 +1396,11 @@ public class WalkerFactory
   public static String getAnalysisString(int analysis)
   {
     StringBuffer buf = new StringBuffer();
+    buf.append("count: "+getStepCount(analysis)+" ");
+    if((analysis & BIT_NODETEST_ANY) != 0)
+    {
+      buf.append("NTANY|");
+    }
     if((analysis & BIT_PREDICATE) != 0)
     {
       buf.append("PRED|");
@@ -1171,6 +1476,223 @@ public class WalkerFactory
 
   /** Set to true for diagnostics about iterator creation */
   static final boolean DEBUG_ITERATOR_CREATION = false;
+  
+  public static boolean hasPredicate(int analysis)
+  {
+    return (0 != (analysis & BIT_PREDICATE));
+  }
+
+  public static boolean isWild(int analysis)
+  {
+    return (0 != (analysis & BIT_NODETEST_ANY));
+  }
+
+  public static boolean walksAncestors(int analysis)
+  {
+    return isSet(analysis, BIT_ANCESTOR | BIT_ANCESTOR_OR_SELF);
+  }
+  
+  public static boolean walksAttributes(int analysis)
+  {
+    return (0 != (analysis & BIT_ATTRIBUTE));
+  }
+
+  public static boolean walksNamespaces(int analysis)
+  {
+    return (0 != (analysis & BIT_NAMESPACE));
+  }
+
+  public static boolean walksChildren(int analysis)
+  {
+    return (0 != (analysis & BIT_CHILD));
+  }
+
+  public static boolean walksDescendants(int analysis)
+  {
+    return isSet(analysis, BIT_DESCENDANT | BIT_DESCENDANT_OR_SELF);
+  }
+
+  public static boolean walksSubtree(int analysis)
+  {
+    return isSet(analysis, BIT_DESCENDANT | BIT_DESCENDANT_OR_SELF | BIT_CHILD);
+  }
+  
+  public static boolean walksSubtreeOnly(int analysis)
+  {
+    return walksSubtree(analysis)
+           && !walksExtraNodes(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+
+  public static boolean walksFilteredList(int analysis)
+  {
+    return isSet(analysis, BIT_FILTER);
+  }
+  
+  public static boolean walksSubtreeOnlyFromRootOrContext(int analysis)
+  {
+    return walksSubtree(analysis)
+           && !walksExtraNodes(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isSet(analysis, BIT_FILTER) 
+           ;
+  }
+
+  public static boolean walksInDocOrder(int analysis)
+  {
+    return (walksSubtree(analysis)
+           || walksExtraNodes(analysis)
+           || isSet(analysis, BIT_SELF | BIT_FOLLOWING_SIBLING | BIT_FOLLOWING)) 
+           && !walksUp(analysis) 
+           && !isSet(analysis, BIT_PRECEDING | BIT_PRECEDING_SIBLING) 
+           && !isSet(analysis, BIT_FILTER) 
+           ;
+  }
+  
+  public static boolean walksUp(int analysis)
+  {
+    return isSet(analysis, BIT_PARENT | BIT_ANCESTOR | BIT_ANCESTOR_OR_SELF);
+  }
+  
+  public static boolean walksSideways(int analysis)
+  {
+    return isSet(analysis, BIT_FOLLOWING | BIT_FOLLOWING_SIBLING | 
+                           BIT_PRECEDING | BIT_PRECEDING_SIBLING);
+  }
+  
+  public static boolean walksExtraNodes(int analysis)
+  {
+    return isSet(analysis, BIT_NAMESPACE | BIT_ATTRIBUTE);
+  }
+
+  public static boolean walksExtraNodesOnly(int analysis)
+  {
+    return walksExtraNodes(analysis)
+           && !isSet(analysis, BIT_SELF) 
+           && !walksSubtree(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+
+  public static boolean isAbsolute(int analysis)
+  {
+    return isSet(analysis, BIT_ROOT | BIT_FILTER);
+  }
+  
+  public static boolean walksChildrenOnly(int analysis)
+  {
+    return walksChildren(analysis)
+           && !isSet(analysis, BIT_SELF)
+           && !walksExtraNodes(analysis)
+           && !walksDescendants(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+  
+  public static boolean walksChildrenAndExtraAndSelfOnly(int analysis)
+  {
+    return walksChildren(analysis)
+           && !walksDescendants(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+  
+  public static boolean walksDescendantsAndExtraAndSelfOnly(int analysis)
+  {
+    return !walksChildren(analysis)
+           && walksDescendants(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+  
+  public static boolean walksSelfOnly(int analysis)
+  {
+    return isSet(analysis, BIT_SELF) 
+           && !walksSubtree(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+
+  
+  public static boolean walksUpOnly(int analysis)
+  {
+    return !walksSubtree(analysis) 
+           && walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+  
+  public static boolean walksDownOnly(int analysis)
+  {
+    return walksSubtree(analysis) 
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+
+  public static boolean walksDownExtraOnly(int analysis)
+  {
+    return walksSubtree(analysis) &&  walksExtraNodes(analysis)
+           && !walksUp(analysis) 
+           && !walksSideways(analysis) 
+           && !isAbsolute(analysis) 
+           ;
+  }
+  
+  public static boolean canSkipSubtrees(int analysis)
+  {
+    return isSet(analysis, BIT_CHILD) | walksSideways(analysis);
+  }
+  
+  public static boolean canCrissCross(int analysis)
+  {
+    // This could be done faster.  Coded for clarity.
+    if(walksSelfOnly(analysis))
+      return false;
+    else if(walksDownOnly(analysis) && !canSkipSubtrees(analysis))
+      return false;
+    else if(walksChildrenAndExtraAndSelfOnly(analysis))
+      return false;
+    else if(walksDescendantsAndExtraAndSelfOnly(analysis))
+      return false;
+    else if(walksUpOnly(analysis))
+      return false;
+    else if(walksExtraNodesOnly(analysis))
+      return false;
+    else if(walksSubtree(analysis) 
+           && (walksSideways(analysis) 
+            || walksUp(analysis) 
+            || canSkipSubtrees(analysis)))
+      return true;
+    else
+      return false;
+  }
+  
+  public static boolean isOneStep(int analysis)
+  {
+    return (analysis & BITS_COUNT) == 0x00000001;
+  }
+
+  public static int getStepCount(int analysis)
+  {
+    return (analysis & BITS_COUNT);
+  }
 
   /**
    * First 8 bits are the number of top-level location steps.  Hopefully

@@ -95,6 +95,11 @@ public abstract class AxesWalker extends PredicatedNodeTest
   {
     super( locPathIterator );
   }
+  
+  public final WalkingIterator wi()
+  {
+    return (WalkingIterator)m_lpi;
+  }
 
   /**
    * Initialize an AxesWalker during the parse of the XPath expression.
@@ -163,7 +168,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
    * @return non-null clone, which may be a new clone, or may be a clone 
    *         contained on the cloneList.
    */
-  AxesWalker cloneDeep(LocPathIterator cloneOwner, Vector cloneList)
+  AxesWalker cloneDeep(WalkingIterator cloneOwner, Vector cloneList)
      throws CloneNotSupportedException
   {
     AxesWalker clone = findClone(this, cloneList);
@@ -177,7 +182,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
       cloneList.addElement(clone);
     }
     
-    if(m_lpi.m_lastUsedWalker == this)
+    if(wi().m_lastUsedWalker == this)
       cloneOwner.m_lastUsedWalker = clone;
       
     if(null != m_nextWalker)
@@ -306,7 +311,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
   public void setRoot(int root)
   {
     // %OPT% Get this directly from the lpi.
-    m_dtm = m_lpi.getXPathContext().getDTM(root);
+    m_dtm = wi().getXPathContext().getDTM(root);
     m_isFresh = true;
     m_isDone = false;
     m_root = root;
@@ -705,28 +710,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
       System.out.print(" " + this.toString() + ", "
                        + nodeToString(this.m_currentNode));
-      printWaiters();
-    }
-  }
-
-  /**
-   * Diagnostics.
-   */
-  private void printWaiters()
-  {
-
-    if (DEBUG_WAITING)
-    {
-      int nWaiting = m_lpi.getWaitingCount();
-
-      for (int i = m_lpi.m_waitingBottom; i < nWaiting; i++)
-      {
-        AxesWalker ws = (AxesWalker) m_lpi.getWaiting(i);
-
-        printDebug("[" + ws.toString() + " WAITING... ]");
-      }
-
-      printDebug("Waiting count: " + nWaiting);
     }
   }
 
@@ -749,260 +732,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   protected int getNextLevelAmount()
   {
     return m_nextLevelAmount;
-  }
-
-  /**
-   * Tell if it's OK to traverse to the next node, following document
-   * order, or if the walker should wait for a condition to occur.
-   * 
-   * @param prevStepWalker The previous walker in the location path.
-   * @param testWalker The walker being tested, but the state may not be intact,
-   * so only static information can be obtained from it.
-   * @param currentTestNode The current node being testing.
-   * @param nextLevelAmount An estimation of the next level to traverse to.
-   *
-   * @return True if it's OK for testWalker to traverse to nextLevelAmount.
-   */
-  protected boolean checkOKToTraverse(AxesWalker prevStepWalker,
-                                      AxesWalker testWalker,
-                                      int currentTestNode,
-                                      int nextLevelAmount)
-  {
-
-    int level = getDTM(currentTestNode).getLevel(currentTestNode);
-
-    // Is this always the context node of the test walker?
-    int prevNode = prevStepWalker.m_currentNode;
-
-    // Can the previous walker go past the one being tested?
-    if (DEBUG_WAITING)
-      printDebug("[prevStepWalker.getLevelMax():"
-                 + prevStepWalker.getLevelMax() + " > level:" + level + "?]");
-
-    boolean ok;
-
-    if (!prevStepWalker.m_isDone && prevStepWalker.getLevelMax() > level)
-    {
-
-      // Is (prevStepWalker.m_currentNode > the currentTestNode)?
-      // (Sorry about the reverse logic).
-      boolean isNodeAfter = !getDTM(prevNode).isNodeAfter(prevNode, currentTestNode);
-
-      if (DEBUG_WAITING)
-        printDebug("[isNodeAfter:" + isNodeAfter + "?]");
-
-      if (isNodeAfter)
-      {
-        int prevStepLevel = getDTM(prevNode).getLevel(prevNode);
-
-        // If the previous step walker is below us in the tree, 
-        // then we have to wait until it pops back up to our level, 
-        // (if it ever does).
-        if (DEBUG_WAITING)
-          printDebug("[prevStepLevel:" + prevStepLevel + " <= (level:"
-                     + level + "+nextLevelAmount:" + nextLevelAmount + "):"
-                     + (level + nextLevelAmount) + "?]");
-
-        if (prevStepLevel > (level + nextLevelAmount))
-        {
-
-          // if next step is down, then ok = true, else
-          // if next step is horizontal, then we have to wait.
-          ok = false;
-        }
-        else
-          ok = true;
-      }
-      else
-        ok = false;
-    }
-    else
-      ok = true;
-
-    if (DEBUG_WAITING)
-      printDebug("checkOKToTraverse = " + ok);
-
-    return ok;
-  }
-
-  /**
-   * Check if any walkers need to fire before the given walker.  If they
-   * do, then the given walker will be put on the waiting list, and the
-   * waiting walker will be returned.
-   * @param walker The walker that is about to call nextNode(), or null.
-   * @return walker argument or new walker.
-   */
-  AxesWalker checkWaiting(AxesWalker walker)
-  {
-
-    // printDebug("checkWaiting: "+walker.toString()+", "+nodeToString(walker.m_currentNode));
-    if ((null != walker) && (DTM.NULL == walker.m_currentNode))
-      return walker;
-
-    int nWaiting = m_lpi.getWaitingCount();
-
-    for (int i = m_lpi.m_waitingBottom; i < nWaiting; i++)
-    {
-      AxesWalker ws = (AxesWalker) m_lpi.getWaiting(i);
-      AxesWalker prevStepWalker = ws.m_prevWalker;
-
-      if (null != prevStepWalker)
-      {
-        if (DEBUG_WAITING)
-          printDebug("Calling checkOKToTraverse(" + prevStepWalker.toString()
-                     + ", " + ws.toString() + ", .);");
-
-        if (checkOKToTraverse(prevStepWalker, ws, ws.m_currentNode,
-                              ws.m_nextLevelAmount))
-        {
-          if (null != walker)
-          {
-            AxesWalker deferedWalker = walker;
-
-            if (!isWaiting(deferedWalker))
-            {
-              addToWaitList(deferedWalker);
-            }
-          }
-
-          walker = ws;
-
-          m_lpi.removeFromWaitList(walker);
-
-          if (DEBUG_WAITING)
-            printDebug("[And using WAITING on " + ws.toString());
-
-          walker.printEntryDebug();
-
-          m_didSwitch = true;
-
-          break;
-        }
-      }
-    }
-
-    return walker;
-  }
-
-  /**
-   * We have to do something to get things moving along,
-   * so get the earliest (in doc order) waiter.
-   *
-   * @return the earliest (in doc order) waiting walker.
-   */
-  private AxesWalker getEarliestWaiting()
-  {
-
-    AxesWalker first = null;
-    int nWaiting = m_lpi.getWaitingCount();
-
-    for (int i = m_lpi.m_waitingBottom; i < nWaiting; i++)
-    {
-      AxesWalker ws = (AxesWalker) m_lpi.getWaiting(i);
-
-      if (first == null)
-        first = ws;
-      else
-      {
-        if (!getDTM(ws.m_currentNode).isNodeAfter(ws.m_currentNode, first.m_currentNode))
-          first = ws;
-      }
-    }
-
-    if (null != first)
-    {
-      m_lpi.removeFromWaitList(first);
-
-      if (DEBUG_WAITING)
-        printDebug("[(getEarliestWaiting)Using WAITING on "
-                   + first.toString());
-
-      first.printEntryDebug();
-    }
-
-    return first;
-  }
-
-  /**
-   * Tell if the given walker is already on the waiting list.
-   *
-   * @param walker Reference to walker that is the subject of the test.
-   *
-   * @return  True if the walker argument is on the waiting list.
-   */
-  boolean isWaiting(AxesWalker walker)
-  {
-
-    int nWaiting = m_lpi.getWaitingCount();
-
-    for (int i = m_lpi.m_waitingBottom; i < nWaiting; i++)
-    {
-      AxesWalker ws = (AxesWalker) m_lpi.getWaiting(i);
-
-      if (ws == walker)
-        return true;
-    }
-
-    return false;
-  }
-  
-  private final void addToWaitList(AxesWalker walker)
-  {
-      if (DEBUG_WAITING)
-        printDebug("[Moving " + walker.toString() + ", "
-                   + nodeToString(walker.m_currentNode)
-                   + " to WAITING list]");
-                   
-      m_lpi.addToWaitList(walker);
-  }
-
-  /**
-   * Check if a given walker needs to wait for the previous walker to
-   * catch up.
-   *
-   * @param walker The walker being checked.
-   *
-   * @return The walker or the previous walker.
-   */
-  AxesWalker checkNeedsToWait(AxesWalker walker)
-  {
-
-    AxesWalker prevWalker = walker.m_prevWalker;
-
-    if (null != prevWalker)
-    {
-      if (DEBUG_WAITING)
-        printDebug("Calling checkOKToTraverse(" + prevWalker.toString()
-                   + ", " + walker.toString() + ", .);");
-
-      if (!checkOKToTraverse(prevWalker, walker, walker.m_currentNode,
-                             walker.m_nextLevelAmount))
-      {
-        if (DEBUG_WAITING)
-          printDebug("[Adding " + walker.toString() + " to WAITING list");
-
-        if (isWaiting(walker))
-        {
-          try
-          {
-            if (DEBUG_WAITING)
-              printDebug("checkNeedsToWait.clone: " + walker.toString());
-
-            addToWaitList((AxesWalker) walker.clone());
-          }
-          catch (CloneNotSupportedException cnse){}
-        }
-        else
-          addToWaitList(walker);
-
-        walker = walker.m_prevWalker;
-        
-        if (DEBUG_WAITING)
-          walker.printEntryDebug();
-      }
-    }
-
-    return walker;
   }
 
   /**
@@ -1065,44 +794,12 @@ public abstract class AxesWalker extends PredicatedNodeTest
     }
 
     int nextNode = DTM.NULL;
-    AxesWalker walker = m_lpi.getLastUsedWalker();
-
-    // DOMHelper dh = m_lpi.getDOMHelper();
-    // walker.printEntryDebug();
-    m_didSwitch = false;
-
-    boolean processWaiters = true;
+    AxesWalker walker = wi().getLastUsedWalker();
 
     do
     {
       while (true)
       {
-
-        // Check to see if there's any walkers that need to execute first.
-        if (processWaiters)
-        {
-          AxesWalker waiting = checkWaiting(walker);
-
-          if (m_didSwitch)
-          {
-            m_didSwitch = false;
-            walker = waiting;
-          }
-          else if (null != walker)
-          {
-            waiting = checkNeedsToWait(walker);
-
-            if (waiting != walker)
-            {
-              walker = waiting;
-
-              continue;
-            }
-          }
-        }
-        else
-          processWaiters = true;
-
         if (null == walker)
           break;
 
@@ -1115,22 +812,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
         if (DTM.NULL == nextNode)
         {
 
-          // AxesWalker prev = walker; ?? -sb
           walker = walker.m_prevWalker;
-
-          if (null != walker)
-            walker.printEntryDebug();
-          else
-          {
-            walker = getEarliestWaiting();
-
-            if (null != walker)
-            {
-              processWaiters = false;
-
-              continue;
-            }
-          }
         }
         else
         {
@@ -1158,7 +840,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
               printDebugAdd(", m_prevReturned: "
                             + nodeToString(m_prevReturned));
 
-            m_lpi.setLastUsedWalker(walker);
+            wi().setLastUsedWalker(walker);
 
             // return walker.returnNextNode(nextNode);
             break;
@@ -1169,31 +851,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
             walker = walker.m_nextWalker;
 
-            /*
-            if((walker.getRoot() != null) &&
-            prev.getLevelMax() >= walker.getLevelMax()) // bogus, but might be ok
-            */
-            if (isWaiting(walker))
-            {
-              try
-              {
-                walker = (AxesWalker) walker.clone();
-
-                // walker.pushState();
-                // System.out.println("AxesWalker - Calling setRoot(1)");
-                walker.setRoot(nextNode);
-
-                if (DEBUG_WAITING)
-                  printDebug("clone: " + walker.toString());
-              }
-              catch (CloneNotSupportedException cnse){}
-            }
-            else
-            {
-
-              // System.out.println("AxesWalker - Calling setRoot(2)");
-              walker.setRoot(nextNode);
-            }
+            walker.setRoot(nextNode);
 
             walker.m_prevWalker = prev;
 
@@ -1251,7 +909,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
     walker.setNextWalker(null);
     walker.setPrevWalker(null);
 
-    LocPathIterator lpi = walker.getLocPathIterator();
+    WalkingIterator lpi = wi();
     AxesWalker savedWalker = lpi.getLastUsedWalker();
 
     try
@@ -1380,7 +1038,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
   public DTM getDTM(int node)
   {
     //
-    return m_lpi.getXPathContext().getDTM(node);
+    return wi().getXPathContext().getDTM(node);
   }
 
   /**

@@ -129,7 +129,7 @@ public class ReverseAxesWalker extends AxesWalker
       
     if (m_proximityPositions[predicateIndex] <= 0)
     {
-      AxesWalker savedWalker = m_lpi.getLastUsedWalker();
+      AxesWalker savedWalker = wi().getLastUsedWalker();
 
       try
       {
@@ -141,7 +141,7 @@ public class ReverseAxesWalker extends AxesWalker
 
         clone.setPrevWalker(null);
         clone.setNextWalker(null);
-        m_lpi.setLastUsedWalker(clone);
+        wi().setLastUsedWalker(clone);
 
         // Count 'em all
         int count = 1;
@@ -161,7 +161,7 @@ public class ReverseAxesWalker extends AxesWalker
       }
       finally
       {
-        m_lpi.setLastUsedWalker(savedWalker);
+        wi().setLastUsedWalker(savedWalker);
       }
     }
 
@@ -192,7 +192,7 @@ public class ReverseAxesWalker extends AxesWalker
   {
 
     int count = 0;
-    AxesWalker savedWalker = m_lpi.getLastUsedWalker();
+    AxesWalker savedWalker = wi().getLastUsedWalker();
 
     try
     {
@@ -204,7 +204,7 @@ public class ReverseAxesWalker extends AxesWalker
 
       clone.setPrevWalker(null);
       clone.setNextWalker(null);
-      m_lpi.setLastUsedWalker(clone);
+      wi().setLastUsedWalker(clone);
 
       // Count 'em all
       // count = 1;
@@ -222,7 +222,7 @@ public class ReverseAxesWalker extends AxesWalker
     }
     finally
     {
-      m_lpi.setLastUsedWalker(savedWalker);
+      wi().setLastUsedWalker(savedWalker);
     }
 
     // System.out.println("getLastPos - pos: "+count);

@@ -1,0 +1,228 @@
+package org.apache.xpath.axes;
+
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMManager;
+
+// Xalan imports
+import org.apache.xpath.res.XPATHErrorResources;
+import org.apache.xpath.XPath;
+import org.apache.xpath.compiler.OpMap;
+import org.apache.xpath.compiler.Compiler;
+import org.apache.xpath.compiler.OpCodes;
+import org.apache.xpath.compiler.PsuedoNames;
+import org.apache.xpath.NodeSet;
+import org.apache.xpath.Expression;
+import org.apache.xpath.XPathContext;
+import org.apache.xpath.objects.XObject;
+import org.apache.xml.utils.IntStack;
+import org.apache.xml.utils.PrefixResolver;
+import org.apache.xml.utils.ObjectPool;
+import org.apache.xpath.objects.XNodeSet;
+import org.apache.xpath.axes.AxesWalker;
+import org.apache.xpath.VariableStack;
+
+/**
+ * Location path iterator that uses Walkers.
+ */
+
+public class WalkingIterator extends LocPathIterator
+{
+  /**
+   * Create a WalkingIterator iterator, including creation
+   * of step walkers from the opcode list, and call back
+   * into the Compiler to create predicate expressions.
+   *
+   * @param compiler The Compiler which is creating
+   * this expression.
+   * @param opPos The position of this iterator in the
+   * opcode list from the compiler.
+   * @param shouldLoadWalkers True if walkers should be
+   * loaded, or false if this is a derived iterator and
+   * it doesn't wish to load child walkers.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public WalkingIterator(
+          Compiler compiler, int opPos, int analysis, boolean shouldLoadWalkers)
+            throws javax.xml.transform.TransformerException
+  {
+    super(compiler, opPos, analysis, shouldLoadWalkers);
+    
+    int firstStepPos = compiler.getFirstChildPos(opPos);
+
+    if (shouldLoadWalkers)
+    {
+      m_firstWalker = WalkerFactory.loadWalkers(this, compiler, firstStepPos, 0);
+      m_lastUsedWalker = m_firstWalker;
+    }
+  }
+  
+  /**
+   * Create a LocPathIterator object.
+   *
+   * @param nscontext The namespace context for this iterator,
+   * should be OK if null.
+   */
+  public WalkingIterator(PrefixResolver nscontext)
+  {
+
+    super(nscontext);
+  }
+
+  
+  /**
+   * Get a cloned LocPathIterator that holds the same
+   * position as this iterator.
+   *
+   * @return A clone of this iterator that holds the same node position.
+   *
+   * @throws CloneNotSupportedException
+   */
+  public Object clone() throws CloneNotSupportedException
+  {
+
+    WalkingIterator clone = (WalkingIterator) super.clone();
+
+    //    clone.m_varStackPos = this.m_varStackPos;
+    //    clone.m_varStackContext = this.m_varStackContext;
+    if (null != m_firstWalker)
+    {
+      clone.m_firstWalker = m_firstWalker.cloneDeep(clone, null);
+    }
+
+    return clone;
+  }
+  
+  /**
+   * Reset the iterator.
+   */
+  public void reset()
+  {
+
+    super.reset();
+
+    if (null != m_firstWalker)
+    {
+      m_lastUsedWalker = m_firstWalker;
+
+      m_firstWalker.setRoot(m_context);
+    }
+  }
+  
+  /**
+   *  Returns the next node in the set and advances the position of the
+   * iterator in the set. After a NodeIterator is created, the first call
+   * to nextNode() returns the first node in the set.
+   * @return  The next <code>Node</code> in the set being iterated over, or
+   *   <code>null</code> if there are no more members in that set.
+   */
+  public int nextNode()
+  {
+
+    // If the cache is on, and the node has already been found, then 
+    // just return from the list.
+    if ((null != m_cachedNodes)
+            && (m_next < m_cachedNodes.size()))
+    {
+      int next = m_cachedNodes.elementAt(m_next);
+    
+      incrementNextPosition();
+      m_currentContextNode = next;
+
+      return next;
+    }
+
+    // If the variable stack position is not -1, we'll have to 
+    // set our position in the variable stack, so our variable access 
+    // will be correct.  Iterators that are at the top level of the 
+    // expression need to reset the variable stack, while iterators 
+    // in predicates do not need to, and should not, since their execution
+    // may be much later than top-level iterators.  
+    // m_varStackPos is set in initContext, which is called 
+    // from the execute method.
+    if (-1 == m_varStackPos)
+    {
+      if (DTM.NULL == m_firstWalker.getRoot())
+      {
+        this.setNextPosition(0);
+        m_firstWalker.setRoot(m_context);
+
+        m_lastUsedWalker = m_firstWalker;
+      }
+
+      return returnNextNode(m_firstWalker.nextNode());
+    }
+    else
+    {
+      VariableStack vars = m_execContext.getVarStack();
+
+      // These three statements need to be combined into one operation.
+      int savedStart = vars.getSearchStart();
+
+      vars.setSearchStart(m_varStackPos);
+      vars.pushContextPosition(m_varStackContext);
+
+      if (DTM.NULL == m_firstWalker.getRoot())
+      {
+        this.setNextPosition(0);
+        m_firstWalker.setRoot(m_context);
+
+        m_lastUsedWalker = m_firstWalker;
+      }
+
+      int n = returnNextNode(m_firstWalker.nextNode());
+
+      // These two statements need to be combined into one operation.
+      vars.setSearchStart(savedStart);
+      vars.popContextPosition();
+
+      return n;
+    }
+  }
+  
+  /**
+   * <meta name="usage" content="advanced"/>
+   * Get the head of the walker list.
+   *
+   * @return The head of the walker list, or null
+   * if this iterator does not implement walkers.
+   */
+  public final AxesWalker getFirstWalker()
+  {
+    return m_firstWalker;
+  }
+
+  /**
+   * <meta name="usage" content="advanced"/>
+   * Set the last used walker.
+   *
+   * @param walker The last used walker, or null.
+   */
+  public final void setLastUsedWalker(AxesWalker walker)
+  {
+    m_lastUsedWalker = walker;
+  }
+
+  /**
+   * <meta name="usage" content="advanced"/>
+   * Get the last used walker.
+   *
+   * @return The last used walker, or null.
+   */
+  public final AxesWalker getLastUsedWalker()
+  {
+    return m_lastUsedWalker;
+  }
+
+  
+  /** The last used step walker in the walker list.
+   *  @serial */
+  protected AxesWalker m_lastUsedWalker;
+
+  /** The head of the step walker list.
+   *  @serial */
+  protected AxesWalker m_firstWalker;
+
+}

@@ -100,8 +100,7 @@ public class DescendantIterator extends LocPathIterator
     int firstStepPos = compiler.getFirstChildPos(opPos);
     int stepType = ops[firstStepPos];
 
-    if (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType)
-      m_orSelf = true;
+    m_orSelf = (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType);
     if (OpCodes.FROM_SELF == stepType)
     {
       m_orSelf = true;
@@ -113,8 +112,6 @@ public class DescendantIterator extends LocPathIterator
       m_orSelf = true;
       firstStepPos += 8;
     }
-    else
-      m_orSelf = false;
 
     int whatToShow = compiler.getWhatToShow(firstStepPos);
 

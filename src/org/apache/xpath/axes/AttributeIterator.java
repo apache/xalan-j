@@ -63,11 +63,6 @@ import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.objects.XObject;
 
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.Node;
-//import org.w3c.dom.NamedNodeMap;
-//import org.w3c.dom.DOMException;
-//import org.w3c.dom.traversal.NodeFilter;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;

@@ -141,7 +141,7 @@ public class ChildWalkerMultiStep extends AxesWalker
   public int nextNode()
   {
 
-    AxesWalker walker = m_lpi.getLastUsedWalker();
+    AxesWalker walker = wi().getLastUsedWalker();
     boolean fast = (null != walker) ? walker.isFastWalker() : false;
 
     while (null != walker)
@@ -166,7 +166,7 @@ public class ChildWalkerMultiStep extends AxesWalker
           walker = walker.m_nextWalker;
 
           walker.setRoot(next);
-          m_lpi.setLastUsedWalker(walker);
+          wi().setLastUsedWalker(walker);
           fast = walker.isFastWalker();
         }
         else
@@ -178,7 +178,7 @@ public class ChildWalkerMultiStep extends AxesWalker
 
         if (null != walker)
           fast = walker.isFastWalker();
-        m_lpi.setLastUsedWalker(walker);
+        wi().setLastUsedWalker(walker);
       }
     }
 

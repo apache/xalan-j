@@ -98,9 +98,11 @@ public class ChildTestIterator extends LocPathIterator
     int whatToShow = compiler.getWhatToShow(firstStepPos);
 
     if ((0 == (whatToShow
-               & (DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_ELEMENT
-                  | DTMFilter.SHOW_PROCESSING_INSTRUCTION))) 
-                  || (whatToShow == DTMFilter.SHOW_ALL))
+               & (DTMFilter.SHOW_ATTRIBUTE 
+               | DTMFilter.SHOW_NAMESPACE 
+               | DTMFilter.SHOW_ELEMENT
+               | DTMFilter.SHOW_PROCESSING_INSTRUCTION))) 
+               || (whatToShow == DTMFilter.SHOW_ALL))
       initNodeTest(whatToShow);
     else
     {

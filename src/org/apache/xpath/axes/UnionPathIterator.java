@@ -486,8 +486,8 @@ public class UnionPathIterator extends Expression
       case OpCodes.OP_GROUP :
         loadLocationPaths(compiler, compiler.getNextOpPos(opPos), count + 1);
 
-        LocPathIterator iter =
-          new LocPathIterator(compiler.getNamespaceContext());
+        WalkingIterator iter =
+          new WalkingIterator(compiler.getNamespaceContext());
           
         if(compiler.getLocationPathDepth() <= 0)
           iter.setIsTopLevel(true);

@@ -90,7 +90,7 @@ public class MatchPatternIterator extends LocPathIterator
   protected StepPattern m_pattern;
 
   /** The traversal axis from where the nodes will be filtered. */
-  protected int m_superAxes = -1;
+  protected int m_superAxis = -1;
 
   /** The DTM inner traversal class, that corresponds to the super axis. */
   protected DTMAxisTraverser m_traverser;
@@ -122,45 +122,7 @@ public class MatchPatternIterator extends LocPathIterator
 
     int firstStepPos = compiler.getFirstChildPos(opPos);
 
-    m_pattern = WalkerFactory.loadSteps(this, compiler, firstStepPos, 0);
-    
-//    int axis = -1;
-//    int attributeAxis = -1;
-//    int namespaceAxis = -1;
-//    
-//    if(0 != (analysis & WalkerFactory.BIT_ATTRIBUTE))
-//    {
-//      attributeAxis = Axis.ATTRIBUTE;
-//    }
-//    if(0 != (analysis & WalkerFactory.BIT_ATTRIBUTE))
-//    {
-//      namespaceAxis = Axis.NAMESPACE;
-//    }
-//    if(0 != (analysis & WalkerFactory.BIT_CHILD))
-//    {
-//      axis = Axis.CHILD; 
-//    }
-//    if(0 != (analysis & WalkerFactory.BIT_DESCENDANT))
-//    {
-//      if(attributeAxis != -1)
-//      {
-//        axis = Axis.ALLFROMNODE;
-//        attributeAxis = -1;
-//      }
-//      else
-//        axis = Axis.DESCENDANT; 
-//    }
-//    if(0 != (analysis & WalkerFactory.BIT_DESCENDANT_OR_SELF))
-//    {
-//      if(attributeAxis != -1)
-//      {
-//        axis = Axis.ALLFROMNODE;
-//        attributeAxis = -1;
-//      }
-//      else
-//        axis = Axis.DESCENDANTORSELF;
-//    }
-    
+    m_pattern = WalkerFactory.loadSteps(this, compiler, firstStepPos, 0); 
 
     boolean fromRoot = false;
     boolean walkBack = false;
@@ -201,31 +163,31 @@ public class MatchPatternIterator extends LocPathIterator
     {
       if(walkAttributes)
       {
-        m_superAxes = Axis.ALL;
+        m_superAxis = Axis.ALL;
       }
       else
       {
-        m_superAxes = Axis.DESCENDANTSFROMROOT;
+        m_superAxis = Axis.DESCENDANTSFROMROOT;
       }
     }
     else if(walkDescendants)
     {
       if(walkAttributes)
       {
-        m_superAxes = Axis.ALLFROMNODE;
+        m_superAxis = Axis.ALLFROMNODE;
       }
       else
       {
-        m_superAxes = Axis.DESCENDANTORSELF;
+        m_superAxis = Axis.DESCENDANTORSELF;
       }
     }
     else
     {
-      m_superAxes = Axis.ALL;
+      m_superAxis = Axis.ALL;
     }
     if(false || DEBUG)
     {
-      System.out.println("axis: "+Axis.names[m_superAxes]);
+      System.out.println("axis: "+Axis.names[m_superAxis]);
     }
     
   }
@@ -240,7 +202,7 @@ public class MatchPatternIterator extends LocPathIterator
   public void initContext(XPathContext execContext)
   {
     super.initContext(execContext);
-    m_traverser = m_cdtm.getAxisTraverser(m_superAxes);
+    m_traverser = m_cdtm.getAxisTraverser(m_superAxis);
   }
   
   /**
@@ -249,33 +211,6 @@ public class MatchPatternIterator extends LocPathIterator
    */
   protected int getNextNode()
   {
-//    if(m_superAxes == Axis.ALL || m_superAxes == Axis.ALLFROMNODE)
-//    {
-//      if(DTM.NULL != m_nsElemBase)
-//      {
-//        m_lastFetched = m_cdtm.getNextNamespaceNode(m_nsElemBase, m_lastFetched, true);
-//        if(DTM.NULL != m_lastFetched)
-//        {
-//          return m_lastFetched;
-//        }
-//        else
-//        {
-//          m_lastFetched = m_nsElemBase;
-//          m_nsElemBase = DTM.NULL;
-//        }
-//      }
-//      else if(DTM.NULL != m_lastFetched 
-//           && DTM.ELEMENT_NODE == m_cdtm.getNodeType(m_lastFetched))
-//      {
-//        int ns = m_cdtm.getFirstNamespaceNode(m_lastFetched, true);
-//        if(DTM.NULL != ns)
-//        {
-//          m_nsElemBase = m_lastFetched;
-//          m_lastFetched = ns;
-//          return m_lastFetched;
-//        }
-//      }
-//    }
     m_lastFetched = (DTM.NULL == m_lastFetched)
                      ? m_traverser.first(m_context)
                      : m_traverser.next(m_context, m_lastFetched);
@@ -417,7 +352,7 @@ public class MatchPatternIterator extends LocPathIterator
       
       if(DEBUG)
       {
-        System.out.println("analysis: "+Integer.toBinaryString(m_analysis));
+        // System.out.println("analysis: "+Integer.toBinaryString(m_analysis));
         System.out.println("score: "+score);
         System.out.println("skip: "+(score == NodeTest.SCORE_NONE));
       }

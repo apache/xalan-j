@@ -281,17 +281,7 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
       for (int i = 0; i < nPredicates; i++)
       {
         // System.out.println("Executing predicate expression - waiting count: "+m_lpi.getWaitingCount());
-        int savedWaitingBottom = m_lpi.m_waitingBottom;
-        m_lpi.m_waitingBottom = m_lpi.getWaitingCount();
-        XObject pred;
-        try
-        {
-          pred = m_predicates[i].execute(xctxt);
-        }
-        finally
-        {
-          m_lpi.m_waitingBottom = savedWaitingBottom;
-        }
+        XObject pred = m_predicates[i].execute(xctxt);
         // System.out.println("\nBack from executing predicate expression - waiting count: "+m_lpi.getWaitingCount());
         // System.out.println("pred.getType(): "+pred.getType());
         if (XObject.CLASS_NUMBER == pred.getType())
@@ -304,7 +294,6 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
             // System.out.println("getProximityPosition(m_predicateIndex): "
             //                   + getProximityPosition(m_predicateIndex));
             System.out.println("pred.num(): " + pred.num());
-            System.out.println("waiting count: "+m_lpi.getWaitingCount());
           }
 
           int proxPos = this.getProximityPosition(m_predicateIndex);
@@ -314,7 +303,6 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
             {
               System.out.println("\nnode context: "+nodeToString(context));
               System.out.println("index predicate is false: "+proxPos);
-              System.out.println("waiting count: "+m_lpi.getWaitingCount());
               System.out.println("\n===== end predicate count ========");
             }
             return false;
@@ -323,7 +311,6 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
           {
             System.out.println("\nnode context: "+nodeToString(context));
             System.out.println("index predicate is true: "+proxPos);
-            System.out.println("waiting count: "+m_lpi.getWaitingCount());
             System.out.println("\n===== end predicate count ========");
           }
         }

@@ -524,6 +524,76 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
    */
   private class FollowingTraverser extends DescendantTraverser
   {
+    
+  /**
+   * Get the first of the following.
+   *
+   * @param context The context node of this traversal. This is the point
+   * that the traversal starts from.
+   * @return the first node in the traversal.
+   */
+  public int first(int context)
+  {
+    int first;
+    int type = getNodeType(context);
+    if((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
+    {
+      context = getParent(context);
+      first = getFirstChild(context);
+      if(NULL != first)
+        return first;
+    }
+    do
+    {
+      first = getNextSibling(context);
+      if(NULL == first)
+        context = getParent(context);
+    }
+      while(NULL == first && NULL != context);
+      
+    return first;
+  }
+
+  /**
+   * Get the first of the following.
+   *
+   * @param context The context node of this traversal. This is the point
+   * of origin for the traversal -- its "root node" or starting point.
+   * @param extendedTypeID The extended type ID that must match.
+   *
+   * @return the first node in the traversal.
+   */
+  public int first(int context, int extendedTypeID)
+  {
+    int first;
+    int type = getNodeType(context);
+    if((DTM.ATTRIBUTE_NODE == type) || (DTM.NAMESPACE_NODE == type))
+    {
+      context = getParent(context);
+      first = getFirstChild(context);
+      if(NULL != first)
+      {
+        if(_exptype(first) == extendedTypeID)
+          return first;
+        else return next(context, first, extendedTypeID);
+      }
+    }
+    do
+    {
+      first = getNextSibling(context);
+      if(NULL == first)
+        context = getParent(context);
+      else
+      {
+        if(_exptype(first) == extendedTypeID)
+          return first;
+        else return next(context, first, extendedTypeID);
+      }
+    }
+      while(NULL == first && NULL != context);
+      
+    return first;
+  }
 
     /**
      * Traverse to the next node after the current node.
@@ -536,15 +606,9 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int next(int context, int current)
     {
 
-      int subtreeRootIdent = context & m_mask;
-
-      if (context == current)
-        current = getNextSibling(context) & m_mask;
-      else
-        current = (current & m_mask) + 1;
-
-      for (; ; current++)
+      while (true)
       {
+        current++;
         int type = _type(current);  // may call nextNode()
 
         if (NULL == type)
@@ -570,21 +634,15 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     public int next(int context, int current, int extendedTypeID)
     {
 
-      int subtreeRootIdent = context & m_mask;
-
-      if (context == current)
-        current = getNextSibling(context) & m_mask;
-      else
-        current = (current & m_mask) + 1;
-
-      for (; ; current++)
+      while (true)
       {
-        int exptype = _exptype(current);  // may call nextNode()
+        current++;
+        int etype = _exptype(current);  // may call nextNode()
 
-        if (NULL == exptype)
+        if (NULL == etype)
           return NULL;
 
-        if (exptype != extendedTypeID)
+        if (etype != extendedTypeID)
           continue;
 
         return (current | m_dtmIdent);  // make handle.

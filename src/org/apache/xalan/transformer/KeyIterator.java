@@ -58,7 +58,7 @@ package org.apache.xalan.transformer;
 
 import java.util.Vector;
 
-import org.apache.xpath.axes.LocPathIterator;
+import org.apache.xpath.axes.WalkingIterator;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.QName;
@@ -68,11 +68,6 @@ import org.apache.xpath.axes.DescendantOrSelfWalker;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPath;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.DOMException;
-//import org.w3c.dom.NamedNodeMap;
-//import org.w3c.dom.traversal.NodeFilter;
-//import org.w3c.dom.traversal.NodeIterator;
 import org.apache.xml.dtm.DTM;
 
 import javax.xml.transform.TransformerException;
@@ -84,7 +79,7 @@ import javax.xml.transform.TransformerException;
  * source tree and finds all the nodes that match
  * a given key name and match pattern.
  */
-public class KeyIterator extends LocPathIterator
+public class KeyIterator extends WalkingIterator
 {
   
   /** The key table this iterator is associated to.
