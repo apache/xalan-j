@@ -209,29 +209,13 @@ public interface DTM
   public int getLastChild(int nodeHandle);
 
   /**
-   * Retrieves an attribute node by qualified name. 
-   * <br>To retrieve an attribute node by local name and namespace URI, 
-   * use the <code>getAttributeNode(ns,local)</code> method.
-   *
-   * %REVIEW% I don't think XPath model needs it... but DOM support might.
-   *
-   * @param name The qualified name of the attribute to 
-   *   retrieve.
-   * @return The attribute node handle with the specified name (
-   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
-   *   attribute.
-   */
-  public int getAttributeNode(String name);
-
-  /**
    * Retrieves an attribute node by local name and namespace URI
    *
-   * %REVIEW% Note that this uses method overloading by argument signature.
-   * since we also have the single-string lookup by qname.
-   * If we ever want to port this to a language which doesn't support this
-   * capability, we might want to rename this to getAttributeNodeNS.
+   * %TBD% Note that we currently have no way to support
+   * the DOM's old getAttribute() call, which accesses only the qname.
    *
-   * @param name The namespace URI of the attribute to 
+   * @param elementHandle Handle of the node upon which to look up this attribute.
+   * @param namespaceURI The namespace URI of the attribute to 
    *   retrieve, or null.
    * @param name The local name of the attribute to 
    *   retrieve.
@@ -239,7 +223,7 @@ public interface DTM
    *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
    *   attribute.
    */
-  public int getAttributeNode(String namespaceURI, String name);
+  public int getAttributeNode(int elementHandle,String namespaceURI, String name);
 
   /**
    * Given a node handle, get the index of the node's first attribute.
@@ -572,14 +556,13 @@ public interface DTM
   public boolean isSupported(String feature, 
                              String version);
   
-  /**
-   * Return the base URI of the specified node. If it is not known
-   * (because the document was parsed from a socket connection or from
-   * standard input, for example), the value of this property is null.
-   * If you need the document's base URI, you can retrieve the Document
-   * node and then ask it this question.
+  /** Return the base URI of the specified node's Document node. If it
+   * is not known (because the document was parsed from a socket
+   * connection or from standard input, for example), the value of
+   * this property is null.  If you need the document's base URI, you
+   * can retrieve the Document node and then ask it this question.
    *
-   * %REVIEW% Should this query any node, or only the Document?
+   * %REVIEW% Should this the base URI at the specified node instead?
    * (The Document's base URI may not match that of other nodes,
    * due to External Parsed Entities and <xml:base/>. Supporting that
    * would require tagging nodes with their base URI, or reintroducing
@@ -587,8 +570,8 @@ public interface DTM
    *
    * @param nodeHandle The node id, which can be any valid node handle.
    * @return the document base URI String object or null if unknown.
-   */
-  public String getNodeBaseURI(int nodeHandle);
+   * */
+  public String getDocumentBaseURI(int nodeHandle);
 
   /**
    * Return the system identifier of the document entity. If
@@ -664,7 +647,7 @@ public interface DTM
    *
    * @return the public identifier String object, or null if there is none.
    */
-  public int getDocumentTypeDeclarationPublicIdentifier();
+  public String getDocumentTypeDeclarationPublicIdentifier();
 
   /**
    * Returns the <code>Element</code> whose <code>ID</code> is given by 
@@ -848,32 +831,31 @@ public interface DTM
       // Should it be a separate interface to make that distinction explicit?
       // I suspect we need element and attribute factories, maybe others.
   
-  /**
-   * Append a child to the end of the document. Please note that the node 
-   * is always cloned if it is owned by another document.
-   * <p>
-   * %REVIEW% "End of the document" needs to be defined better. I believe the
-   * intent is equivalent to the DOM sequence
-   *	currentInsertPoint.appendChild(document.importNode(newChild)))
+  /** Append a child to "the end of the document". Please note that
+   * the node is always cloned in a base DTM, since our basic behavior
+   * is immutable so nodes can't be removed from their previous
+   * location.
+   *
+   * <p> %REVIEW%  DTM maintains an insertion cursor which
+   * performs a depth-first tree walk as nodes come in, and this operation
+   * is really equivalent to:
+   *    insertionCursor.appendChild(document.importNode(newChild)))
    * where the insert point is the last element that was appended (or
-   * the last one popped back to by an end-element operation),
-   * but we need to nail that down more explicitly.
-   * <p>
-   * %REVIEW% ISSUE -- In DTM, I believe we must ALWAYS clone the node, since
-   * the base DTM is immutable and nodes never exist in isolation.
-   * 
+   * the last one popped back to by an end-element operation).</p>
+   *
    * @param newChild Must be a valid new node handle.
    * @param clone true if the child should be cloned into the document.
    * @param cloneDepth if the clone argument is true, specifies that the 
-   *                   clone should include all it's children.
-   */
+   *                   clone should include all it's children.  */
   public void appendChild(int newChild, boolean clone, boolean cloneDepth);
 
   /**
    * Append a text node child that will be constructed from a string, 
    * to the end of the document. Behavior is otherwise like appendChild().
    * 
-   * @param str Non-null reverence to a string.
+   * @param str Non-null reference to a string.
    */
   public void appendTextChild(String str);
 }
+
+

@@ -107,6 +107,14 @@ implements ContentHandler, LexicalHandler
   // Data
   //
 
+  /** Document being built.
+   *
+   * <p>%TBD% The DTM API doesn't currently have construction calls,
+   * so this is explicitly defined as a DTMDocumentImpl. That needs to
+   * be fixed.</p>
+   * */
+  private DTMDocumentImpl m_dtm;
+
   private CoroutineManager fCoroutineManager = null;
   private int fAppCoroutine = -1;
   private int fParserCoroutine = -1;
@@ -135,31 +143,42 @@ implements ContentHandler, LexicalHandler
   //
   // Constructors
   //
-  public DTMBuilder(DTM dtm, InputSource source, org.xml.sax.XMLReader parser)
+
+  /*
+   * @param dtm DTM object to be written into
+   * <p>%TBD% The DTM API doesn't currently have construction calls,
+   * so this is explicitly defined as a DTMDocumentImpl. That needs to
+   * be fixed.</p>
+   * @param source SAX InputSource to read the XML document from.
+   * @param parser SAX XMLReader to be used to parse source into dtm
+   * */
+  public DTMBuilder(DTMDocumentImpl dtm, InputSource source, org.xml.sax.XMLReader parser)
   {
+    m_dtm=dtm;
+    
     // Start with persistant shared pools unless the DTM expresses
     // other preferences
-    localElementNames=dtm.getElementNameTable();
+    localElementNames=m_dtm.getElementNameTable();
     if(localElementNames==null)
-      dtm.setElementNameTable(localElementNames=commonLocalElementNames);
+      m_dtm.setElementNameTable(localElementNames=commonLocalElementNames);
 
-    localAttributeNames=dtm.getAttributeNameTable();
+    localAttributeNames=m_dtm.getAttributeNameTable();
     if(localAttributeNames==null)
-      dtm.setAttributeNameTable(localAttributeNames=commonLocalAttributeNames);
+      m_dtm.setAttributeNameTable(localAttributeNames=commonLocalAttributeNames);
 
-    namespaceNames=dtm.getNsNameTable();
+    namespaceNames=m_dtm.getNsNameTable();
     if(namespaceNames==null)
-      dtm.setNsNameTable(namespaceNames=commonNamespaceNames);
+      m_dtm.setNsNameTable(namespaceNames=commonNamespaceNames);
 
-    prefixes=dtm.getPrefixNameTable();
+    prefixes=m_dtm.getPrefixNameTable();
     if(prefixes==null)
-      dtm.setPrefixNameTable(prefixes=commonPrefixes);
+      m_dtm.setPrefixNameTable(prefixes=commonPrefixes);
 
     // Unlike the other strings, which may be shared and thus should be
     // reset elsewhere (if at all), content starts empty each time we parse.
-    content=dtm.getContentBuffer();
+    content=m_dtm.getContentBuffer();
     if(content==null)
-      dtm.setContentBuffer(content=new FastStringBuffer());
+      m_dtm.setContentBuffer(content=new FastStringBuffer());
     else
       content.reset();
     contentStart=0;
@@ -180,7 +199,17 @@ implements ContentHandler, LexicalHandler
     // Begin incremental parsing
     // Note that this doesn't return until the first chunk of parsing
     // has been completed and the parser coroutine yields.
-    fCoroutineManager.co_resume(source,fAppCoroutine,fParserCoroutine);
+    try
+      {
+	fCoroutineManager.co_resume(source,fAppCoroutine,fParserCoroutine);
+      }
+    catch(NoSuchMethodException e)
+      {
+	// Shouldn't happen unless we've miscoded our coroutine logic
+	// "Shut down the garbage smashers on the detention level!"
+	e.printStackTrace(System.err);
+	fCoroutineManager.co_exit(fAppCoroutine);
+      }
   }
   
   //
@@ -194,7 +223,7 @@ implements ContentHandler, LexicalHandler
     if(len!=contentStart)
       {
 	// The FastStringBuffer has been previously agreed upon
-	dtm.appendTextChild(contentStart,len-contentStart);
+	m_dtm.appendTextChild(contentStart,len-contentStart);
 	contentStart=len;
       }
   }
@@ -215,7 +244,7 @@ implements ContentHandler, LexicalHandler
   {
     // May need to tell the low-level builder code to pop up a level.
     // There _should't_ be any significant pending text at this point.
-    dtm.endDocument();
+    m_dtm.appendEndDocument();
   }
   public void endElement(java.lang.String namespaceURI, java.lang.String localName,
       java.lang.String qName) 
@@ -224,7 +253,7 @@ implements ContentHandler, LexicalHandler
     processAccumulatedText();
     // No args but we do need to tell the low-level builder code to
     // pop up a level.
-    dtm.endElement();
+    m_dtm.appendEndElement();
   }
   public void endPrefixMapping(java.lang.String prefix) 
        throws org.xml.sax.SAXException
@@ -256,7 +285,7 @@ implements ContentHandler, LexicalHandler
        throws org.xml.sax.SAXException
   {
     // No-op for DTM?
-    //dtm.startDocument();
+    //m_dtm.startDocument();
   }
   public void startElement(java.lang.String namespaceURI, java.lang.String localName,
       java.lang.String qName, Attributes atts) 
@@ -271,7 +300,7 @@ implements ContentHandler, LexicalHandler
       prefix=qName.substring(0,colon);
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
-    dtm.startElement(namespaceNames.stringToIndex(namespaceURI),
+    m_dtm.startElement(namespaceNames.stringToIndex(namespaceURI),
 		     localElementNames.stringToIndex(localName),
 		     prefixes.stringToIndex(prefix)); /////// %TBD%
 
@@ -285,22 +314,21 @@ implements ContentHandler, LexicalHandler
 	qName=atts.getQName(i);
 	if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
 	  {
-	    
-	    // %TBD% I hate having to extract the prefix into a new
-	    // string when we may never use it. Consider pooling whole
-	    // qNames, which are already strings?
 	    prefix=null;
 	    colon=qName.indexOf(':');
 	    if(colon>0)
-	      prefix=qName.substring(0,colon);
+	      {
+		prefix=qName.substring(0,colon);
+	      }
+	    else
+	      {
+		prefix=""; // Default prefix
+	      }
 	    
-	    content.append(atts.getValue(i)); // Single-string value
-	    int contentEnd=content.length();
-	    
-	    dtm.appendNSDeclaration(namespaceNames.stringToIndex(atts.getURI(i)),
-				    localAttributeNames.stringToIndex(localName),
+
+	    m_dtm.appendNSDeclaration(
 				    prefixes.stringToIndex(prefix),
-				    contentStart, contentEnd-contentStart,
+				    namespaceNames.stringToIndex(atts.getValue(i)),
 				    atts.getType(i).equalsIgnoreCase("ID"));
 	  }
       }
@@ -316,18 +344,26 @@ implements ContentHandler, LexicalHandler
 	    prefix=null;
 	    colon=qName.indexOf(':');
 	    if(colon>0)
-	      prefix=qName.substring(0,colon);
+	      {
+		prefix=qName.substring(0,colon);
+		localName=qName.substring(colon+1);
+	      }
+	    else
+	      {
+		prefix=""; // Default prefix
+		localName=qName;
+	      }
+	    
 	    
 	    content.append(atts.getValue(i)); // Single-string value
 	    int contentEnd=content.length();
 	    
 	    if(!("xmlns".equals(prefix) || "xmlns".equals(qName)))
-	      dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
+	      m_dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
 				  localAttributeNames.stringToIndex(localName),
 				  prefixes.stringToIndex(prefix),
 				  atts.getType(i).equalsIgnoreCase("ID"),
-				  contentStart, contentEnd-contentStart,
-				  atts.getType(i).equalsIgnoreCase("ID"));
+				  contentStart, contentEnd-contentStart);
 	    contentStart=contentEnd;
 	  }
       }
@@ -348,7 +384,7 @@ implements ContentHandler, LexicalHandler
     processAccumulatedText();
 
     content.append(ch,start,length); // Single-string value
-    dtm.appendComment(contentStart,length);
+    m_dtm.appendComment(contentStart,length);
     contentStart+=length;    
   }
   public void endCDATA() 
@@ -430,7 +466,6 @@ implements ContentHandler, LexicalHandler
 	    System.err.println("\tStopping parser rather than risk deadlock");
 	    throw new RuntimeException("Coroutine parameter error ("+arg+')');
 	  }
-
       }
     catch(java.lang.NoSuchMethodException e)
       {
@@ -439,6 +474,9 @@ implements ContentHandler, LexicalHandler
 	e.printStackTrace(System.err);
 	fCoroutineManager.co_exit(fAppCoroutine);
       }
+
+    // Only reached if NoSuchMethodException was thrown (no coroutine)
+    return(false); 
   }
 
 } // class DTMBuilder

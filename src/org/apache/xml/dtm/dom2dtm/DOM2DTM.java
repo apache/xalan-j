@@ -598,7 +598,7 @@ public class DOM2DTM implements DTM
   /**
    * Retrieves an attribute node by by qualified name and namespace URI.
    *
-   * @param nodeHandle int Handle of the node.
+   * @param nodeHandle int Handle of the node upon which to look up this attribute..
    * @param namespaceURI The namespace URI of the attribute to
    *   retrieve, or null.
    * @param name The local name of the attribute to

@@ -702,7 +702,7 @@ public class DTMDocumentImpl implements DTM {
 	/**
 	 * Retrieves an attribute node by by qualified name and namespace URI.
 	 *
-	 * @param nodeHandle int Handle of the node.
+	 * @param node Handle of the node upon which to look up this attribute.
 	 * @param namespaceURI The namespace URI of the attribute to
 	 *   retrieve, or null.
 	 * @param name The local name of the attribute to
@@ -711,7 +711,7 @@ public class DTMDocumentImpl implements DTM {
 	 *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such
 	 *   attribute.
 	 */
-	public int getAttributeNode(int nodeHandle, String namespaceURI, String name) {
+	public int getAttributeNode(int node,String namespaceURI, String name) {
 		//m_nsNames.stringToIndex(namespaceURI);
 		return -1;
 	}
@@ -1269,7 +1269,10 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @return the public identifier String object, or null if there is none.
 	 */
-	public int getDocumentTypeDeclarationPublicIdentifier() {return 0;}
+	public String getDocumentTypeDeclarationPublicIdentifier()
+        {
+	  return null; // %TBD%
+	}
 
 	/**
 	 * Returns the <code>Element</code> whose <code>ID</code> is given by
@@ -1461,9 +1464,109 @@ public class DTMDocumentImpl implements DTM {
 	 * <p>%REVIEW% "End of the document" needs to be defined more clearly.
 	 * Does it become the last child of the Document? Of the root element?</p>
 	 *
-	 * @param str Non-null reverence to a string.
+	 * @param str Non-null reference to a string.
 	 */
 	public void appendTextChild(String str) {}
+
+  // ==== BUILDER methods (should probably replace above construction methods) =====
+
+  /** Append a text child at the current insertion point. Assumes that the
+   * actual content of the text has previously been appended to the m_char
+   * buffer (shared with the builder).
+   *
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendTextChild(int contentStart,int contentLength)
+  {
+    // %TBD%
+  }
+  
+  /** Append a comment child at the current insertion point. Assumes that the
+   * actual content of the comment has previously been appended to the m_char
+   * buffer (shared with the builder).
+   *
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendComment(int contentStart,int contentLength)
+  {
+    // %TBD%
+  }
+  
+  
+  /** Append an Element child at the current insertion point. This
+   * Element then _becomes_ the insertion point; subsequent appends
+   * become its lastChild until an appendEndElement() call is made.
+   * 
+   * Assumes that the symbols (local name, namespace URI and prefix)
+   * have already been added to the pools
+   *
+   * @param namespaceIndex: Index within the namespaceURI string pool
+   * @param localNameIndex Index within the local name string pool
+   * @param prefixIndex: Index within the prefix string pool
+   * */
+  void startElement(int namespaceIndex,int localNameIndex, int prefixIndex)
+  {
+    // %TBD%
+  }
+  
+  /** Append a Namespace Declaration child at the current insertion point.
+   * Assumes that the symbols (namespace URI and prefix) have already been
+   * added to the pools
+   *
+   * @param prefixIndex: Index within the prefix string pool
+   * @param namespaceIndex: Index within the namespaceURI string pool
+   * @param isID: If someone really insists on writing a bad DTD, it is
+   * theoretically possible for a namespace declaration to also be declared
+   * as being a node ID. I don't really want to support that stupidity,
+   * but I'm not sure we can refuse to accept it.
+   * */
+  void appendNSDeclaration(int prefixIndex, int namespaceIndex,
+			   boolean isID)
+  {
+    // %TBD%
+  }
+
+  /** Append a Namespace Declaration child at the current insertion
+   * point.  Assumes that the symbols (namespace URI, local name, and
+   * prefix) have already been added to the pools, and that the content has
+   * already been appended to m_char. Note that the attribute's content has
+   * been flattened into a single string; DTM does _NOT_ attempt to model
+   * the details of entity references within attribute values.
+   *
+   * @param namespaceIndex int Index within the namespaceURI string pool
+   * @param localNameIndex int Index within the local name string pool
+   * @param prefixIndex int Index within the prefix string pool
+   * @param isID boolean True if this attribute was declared as an ID
+   * (for use in supporting getElementByID).
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendAttribute(int namespaceIndex, int localNameIndex, int prefixIndex,
+		       boolean isID,
+		       int contentStart, int contentLength)
+  {
+    // %TBD%
+  }
+  
+
+
+  /** Terminate the element currently acting as an insertion point. Subsequent
+   * insertions will occur as the last child of this element's parent.
+   * */
+  void appendEndElement()
+  {
+    // %TBD%
+  }
+  
+  /**  All appends to this document have finished; do whatever final
+   * cleanup is needed. I expect this will actually be a no-op.
+   * */
+  void appendEndDocument()
+  {
+    // %TBD%
+  }
+
+  
 }
-
-
