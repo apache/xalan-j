@@ -73,15 +73,11 @@ import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.XPath;
 
-// DOM2 imports
-//import org.w3c.dom.Node;
-//import org.w3c.dom.NamedNodeMap;
-//import org.w3c.dom.traversal.TreeWalker;
-//import org.w3c.dom.traversal.NodeFilter;
-//import org.w3c.dom.DOMException;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+
+import org.apache.xml.utils.XMLString;
 
 /**
  * Serves as common interface for axes Walkers, and stores common
@@ -631,7 +627,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
     if (DTM.TEXT_NODE == getDTM(node).getNodeType(node))
     {
-      String value = getDTM(node).getStringValue(node);
+      XMLString value = getDTM(node).getStringValue(node);
 
       if (null != value)
       {
@@ -653,7 +649,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
       System.out.print("attr -->");
       System.out.print(nodeToString(attr));
 
-      String value = dtm.getStringValue(attr);
+      XMLString value = dtm.getStringValue(attr);
 
       if (null != value)
       {

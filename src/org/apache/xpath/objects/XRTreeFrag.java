@@ -63,6 +63,8 @@ import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
 
+import org.apache.xml.utils.XMLString;
+
 import org.apache.xpath.DOMHelper;
 import org.apache.xpath.XPathContext;
 
@@ -138,7 +140,7 @@ public class XRTreeFrag extends XObject
 //      java.text.NumberFormat.getNumberInstance();
     double result;
     
-    String s = m_dtm.getStringValue(m_dtmRoot);
+    XMLString s = m_dtm.getStringValue(m_dtmRoot);
 
     if (null != s)
     {
@@ -176,6 +178,16 @@ public class XRTreeFrag extends XObject
   {
     return true;
   }
+  
+  /**
+   * Cast result object to an XMLString.
+   *
+   * @return The document fragment node data or the empty string. 
+   */
+  public XMLString xstr()
+  {
+    return m_dtm.getStringValue(m_dtmRoot);
+  }
 
   /**
    * Cast result object to a string.
@@ -184,7 +196,7 @@ public class XRTreeFrag extends XObject
    */
   public String str()
   {
-    String str = m_dtm.getStringValue(m_dtmRoot);
+    String str = m_dtm.getStringValue(m_dtmRoot).toString();
 
     return (null == str) ? "" : str;
   }
@@ -233,42 +245,49 @@ public class XRTreeFrag extends XObject
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public boolean equals(XObject obj2) throws javax.xml.transform.TransformerException
+  public boolean equals(XObject obj2)
   {
 
-    if (XObject.CLASS_NODESET == obj2.getType())
+    try
     {
-
-      // In order to handle the 'all' semantics of 
-      // nodeset comparisons, we always call the 
-      // nodeset function.
-      return obj2.equals(this);
+      if (XObject.CLASS_NODESET == obj2.getType())
+      {
+  
+        // In order to handle the 'all' semantics of 
+        // nodeset comparisons, we always call the 
+        // nodeset function.
+        return obj2.equals(this);
+      }
+      else if (XObject.CLASS_BOOLEAN == obj2.getType())
+      {
+        return bool() == obj2.bool();
+      }
+      else if (XObject.CLASS_NUMBER == obj2.getType())
+      {
+        return num() == obj2.num();
+      }
+      else if (XObject.CLASS_NODESET == obj2.getType())
+      {
+        return str().equals(obj2.str());
+      }
+      else if (XObject.CLASS_STRING == obj2.getType())
+      {
+        return str().equals(obj2.str());
+      }
+      else if (XObject.CLASS_RTREEFRAG == obj2.getType())
+      {
+  
+        // Probably not so good.  Think about this.
+        return str().equals(obj2.str());
+      }
+      else
+      {
+        return super.equals(obj2);
+      }
     }
-    else if (XObject.CLASS_BOOLEAN == obj2.getType())
+    catch(javax.xml.transform.TransformerException te)
     {
-      return bool() == obj2.bool();
-    }
-    else if (XObject.CLASS_NUMBER == obj2.getType())
-    {
-      return num() == obj2.num();
-    }
-    else if (XObject.CLASS_NODESET == obj2.getType())
-    {
-      return str().equals(obj2.str());
-    }
-    else if (XObject.CLASS_STRING == obj2.getType())
-    {
-      return str().equals(obj2.str());
-    }
-    else if (XObject.CLASS_RTREEFRAG == obj2.getType())
-    {
-
-      // Probably not so good.  Think about this.
-      return str().equals(obj2.str());
-    }
-    else
-    {
-      return super.equals(obj2);
+      throw new org.apache.xml.utils.WrappedRuntimeException(te);
     }
   }
 

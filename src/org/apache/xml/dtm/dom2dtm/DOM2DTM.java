@@ -75,6 +75,9 @@ import org.xml.sax.ContentHandler;
 
 import org.apache.xml.utils.NodeVector;
 
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
+
 /**
  * The <code>DOM2DTM</code> class serves up a DOM via a DTM API.
  */
@@ -144,9 +147,10 @@ public class DOM2DTM extends DTMDefaultBase
    *                         be null.
    */
   public DOM2DTM(DTMManager mgr, DOMSource domSource, 
-                 int dtmIdentity, DTMWSFilter whiteSpaceFilter)
+                 int dtmIdentity, DTMWSFilter whiteSpaceFilter,
+                 XMLStringFactory xstringfactory)
   {
-    super(mgr, domSource, dtmIdentity, whiteSpaceFilter);
+    super(mgr, domSource, dtmIdentity, whiteSpaceFilter, xstringfactory);
 
     m_root = domSource.getNode();
     m_pos = null;
@@ -577,12 +581,13 @@ public class DOM2DTM extends DTMDefaultBase
    *
    * @return A string object that represents the string-value of the given node.
    */
-  public String getStringValue(int nodeHandle)
+  public XMLString getStringValue(int nodeHandle)
   {
 
     int type = getNodeType(nodeHandle);
     Node node = getNode(nodeHandle);
-    // %REVIEW%
+    // %TBD% If an element only has one text node, we should just use it 
+    // directly.
     if(DTM.ELEMENT_NODE == type || DTM.DOCUMENT_NODE == type 
     || DTM.DOCUMENT_FRAGMENT_NODE == type)
     {
@@ -600,10 +605,10 @@ public class DOM2DTM extends DTMDefaultBase
         StringBufferPool.free(buf);
       }
   
-      return s;
+      return m_xstrf.newstr( s );
 
     }
-    return node.getNodeValue();
+    return m_xstrf.newstr( node.getNodeValue() );
   }
   
   /**

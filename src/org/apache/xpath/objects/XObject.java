@@ -72,6 +72,7 @@ import org.apache.xpath.NodeSet;
 import org.apache.xpath.XPathException;
 import org.apache.xalan.res.XSLMessages;
 import org.apache.xpath.Expression;
+import org.apache.xml.utils.XMLString;
 
 /**
  * <meta name="usage" content="general"/>
@@ -248,6 +249,16 @@ public class XObject extends Expression implements Serializable
           new Object[]{ getTypeString() });  //"Can not convert "+getTypeString()+" to a number");
 
     return false;
+  }
+  
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public XMLString xstr()
+  {
+    return XMLStringFactoryImpl.getFactory().newstr(str());
   }
 
   /**
@@ -498,7 +509,7 @@ public class XObject extends Expression implements Serializable
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public boolean equals(XObject obj2) throws javax.xml.transform.TransformerException
+  public boolean equals(XObject obj2)
   {
 
     // In order to handle the 'all' semantics of 

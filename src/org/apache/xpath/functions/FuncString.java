@@ -85,6 +85,6 @@ public class FuncString extends FunctionDef1Arg
    */
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
-    return new XString(getArg0AsString(xctxt));
+    return (XString)getArg0AsString(xctxt);
   }
 }

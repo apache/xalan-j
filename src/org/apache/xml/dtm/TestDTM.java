@@ -28,7 +28,8 @@ public class TestDTM {
      *   <C>My Anaconda<D/>Words</C>
      *  </top> */
 
-    DTMDocumentImpl doc = new DTMDocumentImpl(null, 0, null);
+    DTMDocumentImpl doc = new DTMDocumentImpl(null, 0, null, 
+                    org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
 
     try
       {

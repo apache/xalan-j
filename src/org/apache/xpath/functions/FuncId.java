@@ -171,7 +171,7 @@ public class FuncId extends FunctionOneArg
       while (DTM.NULL != pos)
       {
         DTM ndtm = ni.getDTM(pos);
-        String refval = ndtm.getStringValue(pos);
+        String refval = ndtm.getStringValue(pos).toString();
 
         pos = ni.nextNode();
         usedrefs = getNodesByID(xctxt, docContext, refval, usedrefs, nodeSet,

@@ -121,7 +121,8 @@ public class UnitTest
     
     Document doc = db.parse(new InputSource(sr));
     
-    DTMManager dtmMgr = DTMManager.newInstance();
+    DTMManager dtmMgr = DTMManager.newInstance(
+                 org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
     DTM dtm = dtmMgr.getDTM(new DOMSource(doc), true, null, true);
     
     int docHandle = dtm.getDocument();

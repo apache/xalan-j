@@ -70,6 +70,7 @@ import org.apache.xpath.XPathContext;
 import org.apache.xpath.NodeSet;
 import org.apache.xpath.axes.ContextNodeList;
 import org.apache.xml.utils.StringVector;
+import org.apache.xml.utils.XMLString;
 
 /**
  * <meta name="usage" content="general"/>
@@ -188,7 +189,7 @@ public class XNodeSet extends XObject
    *
    * @return the string conversion from a single node.
    */
-  public String getStringFromNode(int n)
+  public XMLString getStringFromNode(int n)
   {
     // %OPT%
     // I guess we'll have to get a static instance of the DTM manager...
@@ -198,9 +199,23 @@ public class XNodeSet extends XObject
     }
     else
     {
-      return "";
+      return org.apache.xpath.objects.XString.EMPTYSTRING;
     }
   }
+  
+  /**
+   * Cast result object to an XMLString.
+   *
+   * @return The document fragment node data or the empty string. 
+   */
+  public XMLString xstr()
+  {
+    DTMIterator nl = nodeset();
+    int node = nl.nextNode();
+
+    return (node != DTM.NULL) ? getStringFromNode(node) : XString.EMPTYSTRING;
+  }
+
 
   /**
    * Cast result object to a string.
@@ -214,7 +229,7 @@ public class XNodeSet extends XObject
     DTMIterator nl = nodeset();
     int node = nl.nextNode();
 
-    return (node != DTM.NULL) ? getStringFromNode(node) : "";
+    return (node != DTM.NULL) ? getStringFromNode(node).toString() : "";
   }
 
   // %REVIEW%
@@ -330,6 +345,7 @@ public class XNodeSet extends XObject
 
     if (XObject.CLASS_NODESET == type)
     {
+      // %OPT% This should be XMLString based instead of string based...
 
       // From http://www.w3.org/TR/xpath: 
       // If both objects to be compared are node-sets, then the comparison 
@@ -345,11 +361,11 @@ public class XNodeSet extends XObject
       DTMIterator list1 = nodeset();
       DTMIterator list2 = ((XNodeSet) obj2).nodeset();
       int node1;
-      StringVector node2Strings = null;
+      java.util.Vector node2Strings = null;
 
       while (DTM.NULL != (node1 = list1.nextNode()))
       {
-        String s1 = getStringFromNode(node1);
+        XMLString s1 = getStringFromNode(node1);
 
         if (null == node2Strings)
         {
@@ -357,7 +373,7 @@ public class XNodeSet extends XObject
 
           while (DTM.NULL != (node2 = list2.nextNode()))
           {
-            String s2 = getStringFromNode(node2);
+            XMLString s2 = getStringFromNode(node2);
 
             if (comparator.compareStrings(s1, s2))
             {
@@ -367,7 +383,7 @@ public class XNodeSet extends XObject
             }
 
             if (null == node2Strings)
-              node2Strings = new StringVector();
+              node2Strings = new java.util.Vector();
 
             node2Strings.addElement(s2);
           }
@@ -378,7 +394,7 @@ public class XNodeSet extends XObject
 
           for (int i = 0; i < n; i++)
           {
-            if (comparator.compareStrings(s1, node2Strings.elementAt(i)))
+            if (comparator.compareStrings(s1, (XMLString)node2Strings.elementAt(i)))
             {
               result = true;
 
@@ -455,13 +471,13 @@ public class XNodeSet extends XObject
       }
       else
       {
-        String s2 = obj2.str();
+        XMLString s2 = obj2.xstr();
         DTMIterator list1 = nodeset();
         int node;
 
         while (DTM.NULL != (node = list1.nextNode()))
         {
-          String s1 = getStringFromNode(node);
+          XMLString s1 = getStringFromNode(node);
 
           if (comparator.compareStrings(s1, s2))
           {
@@ -481,13 +497,13 @@ public class XNodeSet extends XObject
       // is a node in the node-set such that the result of performing 
       // the comparison on the string-value of the node and the other 
       // string is true. 
-      String s2 = obj2.str();
+      XMLString s2 = obj2.xstr();
       DTMIterator list1 = nodeset();
       int node;
 
       while (DTM.NULL != (node = list1.nextNode()))
       {
-        String s1 = getStringFromNode(node);
+        XMLString s1 = getStringFromNode(node);
 
         if (comparator.compareStrings(s1, s2))
         {
@@ -571,9 +587,16 @@ public class XNodeSet extends XObject
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public boolean equals(XObject obj2) throws javax.xml.transform.TransformerException
+  public boolean equals(XObject obj2)
   {
-    return compare(obj2, S_EQ);
+    try
+    {
+      return compare(obj2, S_EQ);
+    }
+    catch(javax.xml.transform.TransformerException te)
+    {
+      throw new org.apache.xml.utils.WrappedRuntimeException(te);
+    }
   }
 
   /**
@@ -606,7 +629,7 @@ abstract class Comparator
    *
    * @return Whether the strings are equal or not
    */
-  abstract boolean compareStrings(String s1, String s2);
+  abstract boolean compareStrings(XMLString s1, XMLString s2);
 
   /**
    * Compare two numbers
@@ -635,7 +658,7 @@ class LessThanComparator extends Comparator
    *
    * @return True if s1 is less than s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return s1.compareTo(s2) < 0;
   }
@@ -670,7 +693,7 @@ class LessThanOrEqualComparator extends Comparator
    *
    * @return true if s1 is less than or equal to s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return s1.compareTo(s2) <= 0;
   }
@@ -705,7 +728,7 @@ class GreaterThanComparator extends Comparator
    *
    * @return true if s1 is greater than s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return s1.compareTo(s2) > 0;
   }
@@ -740,7 +763,7 @@ class GreaterThanOrEqualComparator extends Comparator
    *
    * @return true if s1 is greater than or equal to s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return s1.compareTo(s2) >= 0;
   }
@@ -775,7 +798,7 @@ class EqualComparator extends Comparator
    *
    * @return true if s1 is equal to s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return s1.equals(s2);
   }
@@ -810,7 +833,7 @@ class NotEqualComparator extends Comparator
    *
    * @return true if s1 is not equal to s2
    */
-  boolean compareStrings(String s1, String s2)
+  boolean compareStrings(XMLString s1, XMLString s2)
   {
     return !s1.equals(s2);
   }

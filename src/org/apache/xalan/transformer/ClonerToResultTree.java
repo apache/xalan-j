@@ -58,16 +58,10 @@ package org.apache.xalan.transformer;
 
 import org.apache.xalan.templates.Stylesheet;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.Text;
-//import org.w3c.dom.Attr;
-//import org.w3c.dom.Comment;
-//import org.w3c.dom.CDATASection;
-//import org.w3c.dom.ProcessingInstruction;
-//import org.w3c.dom.EntityReference;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.utils.XMLString;
 
 import javax.xml.transform.TransformerException;
 import org.xml.sax.Attributes;
@@ -160,7 +154,8 @@ public class ClonerToResultTree
         m_rth.addAttribute(node);
         break;
       case DTM.COMMENT_NODE :
-        m_rth.comment(dtm.getStringValue (node));
+        XMLString xstr = dtm.getStringValue (node);
+        xstr.dispatchAsComment(m_rth);
         break;
       case DTM.ENTITY_REFERENCE_NODE :
         m_rth.entityReference(dtm.getNodeNameX(node));
@@ -168,12 +163,15 @@ public class ClonerToResultTree
       case DTM.PROCESSING_INSTRUCTION_NODE :
         {
           // %REVIEW% Is the node name the same as the "target"?
-          m_rth.processingInstruction(dtm.getNodeNameX(node), dtm.getStringValue(node));
+          m_rth.processingInstruction(dtm.getNodeNameX(node), 
+                                      dtm.getNodeValue(node));
         }
         break;
       default :
-        m_transformer.getMsgMgr().error(null, XSLTErrorResources.ER_CANT_CREATE_ITEM,
-                                        new Object[]{ dtm.getNodeName(node) });  //"Can not create item in result tree: "+node.getNodeName());
+        //"Can not create item in result tree: "+node.getNodeName());
+        m_transformer.getMsgMgr().error(null, 
+                         XSLTErrorResources.ER_CANT_CREATE_ITEM,
+                         new Object[]{ dtm.getNodeName(node) });  
       }
     }
     catch(org.xml.sax.SAXException se)

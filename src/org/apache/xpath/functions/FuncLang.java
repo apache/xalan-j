@@ -99,7 +99,8 @@ public class FuncLang extends FunctionOneArg
 
         if (DTM.NULL != langAttr)
         {
-          String langVal = dtm.getStringValue(langAttr);
+          String langVal = dtm.getNodeValue(langAttr);
+          // %OPT%
           if (langVal.toLowerCase().startsWith(lang.toLowerCase()))
           {
             int valLen = lang.length();

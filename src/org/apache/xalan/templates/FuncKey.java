@@ -64,7 +64,6 @@ import org.apache.xpath.functions.Function2Args;
 import org.apache.xpath.XPath;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XNodeSet;
-//import org.apache.xpath.DOMHelper;
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xpath.axes.UnionPathIterator;
@@ -74,12 +73,10 @@ import org.apache.xalan.transformer.KeyManager;
 import org.apache.xpath.res.XPATHErrorResources;
 import org.apache.xpath.XPathContext;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.Document;
-//import org.w3c.dom.NodeList;
-//import org.w3c.dom.traversal.NodeIterator;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
+
+import org.apache.xml.utils.XMLString;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -131,7 +128,7 @@ public class FuncKey extends Function2Args
       while (DTM.NULL != (pos = ni.nextNode()))
       {
         dtm = xctxt.getDTM(pos);
-        String ref = dtm.getStringValue(pos);
+        XMLString ref = dtm.getStringValue(pos);
 
         if (null == ref)
           continue;
@@ -171,7 +168,7 @@ public class FuncKey extends Function2Args
     }
     else
     {
-      String ref = arg.str();
+      XMLString ref = arg.xstr();
       LocPathIterator nl = kmgr.getNodeSetByKey(xctxt, docContext, keyname,
                                                 ref,
                                                 xctxt.getNamespaceContext());

@@ -88,6 +88,9 @@ import org.xml.sax.helpers.XMLReaderFactory;
 import org.xml.sax.ext.DeclHandler;
 import org.xml.sax.ext.LexicalHandler;
 
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
+
 /**
  * The default implementation for the DTMManager.
  */
@@ -103,7 +106,7 @@ public class DTMManagerDefault extends DTMManager
    */
   public DTMManagerDefault(){}
 
-  /** NEEDSDOC Field DUMPTREE */
+  /** Set this to true if you want a dump of the DTM after creation. */
   private static final boolean DUMPTREE = false;
 
   /**
@@ -120,7 +123,8 @@ public class DTMManagerDefault extends DTMManager
    * is going to be mutated.
    * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may
    *                         be null.
-   * NEEDSDOC @param incremental
+   * @param incremental true if the DTM should be built incrementally, if
+   *                    possible.
    *
    * @return a non-null DTM reference.
    */
@@ -128,12 +132,13 @@ public class DTMManagerDefault extends DTMManager
                     DTMWSFilter whiteSpaceFilter, boolean incremental)
   {
 
+    XMLStringFactory xstringFactory = m_xsf;
     int documentID = m_dtms.size() << 20;
 
     if ((null != source) && source instanceof DOMSource)
     {
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
-                                whiteSpaceFilter);
+                                whiteSpaceFilter, xstringFactory);
 
       m_dtms.add(dtm);
 
@@ -147,8 +152,10 @@ public class DTMManagerDefault extends DTMManager
     }
     else
     {
-      boolean isSAXSource = (null != source) ? (source instanceof SAXSource) : true;
-      boolean isStreamSource = (null != source) ? (source instanceof StreamSource) : false;
+      boolean isSAXSource = (null != source)
+                            ? (source instanceof SAXSource) : true;
+      boolean isStreamSource = (null != source)
+                               ? (source instanceof StreamSource) : false;
 
       if (isSAXSource || isStreamSource)
       {
@@ -185,16 +192,18 @@ public class DTMManagerDefault extends DTMManager
         }
 
         // Create the basic SAX2DTM.
-        SAX2DTM dtm = new SAX2DTM(this, source, documentID, whiteSpaceFilter);
+        SAX2DTM dtm = new SAX2DTM(this, source, documentID, whiteSpaceFilter,
+                                  xstringFactory);
 
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
         m_dtms.add(dtm);
-        
-        boolean haveXercesParser = null != reader && 
-                        reader instanceof org.apache.xerces.parsers.SAXParser;
-                        
-        if(haveXercesParser)
+
+        boolean haveXercesParser =
+          null != reader
+          && reader instanceof org.apache.xerces.parsers.SAXParser;
+
+        if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
 
         if (incremental)
@@ -209,24 +218,25 @@ public class DTMManagerDefault extends DTMManager
           int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
           CoroutineParser coParser;
 
-           if(haveXercesParser)
+          if (haveXercesParser)
           {
+
             // CoroutineSAXParser_Xerces to avoid threading.
             // System.out.println("Using CoroutineSAXParser_Xerces to avoid threading");
-            coParser = 
-              new CoroutineSAXParser_Xerces(
-                              (org.apache.xerces.parsers.SAXParser)reader,
-                              coroutineManager, appCoroutine);
+            coParser = new CoroutineSAXParser_Xerces(
+              (org.apache.xerces.parsers.SAXParser) reader, coroutineManager,
+              appCoroutine);
           }
           else
           {
 
             // Create a CoroutineSAXParser that will run on the secondary thread.
-            if(null == reader)
-              coParser = new CoroutineSAXParser(coroutineManager, appCoroutine);
+            if (null == reader)
+              coParser = new CoroutineSAXParser(coroutineManager,
+                                                appCoroutine);
             else
-              coParser = new CoroutineSAXParser(coroutineManager, appCoroutine,
-                                                reader);
+              coParser = new CoroutineSAXParser(coroutineManager,
+                                                appCoroutine, reader);
           }
 
           // Have the DTM set itself up as the CoroutineSAXParser's listener.
@@ -237,7 +247,7 @@ public class DTMManagerDefault extends DTMManager
 
           if (null == xmlSource)
           {
-  
+
             // Then the user will construct it themselves.
             return dtm;
           }
@@ -251,7 +261,7 @@ public class DTMManagerDefault extends DTMManager
           // pass the registration through to the reader if that's the Right Thng
           reader.setDTDHandler(dtm);
           reader.setErrorHandler(dtm);
-          
+
           try
           {
 
@@ -290,8 +300,9 @@ public class DTMManagerDefault extends DTMManager
         }
         else
         {
-          if(null == reader)
+          if (null == reader)
           {
+
             // Then the user will construct it themselves.
             return dtm;
           }
@@ -348,25 +359,28 @@ public class DTMManagerDefault extends DTMManager
       }
     }
   }
-  
+
   /**
    * Given a W3C DOM node, try and return a DTM handle.
    * Note: calling this may be non-optimal.
-   * 
+   *
    * @param node Non-null reference to a DOM node.
-   * 
+   *
    * @return a valid DTM handle.
    */
   public int getDTMHandleFromNode(org.w3c.dom.Node node)
   {
-    if(node instanceof org.apache.xml.dtm.DTMNodeProxy)
-      return ((org.apache.xml.dtm.DTMNodeProxy)node).getDTMNodeNumber();
+
+    if (node instanceof org.apache.xml.dtm.DTMNodeProxy)
+      return ((org.apache.xml.dtm.DTMNodeProxy) node).getDTMNodeNumber();
     else
     {
+
       // %REVIEW% Maybe the best I can do??
       // Or should I first search all the DTMs??
-      DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false, 
-                   null, true);
+      DTM dtm = getDTM(new javax.xml.transform.dom.DOMSource(node), false,
+                       null, true);
+
       return dtm.getDocument();
     }
   }
@@ -522,7 +536,7 @@ public class DTMManagerDefault extends DTMManager
   }
 
   /**
-   * NEEDSDOC Method createDocumentFragment
+   * Method createDocumentFragment
    *
    *
    * NEEDSDOC (createDocumentFragment) @return

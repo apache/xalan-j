@@ -75,6 +75,7 @@ import org.apache.xml.utils.QName;
 import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xpath.XPathContext;
 import org.apache.xml.utils.PrefixResolver;
+import org.apache.xml.utils.XMLString;
 import org.apache.xpath.axes.LocPathIterator;
 
 // import org.apache.xalan.dtm.*;
@@ -151,7 +152,7 @@ public class KeyTable
    * if the identifier is not found, it will return null,
    * otherwise it will return a LocPathIterator instance.
    */
-  public LocPathIterator getNodeSetByKey(QName name, String ref)
+  public LocPathIterator getNodeSetByKey(QName name, XMLString ref)
   {
 
     KeyIterator ki;
@@ -221,7 +222,7 @@ public class KeyTable
    * @param ref Key ref(from key use field)
    * @param node Node matching that ref 
    */
-  void addRefNode(String ref, int node)
+  void addRefNode(XMLString ref, int node)
   {
     KeyRefIterator kiRef = null;
     Hashtable refsTable = null;

@@ -1051,7 +1051,7 @@ public class ResultTreeHandler extends QueuedEvents
           // String prefix = dtm.getPrefix(namespace);
           String prefix = dtm.getNodeNameX(namespace);
           String desturi = getURI(prefix);
-          String srcURI = dtm.getStringValue(namespace);
+          String srcURI = dtm.getNodeValue(namespace);
 
           if (!srcURI.equalsIgnoreCase(desturi))
           {
@@ -1353,7 +1353,7 @@ public class ResultTreeHandler extends QueuedEvents
     // %OPT% ...can I just store the node handle?    
     addAttribute(ns,
                  dtm.getLocalName(attr), dtm.getNodeName(attr),
-                 "CDATA", dtm.getStringValue(attr));
+                 "CDATA", dtm.getNodeValue(attr));
   }  // end copyAttributeToTarget method
 
   /**

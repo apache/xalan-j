@@ -54,46 +54,84 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xpath.functions;
+package org.apache.xpath.objects;
 
-import org.apache.xpath.res.XPATHErrorResources;
-
-//import org.w3c.dom.Node;
-
-import java.util.Vector;
-
-import org.apache.xpath.XPathContext;
-import org.apache.xpath.XPath;
-import org.apache.xpath.objects.XObject;
-import org.apache.xpath.objects.XString;
-import org.apache.xpath.objects.XNodeSet;
-import org.apache.xpath.objects.XMLStringFactoryImpl;
-import org.apache.xml.utils.XMLCharacterRecognizer;
 import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.XMLStringFactory;
 import org.apache.xml.utils.FastStringBuffer;
 
 /**
- * <meta name="usage" content="advanced"/>
- * Execute the normalize-space() function.
+ * <meta name="usage" content="internal"/>
+ * Class XMLStringFactoryImpl creates XString versions of XMLStrings.
  */
-public class FuncNormalizeSpace extends FunctionDef1Arg
+public class XMLStringFactoryImpl extends XMLStringFactory
 {
+  /** The XMLStringFactory to pass to DTM construction.   */
+  private static XMLStringFactory m_xstringfactory =
+    new XMLStringFactoryImpl();
 
   /**
-   * Execute the function.  The function must return
-   * a valid object.
-   * @param xctxt The current execution context.
-   * @return A valid XObject.
+   * Get the XMLStringFactory to pass to DTM construction.
    *
-   * @throws javax.xml.transform.TransformerException
+   *
+   * @return A never-null static reference to a String factory.
    */
-  public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
+  public static XMLStringFactory getFactory()
   {
+    return m_xstringfactory;
+  }
 
-    XMLString s1 = getArg0AsString(xctxt);
+  /**
+   * Create a new XMLString from a Java string.
+   *
+   *
+   * @param string Java String reference, which must be non-null.
+   *
+   * @return An XMLString object that wraps the String reference.
+   */
+  public XMLString newstr(String string)
+  {
+    return new XString(string);
+  }
 
-    return (XString)s1.fixWhiteSpace(true, true, false);
+  /**
+   * Create a XMLString from a FastStringBuffer.
+   *
+   *
+   * @param string FastStringBuffer reference, which must be non-null.
+   * @param start The start position in the array.
+   * @param length The number of characters to read from the array.
+   *
+   * @return An XMLString object that wraps the FastStringBuffer reference.
+   */
+  public XMLString newstr(FastStringBuffer fsb, int start, int length)
+  {
+    return new XStringForFSB(fsb, start, length);
+  }
+  
+  /**
+   * Create a XMLString from a FastStringBuffer.
+   *
+   *
+   * @param string FastStringBuffer reference, which must be non-null.
+   * @param start The start position in the array.
+   * @param length The number of characters to read from the array.
+   *
+   * @return An XMLString object that wraps the FastStringBuffer reference.
+   */
+  public XMLString newstr(char[] string, int start, int length)
+  {
+    return new XStringForChars(string, start, length);
+  }
+  
+  /**
+   * Get a cheap representation of an empty string.
+   * 
+   * @return An non-null reference to an XMLString that represents "".
+   */
+  public XMLString emptystr()
+  {
+    return XString.EMPTYSTRING;
   }
 
 }

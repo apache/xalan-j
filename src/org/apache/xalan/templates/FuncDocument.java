@@ -62,10 +62,6 @@ import java.io.StringWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
 
-//import org.w3c.dom.Document;
-//import org.w3c.dom.Node;
-//import org.w3c.dom.traversal.NodeIterator;
-
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMManager;
@@ -78,7 +74,6 @@ import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XNodeSet;
 import org.apache.xpath.XPath;
 import org.apache.xpath.XPathContext;
-//import org.apache.xpath.DOMHelper;
 import org.apache.xpath.SourceTreeManager;
 import org.apache.xpath.Expression;
 import org.apache.xpath.XPathContext;
@@ -93,8 +88,10 @@ import org.xml.sax.Locator;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.ErrorListener;
-import org.apache.xml.utils.SAXSourceLocator;
 import javax.xml.transform.Source;
+
+import org.apache.xml.utils.SAXSourceLocator;
+import org.apache.xml.utils.XMLString;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -193,8 +190,8 @@ public class FuncDocument extends Function2Args
 
     while ((null == iterator) || (DTM.NULL != (pos = iterator.nextNode())))
     {
-      String ref = (null != iterator)
-                   ? xctxt.getDTM(pos).getStringValue(pos) : arg.str();
+      XMLString ref = (null != iterator)
+                   ? xctxt.getDTM(pos).getStringValue(pos) : arg.xstr();
 
       if (null == ref)
         continue;
@@ -221,7 +218,7 @@ public class FuncDocument extends Function2Args
         base = null;
       }
 
-      int newDoc = getDoc(xctxt, context, ref, base);
+      int newDoc = getDoc(xctxt, context, ref.toString(), base);
 
       // nodes.mutableNodeset().addNode(newDoc);  
       if (DTM.NULL != newDoc)

@@ -56,6 +56,8 @@
  */
 package org.apache.xml.dtm;
 
+import org.apache.xml.utils.XMLString;
+
 /**
  * <code>DTM</code> is an XML document model expressed as a table
  * rather than an object tree. It attempts to provide an interface to
@@ -342,7 +344,7 @@ public interface DTM
    *
    * @return A string object that represents the string-value of the given node.
    */
-  public String getStringValue(int nodeHandle);
+  public XMLString getStringValue(int nodeHandle);
 
   /**
    * Get number of character array chunks in

@@ -74,6 +74,9 @@ import org.apache.xml.utils.NodeVector;
 
 import javax.xml.transform.Source;
 
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
+
 /**
  * The <code>DTMDefaultBase</code> class serves as a helper base for DTMs.
  * It sets up structures for navigation and type, while leaving data
@@ -151,6 +154,9 @@ public abstract class DTMDefaultBase implements DTM
 
   /** Stack of flags indicating whether to strip whitespace nodes */
   protected BoolStack m_shouldStripWhitespaceStack;
+  
+  /** The XMLString factory for creating XMLStrings. */
+  protected XMLStringFactory m_xstrf;
 
   /**
    * Construct a DTMDefaultBase object from a DOM node.
@@ -163,7 +169,8 @@ public abstract class DTMDefaultBase implements DTM
    *                         be null.
    */
   public DTMDefaultBase(DTMManager mgr, Source source, int dtmIdentity,
-                        DTMWSFilter whiteSpaceFilter)
+                        DTMWSFilter whiteSpaceFilter,
+                        XMLStringFactory xstringfactory)
   {
 
     m_mgr = mgr;
@@ -171,6 +178,7 @@ public abstract class DTMDefaultBase implements DTM
     m_dtmIdent = dtmIdentity;
     m_mask = mgr.getNodeIdentityMask();
     m_wsfilter = whiteSpaceFilter;
+    m_xstrf = xstringfactory;
 
     if (null != whiteSpaceFilter)
     {
@@ -873,7 +881,7 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @return A string object that represents the string-value of the given node.
    */
-  public abstract String getStringValue(int nodeHandle);
+  public abstract XMLString getStringValue(int nodeHandle);
 
   /**
    * Get number of character array chunks in

@@ -68,6 +68,9 @@ import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
 import org.xml.sax.ext.LexicalHandler;
 
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
+
 /**
  * This is the implementation of the DTM document interface.  It receives
  * requests from an XML content handler similar to that of an XML DOM or SAX parser
@@ -188,6 +191,8 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         // an interface _implemented_ by this class... which might be simplest!
         private ExpandedNameTable m_expandedNames=
                 new ExpandedNameTable(m_localNames,m_nsNames);
+                
+        private XMLStringFactory m_xsf;
   
 
         /**
@@ -201,8 +206,10 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * document.
          */
         public DTMDocumentImpl(DTMManager mgr, int documentNumber, 
-                               DTMWSFilter whiteSpaceFilter){
+                               DTMWSFilter whiteSpaceFilter,
+                               XMLStringFactory xstringfactory){
                 initDocument(documentNumber);	 // clear nodes and document handle
+                m_xsf = xstringfactory;
         }
 
   /** Bind a CoroutineParser to this DTM. If we discover we need nodes
@@ -1453,7 +1460,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          *
          * @return A string object that represents the string-value of the given node.
          */
-        public String getStringValue(int nodeHandle) {
+        public XMLString getStringValue(int nodeHandle) {
         // ###zaj - researching 
         nodes.readSlot(nodeHandle, gotslot);
         int nodetype=gotslot[0] & 0xFF;		
@@ -1463,7 +1470,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         case TEXT_NODE:   
         case COMMENT_NODE:
         case CDATA_SECTION_NODE: 
-                value=m_char.getString(gotslot[2], gotslot[3]);		
+                value= m_char.getString(gotslot[2], gotslot[3]);		
                 break;
         case PROCESSING_INSTRUCTION_NODE:
         case ATTRIBUTE_NODE:	
@@ -1472,7 +1479,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         default:
                 break;
         }
-        return value; 
+        return m_xsf.newstr( value ); 
                
         }
 

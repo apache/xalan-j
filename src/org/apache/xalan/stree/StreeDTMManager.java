@@ -155,7 +155,8 @@ public class StreeDTMManager extends DTMManagerDefault
 
       int documentID = m_dtms.size() << 20;
       DOMSource ds = new DOMSource(sth.getRoot(), xmlSource.getSystemId());
-      DTM dtm = new DOM2DTM(this, ds, documentID, whiteSpaceFilter);
+      DTM dtm = new DOM2DTM(this, ds, documentID, whiteSpaceFilter, 
+                      org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
       int doc = sth.getDTMRoot();
       m_dtms.add(dtm);
       reader.setContentHandler(sth);

@@ -61,6 +61,7 @@ import java.util.Vector;
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.utils.QName;
+import org.apache.xml.utils.XMLString;
 import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xalan.res.XSLMessages;
 import org.apache.xalan.res.XSLTErrorResources;
@@ -69,11 +70,6 @@ import org.apache.xpath.axes.DescendantOrSelfWalker;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPath;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.DOMException;
-//import org.w3c.dom.NamedNodeMap;
-//import org.w3c.dom.traversal.NodeFilter;
-//import org.w3c.dom.traversal.NodeIterator;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
@@ -119,7 +115,7 @@ public class KeyWalker extends DescendantOrSelfWalker
 
   /** Key value that this is looking for.
    *  @serial           */
-  String m_lookupKey;
+  XMLString m_lookupKey;
 
   /**
    * Get the next node in document order on the axes.
@@ -173,7 +169,7 @@ public class KeyWalker extends DescendantOrSelfWalker
     QName name = ki.getName();
     try
     {
-      String lookupKey = m_lookupKey;
+      XMLString lookupKey = m_lookupKey;
 
       // System.out.println("lookupKey: "+lookupKey);
       int nDeclarations = keys.size();
@@ -206,7 +202,7 @@ public class KeyWalker extends DescendantOrSelfWalker
 
         if (xuse.getType() != xuse.CLASS_NODESET)
         {
-          String exprResult = xuse.str();
+          XMLString exprResult = xuse.xstr();
           ((KeyIterator)m_lpi).addRefNode(exprResult, testNode);
           
           if (lookupKey.equals(exprResult))
@@ -232,7 +228,7 @@ public class KeyWalker extends DescendantOrSelfWalker
           while (DTM.NULL != (useNode = nl.nextNode()))
           {
             DTM dtm = getDTM(useNode);
-            String exprResult = dtm.getStringValue(useNode);
+            XMLString exprResult = dtm.getStringValue(useNode);
             ((KeyIterator)m_lpi).addRefNode(exprResult, testNode); 
             
             if ((null != exprResult) && lookupKey.equals(exprResult))

@@ -60,6 +60,7 @@ import java.util.Vector;
 
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xml.utils.QName;
+import org.apache.xml.utils.XMLString;
 import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xpath.NodeSet;
 
@@ -85,7 +86,7 @@ public class KeyRefIterator extends LocPathIterator
   
   /** Use field of key function.
    *  @serial         */
-  private String m_lookupKey;  
+  private XMLString m_lookupKey;  
   
   /** Main Key iterator for this iterator.
    *  @serial    */
@@ -111,7 +112,7 @@ public class KeyRefIterator extends LocPathIterator
    * @param ref Key value to match
    * @param ki The main key iterator used to walk the source tree 
    */
-  public KeyRefIterator(String ref, KeyIterator ki)
+  public KeyRefIterator(XMLString ref, KeyIterator ki)
   {
 
     super(ki.getPrefixResolver());

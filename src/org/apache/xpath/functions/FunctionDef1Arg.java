@@ -63,6 +63,8 @@ import org.apache.xpath.objects.XNodeSet;
 import org.apache.xpath.objects.XNumber;
 import org.apache.xpath.objects.XString;
 
+import org.apache.xml.utils.XMLString;
+
 import org.apache.xml.dtm.DTM;
 
 /**
@@ -107,14 +109,14 @@ public class FunctionDef1Arg extends FunctionOneArg
    * @throws javax.xml.transform.TransformerException if an error occurs while
    *                                   executing the argument expression.
    */
-  protected String getArg0AsString(XPathContext xctxt)
+  protected XMLString getArg0AsString(XPathContext xctxt)
           throws javax.xml.transform.TransformerException
   {
     if(null == m_arg0)
     {
       int currentNode = xctxt.getCurrentNode();
       if(DTM.NULL == currentNode)
-        return "";
+        return XString.EMPTYSTRING;
       else
       {
         DTM dtm = xctxt.getDTM(currentNode);
@@ -123,7 +125,7 @@ public class FunctionDef1Arg extends FunctionOneArg
       
     }
     else
-      return m_arg0.execute(xctxt).str();   
+      return m_arg0.execute(xctxt).xstr();   
   }
 
   /**
@@ -151,7 +153,7 @@ public class FunctionDef1Arg extends FunctionOneArg
       else
       {
         DTM dtm = xctxt.getDTM(currentNode);
-        String str = dtm.getStringValue(currentNode);
+        XMLString str = dtm.getStringValue(currentNode);
         return XString.castToNum(str);
       }
       

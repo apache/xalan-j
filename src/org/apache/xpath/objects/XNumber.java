@@ -386,7 +386,7 @@ public class XNumber extends XObject
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public boolean equals(XObject obj2) throws javax.xml.transform.TransformerException
+  public boolean equals(XObject obj2)
   {
 
     // In order to handle the 'all' semantics of 
@@ -395,6 +395,13 @@ public class XNumber extends XObject
     if (obj2.getType() == XObject.CLASS_NODESET)
       return obj2.equals(this);
 
-    return m_val == obj2.num();
+    try
+    {
+      return m_val == obj2.num();
+    }
+    catch(javax.xml.transform.TransformerException te)
+    {
+      throw new org.apache.xml.utils.WrappedRuntimeException(te);
+    }
   }
 }

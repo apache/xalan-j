@@ -74,6 +74,8 @@ import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.ext.LexicalHandler;
 
+import org.apache.xpath.objects.XString;
+
 // import org.xml.sax.ext.DeclHandler;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.Transformer;

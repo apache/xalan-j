@@ -64,6 +64,8 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.xpath.objects.XString;
+
 //import org.w3c.dom.Node;
 //import org.w3c.dom.Document;
 
@@ -339,9 +341,14 @@ public class SourceTreeManager
       Object xowner = xctxt.getOwnerObject();
       DTM dtm;
       if(null != xowner && xowner instanceof org.apache.xml.dtm.DTMWSFilter)
-        dtm = xctxt.getDTM(source, false, (org.apache.xml.dtm.DTMWSFilter)xowner, false);
+      {
+        dtm = xctxt.getDTM(source, false, 
+                          (org.apache.xml.dtm.DTMWSFilter)xowner, false);
+      }
       else
+      {
         dtm = xctxt.getDTM(source, false, null, false);
+      }
       return dtm.getDocument();
     }
     catch (Exception e)

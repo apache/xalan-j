@@ -62,6 +62,7 @@ import org.xml.sax.*;
 import org.xml.sax.ext.LexicalHandler;
 
 import org.apache.xml.utils.NodeConsumer;
+import org.apache.xml.utils.XMLString;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -253,13 +254,12 @@ public class DTMTreeWalker
     {
     case DTM.COMMENT_NODE :
     {
-      String data = m_dtm.getStringValue(node);
+      XMLString data = m_dtm.getStringValue(node);
 
       if (m_contentHandler instanceof LexicalHandler)
       {
         LexicalHandler lh = ((LexicalHandler) this.m_contentHandler);
-
-        lh.comment(data.toCharArray(), 0, data.length());
+        data.dispatchAsComment(lh);
       }
     }
     break;
@@ -279,8 +279,7 @@ public class DTMTreeWalker
         // String prefix = dtm.getPrefix(nsn);
         String prefix = dtm.getNodeNameX(nsn);
 
-        this.m_contentHandler.startPrefixMapping(prefix,
-                                                 dtm.getStringValue(nsn));
+        this.m_contentHandler.startPrefixMapping(prefix, dtm.getNodeValue(nsn));
         
       }
 
@@ -323,7 +322,7 @@ public class DTMTreeWalker
       else
       {
         this.m_contentHandler.processingInstruction(name,
-                                                    m_dtm.getStringValue(node));
+                                                    m_dtm.getNodeValue(node));
       }
     }
     break;

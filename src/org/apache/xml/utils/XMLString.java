@@ -54,204 +54,19 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xpath.objects;
-
-//import org.w3c.dom.*;
-import org.apache.xml.dtm.DTM;
-import org.apache.xml.dtm.DTMIterator;
-import org.apache.xml.dtm.DTMFilter;
-import org.apache.xpath.XPathContext;
-import org.apache.xml.utils.XMLString;
-import org.apache.xml.utils.XMLStringFactory;
-import org.apache.xml.utils.XMLCharacterRecognizer;
-import org.apache.xml.utils.FastStringBuffer;
+package org.apache.xml.utils;
 
 import java.util.Locale;
 
 /**
- * <meta name="usage" content="general"/>
- * This class represents an XPath string object, and is capable of
- * converting the string to other types, such as a number.
+ * This class is meant to be an interface to character strings, whether they
+ * be java Strings or <code>org.apache.xml.utils.FastStringBuffer</code>s, or
+ * other character data.  By using XMLString, character copies can be reduced
+ * in the XML pipeline.
  */
-public class XString extends XObject implements XMLString
+public interface XMLString
 {
 
-  /** Empty string XString object */
-  public static XString EMPTYSTRING = new XString("");
-  
-  /**
-   * Construct a XString object.  This constructor exists for derived classes.
-   *
-   * @param val String object this will wrap.
-   */
-  protected XString(Object val)
-  {
-    super(val);
-  }
-
-  /**
-   * Construct a XNodeSet object.
-   *
-   * @param val String object this will wrap.
-   */
-  public XString(String val)
-  {
-    super(val);
-  }
-
-  /**
-   * Tell that this is a CLASS_STRING.
-   *
-   * @return type CLASS_STRING
-   */
-  public int getType()
-  {
-    return CLASS_STRING;
-  }
-
-  /**
-   * Given a request type, return the equivalent string.
-   * For diagnostic purposes.
-   *
-   * @return type string "#STRING"
-   */
-  public String getTypeString()
-  {
-    return "#STRING";
-  }
-
-  /**
-   * Cast a string to a number.
-   *
-   * @param s The string to convert
-   *
-   * @return 0.0 if the string is null, numeric value of the string
-   * or NaN
-   */
-  public static double castToNum(XMLString s)
-  {
-    // %OPT% For now...
-    return castToNum(s.toString());
-  }
-  
-  /**
-   * Cast a string to a number.
-   *
-   * @param s The string to convert
-   *
-   * @return 0.0 if the string is null, numeric value of the string
-   * or NaN
-   */
-  public static double castToNum(String s)
-  {
-
-    double result;
-
-    if (null == s)
-      result = 0.0;
-    else
-    {
-      try
-      {
-
-        /**
-         * TODO: Adjust this for locale. Need to take into
-         * account the lang parameter on the xsl:sort
-         */
-
-        // It seems we can not use this as it just parses the 
-        // start of the string until it finds a non-number char, 
-        // which is not what we want according to the XSLT spec.  
-        // Also, I *think* this is a local-specific
-        // parse, which is also not what we want according to the 
-        // XSLT spec (see below).
-        // NumberFormat formatter = NumberFormat.getNumberInstance();
-        // result = formatter.parse(s.trim()).doubleValue();
-        // The dumb XSLT spec says: "The number function should 
-        // not be used for conversion of numeric data occurring 
-        // in an element in an XML document unless the element 
-        // is of a type that represents numeric data in a 
-        // language-neutral format (which would typically be 
-        // transformed into a language-specific format for 
-        // presentation to a user). In addition, the number 
-        // function cannot be used unless the language-neutral 
-        // format used by the element is consistent with the 
-        // XPath syntax for a Number."
-        // So I guess we need to check, if the default local 
-        // is french, does Double.valueOf use the local specific 
-        // parse?  Or does it use the ieee parse?
-        result = Double.valueOf(s.trim()).doubleValue();
-      }
-
-      // catch (ParseException e) 
-      catch (NumberFormatException nfe)
-      {
-        result = Double.NaN;
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Cast result object to a number.
-   *
-   * @return 0.0 if this string is null, numeric value of this string
-   * or NaN
-   */
-  public double num()
-  {
-    return castToNum(str());
-  }
-
-  /**
-   * Cast result object to a boolean.
-   *
-   * @return True if the length of this string object is greater
-   * than 0.
-   */
-  public boolean bool()
-  {
-    return str().length() > 0;
-  }
-  
-  /**
-   * Cast result object to a string.
-   *
-   * @return The string this wraps or the empty string if null
-   */
-  public XMLString xstr()
-  {
-    return this;
-  }
-
-  /**
-   * Cast result object to a string.
-   *
-   * @return The string this wraps or the empty string if null
-   */
-  public String str()
-  {
-    return (null != m_obj) ? ((String) m_obj) : "";
-  }
-
-  /**
-   * Cast result object to a result tree fragment.
-   *
-   * @param support Xpath context to use for the conversion
-   *
-   * @return A document fragment with this string as a child node
-   */
-  public int rtree(XPathContext support)
-  {
-
-    DTM frag = support.createDocumentFragment();
-
-    frag.appendTextChild(str());
-
-    return frag.getDocument();
-  }
-  
   /**
    * Directly call the
    * characters method on the passed ContentHandler for the
@@ -263,13 +78,9 @@ public class XString extends XObject implements XMLString
    *
    * @throws org.xml.sax.SAXException
    */
-  public void dispatchCharactersEvents(org.xml.sax.ContentHandler ch)
-      throws org.xml.sax.SAXException
-  {
-    String str = str();
-    ch.characters(str.toCharArray(), 0, str.length());
-  }
-      
+  public abstract void dispatchCharactersEvents(org.xml.sax.ContentHandler ch)
+    throws org.xml.sax.SAXException;
+
   /**
    * Directly call the
    * comment method on the passed LexicalHandler for the
@@ -279,23 +90,34 @@ public class XString extends XObject implements XMLString
    *
    * @throws org.xml.sax.SAXException
    */
-  public void dispatchAsComment(org.xml.sax.ext.LexicalHandler lh)
-      throws org.xml.sax.SAXException
-  {
-    String str = str();
-    lh.comment(str.toCharArray(), 0, str.length());
-  }
-  
+  public abstract void dispatchAsComment(org.xml.sax.ext.LexicalHandler lh)
+    throws org.xml.sax.SAXException;
+    
+  /**
+   * Conditionally trim all leading and trailing whitespace in the specified String.
+   * All strings of white space are
+   * replaced by a single space character (#x20), except spaces after punctuation which
+   * receive double spaces if doublePunctuationSpaces is true.
+   * This function may be useful to a formatter, but to get first class
+   * results, the formatter should probably do it's own white space handling
+   * based on the semantics of the formatting object.
+   * 
+   * @param   trimHead    Trim leading whitespace?
+   * @param   trimTail    Trim trailing whitespace?
+   * @param   doublePunctuationSpaces    Use double spaces for punctuation?
+   * @return              The trimmed string.
+   */
+  public XMLString fixWhiteSpace(boolean trimHead,
+                                 boolean trimTail,
+                                 boolean doublePunctuationSpaces);
+
   /**
    * Returns the length of this string.
    *
    * @return  the length of the sequence of characters represented by this
    *          object.
    */
-  public int length()
-  {
-    return str().length();
-  }
+  public abstract int length();
 
   /**
    * Returns the character at the specified index. An index ranges
@@ -310,10 +132,7 @@ public class XString extends XObject implements XMLString
    *             argument is negative or not less than the length of this
    *             string.
    */
-  public char charAt(int index)
-  {
-    return str().charAt(index);
-  }
+  public abstract char charAt(int index);
 
   /**
    * Copies characters from this string into the destination character
@@ -336,32 +155,9 @@ public class XString extends XObject implements XMLString
    *                <code>dst.length</code></ul>
    * @exception NullPointerException if <code>dst</code> is <code>null</code>
    */
-  public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin)
-  {
-    str().getChars(srcBegin, srcEnd, dst, dstBegin);
-  }
-  
-  /**
-   * Tell if two objects are functionally equal.
-   *
-   * @param obj2 Object to compare this to
-   *
-   * @return true if the two objects are equal
-   *
-   * @throws javax.xml.transform.TransformerException
-   */
-  public boolean equals(XObject obj2)
-  {
-
-    // In order to handle the 'all' semantics of 
-    // nodeset comparisons, we always call the 
-    // nodeset function.
-    if (obj2.getType() == XObject.CLASS_NODESET)
-      return obj2.equals(this);
-
-    return str().equals(obj2.str());
-  }
-  
+  public abstract void getChars(int srcBegin, int srcEnd, char dst[],
+                                int dstBegin);
+                                
   /**
    * Compares this string to the specified object.
    * The result is <code>true</code> if and only if the argument is not
@@ -375,10 +171,8 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.String#compareTo(java.lang.String)
    * @see     java.lang.String#equalsIgnoreCase(java.lang.String)
    */
-  public boolean equals(XMLString obj2)
-  {
-    return str().equals(obj2.toString());
-  }
+  public abstract boolean equals(XMLString anObject);
+
 
   /**
    * Compares this string to the specified object.
@@ -393,20 +187,7 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.String#compareTo(java.lang.String)
    * @see     java.lang.String#equalsIgnoreCase(java.lang.String)
    */
-  public boolean equals(Object obj2)
-  {
-    if(null == obj2)
-      return false;
-      
-    // In order to handle the 'all' semantics of 
-    // nodeset comparisons, we always call the 
-    // nodeset function.
-    else if (obj2 instanceof XNodeSet)
-      return obj2.equals(this);
-    else
-      return str().equals(obj2.toString());
-  }
-
+  public abstract boolean equals(Object anObject);
 
   /**
    * Compares this <code>String</code> to another <code>String</code>,
@@ -423,10 +204,7 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.Character#toLowerCase(char)
    * @see java.lang.Character#toUpperCase(char)
    */
-  public boolean equalsIgnoreCase(String anotherString)
-  {
-    return str().equalsIgnoreCase(anotherString);
-  }
+  public abstract boolean equalsIgnoreCase(String anotherString);
 
   /**
    * Compares two strings lexicographically.
@@ -440,10 +218,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>anotherString</code>
    *          is <code>null</code>.
    */
-  public int compareTo(XMLString anotherString)
-  {
-    return str().compareTo(anotherString.toString());
-  }
+  public abstract int compareTo(XMLString anotherString);
 
   /**
    * Compares two strings lexicographically, ignoring case considerations.
@@ -463,10 +238,7 @@ public class XString extends XObject implements XMLString
    * @see     java.text.Collator#compare(String, String)
    * @since   1.2
    */
-  public int compareToIgnoreCase(XMLString str)
-  {
-    return str().compareToIgnoreCase(str.toString());
-  }
+  public abstract int compareToIgnoreCase(XMLString str);
 
   /**
    * Tests if this string starts with the specified prefix beginning
@@ -487,10 +259,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>prefix</code> is
    *          <code>null</code>.
    */
-  public boolean startsWith(String prefix, int toffset)
-  {
-    return str().startsWith(prefix, toffset);
-  }
+  public abstract boolean startsWith(String prefix, int toffset);
 
   /**
    * Tests if this string starts with the specified prefix.
@@ -505,11 +274,9 @@ public class XString extends XObject implements XMLString
    *          {@link #equals(Object)} method.
    * @exception java.lang.NullPointerException if <code>prefix</code> is
    *          <code>null</code>.
+   * @since   JDK1. 0
    */
-  public boolean startsWith(String prefix)
-  {
-    return str().startsWith(prefix);
-  }
+  public abstract boolean startsWith(String prefix);
 
   /**
    * Tests if this string ends with the specified suffix.
@@ -524,10 +291,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>suffix</code> is
    *          <code>null</code>.
    */
-  public boolean endsWith(String suffix)
-  {
-    return str().endsWith(suffix);
-  }
+  public abstract boolean endsWith(String suffix);
 
   /**
    * Returns a hashcode for this string. The hashcode for a
@@ -542,10 +306,7 @@ public class XString extends XObject implements XMLString
    *
    * @return  a hash code value for this object.
    */
-  public int hashCode()
-  {
-    return str().hashCode();
-  }
+  public abstract int hashCode();
 
   /**
    * Returns the index within this string of the first occurrence of the
@@ -564,10 +325,7 @@ public class XString extends XObject implements XMLString
    *          character sequence represented by this object, or
    *          <code>-1</code> if the character does not occur.
    */
-  public int indexOf(int ch)
-  {
-    return str().indexOf(ch);
-  }
+  public abstract int indexOf(int ch);
 
   /**
    * Returns the index within this string of the first occurrence of the
@@ -597,10 +355,7 @@ public class XString extends XObject implements XMLString
    *          than or equal to <code>fromIndex</code>, or <code>-1</code>
    *          if the character does not occur.
    */
-  public int indexOf(int ch, int fromIndex)
-  {
-    return str().indexOf(ch, fromIndex);
-  }
+  public abstract int indexOf(int ch, int fromIndex);
 
   /**
    * Returns the index within this string of the last occurrence of the
@@ -617,10 +372,7 @@ public class XString extends XObject implements XMLString
    *          character sequence represented by this object, or
    *          <code>-1</code> if the character does not occur.
    */
-  public int lastIndexOf(int ch)
-  {
-    return str().lastIndexOf(ch);
-  }
+  public abstract int lastIndexOf(int ch);
 
   /**
    * Returns the index within this string of the last occurrence of the
@@ -645,10 +397,7 @@ public class XString extends XObject implements XMLString
    *          than or equal to <code>fromIndex</code>, or <code>-1</code>
    *          if the character does not occur before that point.
    */
-  public int lastIndexOf(int ch, int fromIndex)
-  {
-    return str().lastIndexOf(ch, fromIndex);
-  }
+  public abstract int lastIndexOf(int ch, int fromIndex);
 
   /**
    * Returns the index within this string of the first occurrence of the
@@ -667,11 +416,8 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>str</code> is
    *          <code>null</code>.
    */
-  public int indexOf(String str)
-  {
-    return str().indexOf(str);
-  }
-  
+  public abstract int indexOf(String str);
+
   /**
    * Returns the index within this string of the first occurrence of the
    * specified substring. The integer returned is the smallest value
@@ -689,10 +435,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>str</code> is
    *          <code>null</code>.
    */
-  public int indexOf(XMLString str)
-  {
-    return str().indexOf(str.toString());
-  }
+  public abstract int indexOf(XMLString str);
 
   /**
    * Returns the index within this string of the first occurrence of the
@@ -720,10 +463,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>str</code> is
    *          <code>null</code>
    */
-  public int indexOf(String str, int fromIndex)
-  {
-    return str().indexOf(str, fromIndex);
-  }
+  public abstract int indexOf(String str, int fromIndex);
 
   /**
    * Returns the index within this string of the rightmost occurrence
@@ -743,10 +483,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException  if <code>str</code> is
    *          <code>null</code>.
    */
-  public int lastIndexOf(String str)
-  {
-    return str().lastIndexOf(str);
-  }
+  public abstract int lastIndexOf(String str);
 
   /**
    * Returns the index within this string of the last occurrence of
@@ -768,10 +505,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>str</code> is
    *          <code>null</code>.
    */
-  public int lastIndexOf(String str, int fromIndex)
-  {
-    return str().lastIndexOf(str, fromIndex);
-  }
+  public abstract int lastIndexOf(String str, int fromIndex);
 
   /**
    * Returns a new string that is a substring of this string. The
@@ -790,10 +524,7 @@ public class XString extends XObject implements XMLString
    *             <code>beginIndex</code> is negative or larger than the
    *             length of this <code>String</code> object.
    */
-  public XMLString substring(int beginIndex)
-  {
-    return new XString(str().substring(beginIndex));
-  }
+  public abstract XMLString substring(int beginIndex);
 
   /**
    * Returns a new string that is a substring of this string. The
@@ -811,10 +542,7 @@ public class XString extends XObject implements XMLString
    *             <code>beginIndex</code> is larger than
    *             <code>endIndex</code>.
    */
-  public XMLString substring(int beginIndex, int endIndex)
-  {
-    return new XString(str().substring(beginIndex, endIndex));
-  }
+  public abstract XMLString substring(int beginIndex, int endIndex);
 
   /**
    * Concatenates the specified string to the end of this string.
@@ -826,12 +554,7 @@ public class XString extends XObject implements XMLString
    * @exception java.lang.NullPointerException if <code>str</code> is
    *          <code>null</code>.
    */
-  public XMLString concat(String str)
-  {
-
-    // %REVIEW% Make an FSB here?
-    return new XString(str().concat(str));
-  }
+  public abstract XMLString concat(String str);
 
   /**
    * Converts all of the characters in this <code>String</code> to lower
@@ -842,10 +565,7 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.Character#toLowerCase(char)
    * @see     java.lang.String#toUpperCase(Locale)
    */
-  public XMLString toLowerCase(Locale locale)
-  {
-    return new XString(str().toLowerCase(locale));
-  }
+  public abstract XMLString toLowerCase(Locale locale);
 
   /**
    * Converts all of the characters in this <code>String</code> to lower
@@ -857,10 +577,7 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.Character#toLowerCase(char)
    * @see     java.lang.String#toLowerCase(Locale)
    */
-  public XMLString toLowerCase()
-  {
-    return new XString(str().toLowerCase());
-  }
+  public abstract XMLString toLowerCase();
 
   /**
    * Converts all of the characters in this <code>String</code> to upper
@@ -870,10 +587,7 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.Character#toUpperCase(char)
    * @see     java.lang.String#toLowerCase(Locale)
    */
-  public XMLString toUpperCase(Locale locale)
-  {
-    return new XString(str().toUpperCase(locale));
-  }
+  public abstract XMLString toUpperCase(Locale locale);
 
   /**
    * Converts all of the characters in this <code>String</code> to upper
@@ -901,132 +615,43 @@ public class XString extends XObject implements XMLString
    * @see     java.lang.Character#toUpperCase(char)
    * @see     java.lang.String#toUpperCase(Locale)
    */
-  public XMLString toUpperCase()
-  {
-    return new XString(str().toUpperCase());
-  }
+  public abstract XMLString toUpperCase();
 
   /**
    * Removes white space from both ends of this string.
+   * <p>
+   * If this <code>String</code> object represents an empty character
+   * sequence, or the first and last characters of character sequence
+   * represented by this <code>String</code> object both have codes
+   * greater than <code>'&#92;u0020'</code> (the space character), then a
+   * reference to this <code>String</code> object is returned.
+   * <p>
+   * Otherwise, if there is no character with a code greater than
+   * <code>'&#92;u0020'</code> in the string, then a new
+   * <code>String</code> object representing an empty string is created
+   * and returned.
+   * <p>
+   * Otherwise, let <i>k</i> be the index of the first character in the
+   * string whose code is greater than <code>'&#92;u0020'</code>, and let
+   * <i>m</i> be the index of the last character in the string whose code
+   * is greater than <code>'&#92;u0020'</code>. A new <code>String</code>
+   * object is created, representing the substring of this string that
+   * begins with the character at index <i>k</i> and ends with the
+   * character at index <i>m</i>-that is, the result of
+   * <code>this.substring(<i>k</i>,&nbsp;<i>m</i>+1)</code>.
+   * <p>
+   * This method may be used to trim
+   * {@link Character#isSpace(char) whitespace} from the beginning and end
+   * of a string; in fact, it trims all ASCII control characters as well.
    *
    * @return  this string, with white space removed from the front and end.
    */
-  public XMLString trim()
-  {
-    return new XString(str().trim());
-  }
-  
+  public abstract XMLString trim();
+
   /**
-   * Returns whether the specified <var>ch</var> conforms to the XML 1.0 definition
-   * of whitespace.  Refer to <A href="http://www.w3.org/TR/1998/REC-xml-19980210#NT-S">
-   * the definition of <CODE>S</CODE></A> for details.
-   * @param   ch      Character to check as XML whitespace.
-   * @return          =true if <var>ch</var> is XML whitespace; otherwise =false.
+   * This object (which is already a string!) is itself returned.
+   *
+   * @return  the string itself.
    */
-  private static boolean isSpace(char ch)
-  {
-    return XMLCharacterRecognizer.isWhiteSpace(ch);  // Take the easy way out for now.
-  }
-  
-  /**
-   * Conditionally trim all leading and trailing whitespace in the specified String.
-   * All strings of white space are
-   * replaced by a single space character (#x20), except spaces after punctuation which
-   * receive double spaces if doublePunctuationSpaces is true.
-   * This function may be useful to a formatter, but to get first class
-   * results, the formatter should probably do it's own white space handling
-   * based on the semantics of the formatting object.
-   * 
-   * @param   trimHead    Trim leading whitespace?
-   * @param   trimTail    Trim trailing whitespace?
-   * @param   doublePunctuationSpaces    Use double spaces for punctuation?
-   * @return              The trimmed string.
-   */
-  public XMLString fixWhiteSpace(boolean trimHead,
-                                 boolean trimTail,
-                                 boolean doublePunctuationSpaces)
-  {
-    // %OPT% !!!!!!!
-
-    int len = this.length();
-    char[] buf = new char[len];
-    this.getChars(0, len, buf, 0);
-    boolean edit = false;
-    int s;
-
-    for (s = 0; s < len; s++)
-    {
-      if (isSpace(buf[s]))
-      {
-        break;
-      }
-    }
-
-    /* replace S to ' '. and ' '+ -> single ' '. */
-    int d = s;
-    boolean pres = false;
-
-    for (; s < len; s++)
-    {
-      char c = buf[s];
-
-      if (isSpace(c))
-      {
-        if (!pres)
-        {
-          if (' ' != c)
-          {
-            edit = true;
-          }
-
-          buf[d++] = ' ';
-
-          if (doublePunctuationSpaces && (s != 0))
-          {
-            char prevChar = buf[s - 1];
-
-            if (!((prevChar == '.') || (prevChar == '!')
-                  || (prevChar == '?')))
-            {
-              pres = true;
-            }
-          }
-          else
-          {
-            pres = true;
-          }
-        }
-        else
-        {
-          edit = true;
-          pres = true;
-        }
-      }
-      else
-      {
-        buf[d++] = c;
-        pres = false;
-      }
-    }
-
-    if (trimTail && 1 <= d && ' ' == buf[d - 1])
-    {
-      edit = true;
-
-      d--;
-    }
-
-    int start = 0;
-
-    if (trimHead && 0 < d && ' ' == buf[0])
-    {
-      edit = true;
-
-      start++;
-    }
-
-    XMLStringFactory xsf = XMLStringFactoryImpl.getFactory();
-    return edit ? xsf.newstr( new String(buf, start, d - start) ) : this;
-  }
-
+  public abstract String toString();
 }

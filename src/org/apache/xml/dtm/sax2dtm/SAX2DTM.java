@@ -70,6 +70,8 @@ import org.apache.xml.utils.IntStack;
 import org.apache.xml.utils.XMLCharacterRecognizer;
 import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.dtm.*;
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
 
 /**
  * This class implements a DTM that tends to be optimized more for speed than
@@ -149,9 +151,10 @@ public class SAX2DTM extends DTMDefaultBase
   /** Type of next characters() event within text block in prgress. */
   transient private int m_textType = DTM.TEXT_NODE;
 
-  /** Type of coalesced text block. See logic in the characters()
+  /**
+   * Type of coalesced text block. See logic in the characters()
    * method.
-   * */
+   */
   transient private int m_coalescedTextType = DTM.TEXT_NODE;
 
   /** The SAX Document locator */
@@ -162,7 +165,7 @@ public class SAX2DTM extends DTMDefaultBase
 
   /** pool of string values that come as strings. */
   private DTMStringPool m_valuesOrPrefixes = new DTMStringPool();
-  
+
   /** End document has been reached. */
   private boolean m_endDocumentOccured = false;
 
@@ -237,12 +240,14 @@ public class SAX2DTM extends DTMDefaultBase
    * @param dtmIdentity The DTM identity ID for this DTM.
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
+   * @param xstringfactory XMLString factory for creating character content.
    */
   public SAX2DTM(DTMManager mgr, Source source, int dtmIdentity,
-                 DTMWSFilter whiteSpaceFilter)
+                 DTMWSFilter whiteSpaceFilter,
+                 XMLStringFactory xstringfactory)
   {
 
-    super(mgr, source, dtmIdentity, whiteSpaceFilter);
+    super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory);
 
     m_ent = mgr.getExpandedNameTable(this);
 
@@ -269,7 +274,7 @@ public class SAX2DTM extends DTMDefaultBase
   {
     return m_appCoroutineID;
   }
-  
+
   /**
    * Ask the CoRoutine parser to doTerminate and clear the reference.
    */
@@ -277,16 +282,22 @@ public class SAX2DTM extends DTMDefaultBase
   {
     clearCoRoutine(true);
   }
-  
+
   /**
-   * Ask the CoRoutine parser to doTerminate and clear the reference.
+   * Ask the CoRoutine parser to doTerminate and clear the reference. If 
+   * the CoRoutine parser has already been cleared, this will have no effect.
+   *
+   * @param callDoTerminate true of doTerminate should be called on the 
+   * coRoutine parser.
    */
   public void clearCoRoutine(boolean callDoTerminate)
   {
-    if(null != m_coroutineParser)
+
+    if (null != m_coroutineParser)
     {
-      if(callDoTerminate)
+      if (callDoTerminate)
         m_coroutineParser.doTerminate(m_appCoroutineID);
+
       m_coroutineParser = null;
     }
   }
@@ -331,7 +342,7 @@ public class SAX2DTM extends DTMDefaultBase
     //coroutineParser.setDTDHandler(this);
     //coroutineParser.setDeclHandler(this);
   }
-  
+
   /**
    * getContentHandler returns "our SAX builder" -- the thing that
    * someone else should send SAX events to in order to extend this
@@ -352,7 +363,7 @@ public class SAX2DTM extends DTMDefaultBase
     else
       return this;
   }
-  
+
   /**
    * Return this DTM's lexical handler.
    *
@@ -371,7 +382,7 @@ public class SAX2DTM extends DTMDefaultBase
     else
       return this;
   }
-  
+
   /**
    * Return this DTM's EntityResolver.
    *
@@ -379,10 +390,9 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public EntityResolver getEntityResolver()
   {
-
     return this;
   }
-  
+
   /**
    * Return this DTM's DTDHandler.
    *
@@ -390,7 +400,6 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public DTDHandler getDTDHandler()
   {
-
     return this;
   }
 
@@ -401,10 +410,9 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public ErrorHandler getErrorHandler()
   {
-
     return this;
   }
-  
+
   /**
    * Return this DTM's DeclHandler.
    *
@@ -412,10 +420,8 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public DeclHandler getDeclHandler()
   {
-
     return this;
-  }  
-  
+  }
 
   /**
    * @return true iff we're building this model incrementally (eg
@@ -648,8 +654,9 @@ public class SAX2DTM extends DTMDefaultBase
 
     while (identity >= m_size)
     {
-      if(null == m_coroutineParser)
+      if (null == m_coroutineParser)
         return DTM.NULL;
+
       nextNode();
     }
 
@@ -675,7 +682,7 @@ public class SAX2DTM extends DTMDefaultBase
     {
       treeWalker = new DTMTreeWalker();
     }
-    
+
     treeWalker.setcontentHandler(ch);
     treeWalker.setDTM(this);
 
@@ -720,8 +727,8 @@ public class SAX2DTM extends DTMDefaultBase
 
     if (null == m_coroutineParser)
       return false;
-    
-    if(m_endDocumentOccured)
+
+    if (m_endDocumentOccured)
     {
       clearCoRoutine();
 
@@ -729,7 +736,7 @@ public class SAX2DTM extends DTMDefaultBase
     }
 
     Object gotMore = m_coroutineParser.doMore(true, m_appCoroutineID);
-   
+
     // gotMore may be a Boolean (TRUE if still parsing, FALSE if
     // EOF) or an exception if CoroutineParser malfunctioned
     // (code error rather than user error).
@@ -1103,7 +1110,7 @@ public class SAX2DTM extends DTMDefaultBase
    *
    * @return A string object that represents the string-value of the given node.
    */
-  public String getStringValue(int nodeHandle)
+  public XMLString getStringValue(int nodeHandle)
   {
 
     int identity = nodeHandle & m_mask;
@@ -1115,8 +1122,7 @@ public class SAX2DTM extends DTMDefaultBase
       int offset = m_data.elementAt(dataIndex);
       int length = m_data.elementAt(dataIndex + 1);
 
-      // %OPT% We should cache this, I guess.
-      return m_chars.getString(offset, length);
+      return m_xstrf.newstr(m_chars, offset, length);
     }
     else
     {
@@ -1152,9 +1158,7 @@ public class SAX2DTM extends DTMDefaultBase
 
         if (length > 0)
         {
-
-          // %OPT% We should cache this, I guess.
-          return m_chars.getString(offset, length);
+          return m_xstrf.newstr(m_chars, offset, length);
         }
       }
       else
@@ -1167,11 +1171,11 @@ public class SAX2DTM extends DTMDefaultBase
           dataIndex = m_data.elementAt(dataIndex + 1);
         }
 
-        return m_valuesOrPrefixes.indexToString(dataIndex);
+        return m_xstrf.newstr(m_valuesOrPrefixes.indexToString(dataIndex));
       }
     }
 
-    return "";
+    return m_xstrf.emptystr();
   }
 
   /**
@@ -1196,20 +1200,21 @@ public class SAX2DTM extends DTMDefaultBase
 
     Integer intObj;
     boolean isMore = true;
+
     do
     {
       intObj = (Integer) m_idAttributes.get(elementId);
-  
+
       if (null != intObj)
         return intObj.intValue();
-        
-      if(!isMore || m_endDocumentOccured)
+
+      if (!isMore || m_endDocumentOccured)
         break;
-      
+
       isMore = nextNode();
     }
-      while(null == intObj);
-    
+    while (null == intObj);
+
     return DTM.NULL;
   }
 
@@ -1288,32 +1293,34 @@ public class SAX2DTM extends DTMDefaultBase
    */
   protected void charactersFlush()
   {
-    if (m_textPendingStart >= 0 ) // -1 indicates no-text-in-progress
+
+    if (m_textPendingStart >= 0)  // -1 indicates no-text-in-progress
     {
-      int length=m_chars.size()-m_textPendingStart;
-
+      int length = m_chars.size() - m_textPendingStart;
       boolean doStrip = false;
+
       if (getShouldStripWhitespace())
-	{
-	  doStrip=m_chars.isWhitespace(m_textPendingStart, length);
-	}
+      {
+        doStrip = m_chars.isWhitespace(m_textPendingStart, length);
+      }
 
-      if(doStrip)
-	m_chars.setLength(m_textPendingStart); // Discard accumulated text
+      if (doStrip)
+        m_chars.setLength(m_textPendingStart);  // Discard accumulated text
       else
-	{
-	  int exName = m_ent.getExpandedNameID(DTM.TEXT_NODE);
+      {
+        int exName = m_ent.getExpandedNameID(DTM.TEXT_NODE);
+        int dataIndex = m_data.size();
 
-	  int nodeIndex= addNode(m_coalescedTextType,exName,m_level,
-				 m_parents.peek(),m_previous,
-				 m_textPendingStart,false);
-	  // %REVIEW% I _think_ I've got this right...
-	  m_data.setElementAt(nodeIndex,length);
-	}
-      
+        m_previous = addNode(m_coalescedTextType, exName, m_level,
+                             m_parents.peek(), m_previous, dataIndex, false);
+
+        m_data.addElement(m_textPendingStart);
+        m_data.addElement(length);
+      }
+
       // Reset for next text block
-      m_textPendingStart=-1;
-      m_textType=m_coalescedTextType=DTM.TEXT_NODE;
+      m_textPendingStart = -1;
+      m_textType = m_coalescedTextType = DTM.TEXT_NODE;
     }
   }
 
@@ -1406,7 +1413,8 @@ public class SAX2DTM extends DTMDefaultBase
 
     try
     {
-      systemId = SystemIDResolver.getAbsoluteURI(systemId, getDocumentBaseURI());
+      systemId = SystemIDResolver.getAbsoluteURI(systemId,
+                                                 getDocumentBaseURI());
     }
     catch (Exception e)
     {
@@ -1495,9 +1503,8 @@ public class SAX2DTM extends DTMDefaultBase
     m_contextIndexes = null;
 
     m_level--;
-    
+
     m_endDocumentOccured = true;
-    
   }
 
   /**
@@ -1793,19 +1800,21 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void characters(char ch[], int start, int length) throws SAXException
   {
-    if(m_textPendingStart==-1)	// First one in this block
-      {
-	m_textPendingStart=m_chars.size();
-	m_coalescedTextType=m_textType;
-      }
-    m_chars.append(ch,start,length);
+
+    if (m_textPendingStart == -1)  // First one in this block
+    {
+      m_textPendingStart = m_chars.size();
+      m_coalescedTextType = m_textType;
+    }
+
+    m_chars.append(ch, start, length);
 
     // Type logic: If all adjacent text is CDATASections, the
     // concatentated text is treated as a single CDATASection (see
     // initialization above).  If any were ordinary Text, the whole
     // thing is treated as Text. This may be worth %REVIEW%ing.
-    if(m_textType==DTM.TEXT_NODE)
-	m_coalescedTextType=DTM.TEXT_NODE;
+    if (m_textType == DTM.TEXT_NODE)
+      m_coalescedTextType = DTM.TEXT_NODE;
   }
 
   /**

@@ -60,6 +60,7 @@ import java.util.Vector;
 
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xml.utils.PrefixResolver;
+import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.QName;
 import org.apache.xalan.templates.KeyDeclaration;
 import org.apache.xpath.XPathContext;
@@ -176,7 +177,7 @@ public class KeyIterator extends LocPathIterator
    *
    * @param lookupKey value of the key to look for
    */
-  public void setLookupKey(String lookupKey)
+  public void setLookupKey(XMLString lookupKey)
   {
 
     // System.out.println("setLookupKey - lookupKey: "+lookupKey);
@@ -207,7 +208,7 @@ public class KeyIterator extends LocPathIterator
    * @param ref Key value(ref)(from key use field)
    * @param node Node matching that ref 
    */
-  void addRefNode(String ref, int node)
+  void addRefNode(XMLString ref, int node)
   {
     m_keyTable.addRefNode(ref, node);
   }

@@ -76,6 +76,7 @@ import org.apache.xpath.axes.ContextNodeList;
 import org.apache.xpath.axes.SubContextList;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XNodeSet;
+import org.apache.xpath.objects.XString;
 
 // DOM Imports
 //import org.w3c.dom.traversal.NodeIterator;
@@ -92,7 +93,6 @@ import org.xml.sax.XMLReader;
 // TRaX imports
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.TransformerException;
-import org.apache.xml.utils.SAXSourceLocator;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.dom.DOMSource;
 
@@ -109,6 +109,11 @@ import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMWSFilter;
 
+// Utility imports.
+import org.apache.xml.utils.SAXSourceLocator;
+import org.apache.xml.utils.XMLString;
+import org.apache.xml.utils.XMLStringFactory;
+
 import org.apache.xpath.axes.DescendantIterator;
 
 /**
@@ -124,7 +129,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    * the DTMManager, it really is a proxy for this object, which 
    * is the real DTMManager.
    */
-  private DTMManager m_dtmManager = DTMManager.newInstance();
+  private DTMManager m_dtmManager = DTMManager.newInstance(
+                   org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
   
   /**
    * Return the DTMManager object.  Though XPathContext context extends 
@@ -161,7 +167,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
                     DTMWSFilter wsfilter,
                     boolean incremental)
   {
-    return m_dtmManager.getDTM(source, unique, wsfilter, incremental);
+    return m_dtmManager.getDTM(source, unique, wsfilter, 
+                               incremental);
   }
                              
   /**
@@ -926,16 +933,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
       // %REVIEW% You can't get much uglier than this...
       int nodeHandle = getDTMHandleFromNode(n);
       DTM dtm = getDTM(nodeHandle);
-      String strVal = dtm.getStringValue(nodeHandle);
-      XObject xobj = new org.apache.xpath.objects.XString(strVal);
-      try
-      {
-        return xobj.num();
-      }
-      catch(TransformerException te)
-      {
-        throw new org.apache.xml.utils.WrappedRuntimeException(te);
-      }
+      XString xobj = (XString)dtm.getStringValue(nodeHandle);
+      return xobj.num();
     }
   
     /**
@@ -948,8 +947,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
       // %REVIEW% You can't get much uglier than this...
       int nodeHandle = getDTMHandleFromNode(n);
       DTM dtm = getDTM(nodeHandle);
-      String strVal = dtm.getStringValue(nodeHandle);
-      return strVal;
+      XMLString strVal = dtm.getStringValue(nodeHandle);
+      return strVal.toString();
     }
 
     
