@@ -65,6 +65,7 @@ import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
+import org.xml.sax.XMLReader;
 import java.io.IOException;
 import org.apache.xml.dtm.CoroutineManager;
 
@@ -92,7 +93,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   private int fAppCoroutineID = -1;
   private int fParserCoroutineID = -1;
   private boolean fParseInProgress=false;
-  private org.xml.sax.XMLReader xmlreader=null;
+  private XMLReader fXMLReader=null;
+  private boolean fRunningInThread=false;
   private org.xml.sax.ContentHandler clientContentHandler=null;
   private org.xml.sax.ext.LexicalHandler clientLexicalHandler=null;
   private int eventcounter;
@@ -103,42 +105,76 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   //
 
   /** Create a CoroutineSAXParser which is not yet bound to a specific
-   * SAX event source. This can be used for situations where we will want
-   * to bind to that source after we've bound a listener to the
-   * CoroutineSAXParser, or where we're going to want to issue the
-   * parse() request (to start events flowing) in the main thread
-   * rather than in the coroutine's thread.
+   * SAX event source.
    *
-   * %TBD% I'm concerned about making sure we properly announce endDocument
-   * to the application coroutine. I'm also concerned about launching this
-   * thread, given that existing code starts by waiting for an InputSource.
-   * This may need a significant redesign so CoroutineSAXParser _only_
-   * provides a "throttle" on a separately configured and launched
-   * XMLReader... or become a separate CoroutineSAXThrottle which is
-   * subclassed to provide today's CoroutineSAXParser.
+   * THIS VERSION DOES NOT LAUNCH A THREAD! It is presumed that the
+   * application coroutine will be started in a secondary thread and
+   * will be waiting for our first yield(), and that the parser will
+   * be run in the main thread.
    * 
-   * Status: NONFUNCTIONAL.
+   * Status: Experimental
    * 
-   * @see setXMLReader (required to support this approach, not yet written)
+   * @see setXMLReader
    * */
   public CoroutineSAXParser(CoroutineManager co, int appCoroutineID)
   {
-    // %TBD%
+    fXMLReader=null;    // No reader yet
+
+    eventcounter=frequency;
+
+    fCoroutineManager = co;
+    fAppCoroutineID = appCoroutineID;
+    fParserCoroutineID = co.co_joinCoroutineSet(-1);
+    if (fParserCoroutineID == -1)
+      throw new RuntimeException("co_joinCoroutineSet() failed");
+
+    fRunningInThread=false; // Unless overridden by the other constructor
   }
 
   /** Wrap a SAX2 XMLReader (parser or other event source)
-   * in a CoroutineSAXParser.
-   * %TBD% whether we should consider supporting SAX1
+   * in a CoroutineSAXParser. This version launches the CoroutineSAXParser
+   * in a thread, and prepares it to invoke the parser from that thread
+   * upon request.
+   *
+   * @see doParse
    */
   public CoroutineSAXParser(CoroutineManager co, int appCoroutineID,
-                            org.xml.sax.XMLReader parser) {
-    xmlreader=parser;
-    xmlreader.setContentHandler(this);
+                            XMLReader parser) {
+    this(co,appCoroutineID);
+    setXMLReader(parser);
+
+    fRunningInThread=true;
+    Thread t = new Thread(this);
+    t.setDaemon(false);
+    t.start();
+  }
+
+  //
+  // Public methods
+  //
+
+  /** Bind to the XMLReader. This operation is ignored if the reader has
+   * previously been set.
+   *
+   * %REVIEW% Should it instead unbind from the previous reader?
+   *
+   * %TBD% This is a quick-hack solution. I'm not convinced that it's
+   * adequate. In particular, since in this model parser.parse() is
+   * invoked from outside rather than from our run() loop, I'm not
+   * sure the end-of-file response is being delivered properly.
+   * (There were questions of double-yields in earlier versions of the code.)
+   * */
+  public void setXMLReader(XMLReader parser)
+  {
+    if(fXMLReader!=null) return;
+    
+    fXMLReader=parser;
+    fXMLReader.setContentHandler(this);
 
     // Not supported by all SAX2 parsers:
     try 
       {
-        xmlreader.setProperty("http://xml.org/sax/properties/lexical-handler",
+        fXMLReader.setProperty("http://xml.org/sax/properties/lexical-handler",
                               this);
       }
     catch(SAXNotRecognizedException e)
@@ -150,21 +186,9 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
         // Nothing we can do about it
       }
 
-    eventcounter=frequency;
-
-    fCoroutineManager = co;
-    fAppCoroutineID = appCoroutineID;
-    fParserCoroutineID = co.co_joinCoroutineSet(-1);
-    if (fParserCoroutineID == -1)
-      throw new RuntimeException("co_joinCoroutineSet() failed");
-    Thread t = new Thread(this);
-    t.setDaemon(false);
-    t.start();
+    // Should we also bind as other varieties of handler?
+    // (DTDHandler and so on)
   }
-
-  //
-  // Public methods
-  //
 
   // Register a content handler for us to output to
   public void setContentHandler(ContentHandler handler)
@@ -226,9 +250,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
       clientContentHandler.endDocument();
 
     eventcounter=0;	
-    // We do not have to yield in this case. Just return.
-    // When parser exits, the run() loop will yield false to indicate
-    // parsing is done.
+    co_yield(false);
   }
   public void endElement(java.lang.String namespaceURI, java.lang.String localName,
       java.lang.String qName) 
@@ -446,17 +468,78 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    *			  Throws UserRequestedStopException
    *			  to return control to the run() loop.
    */
-  private void co_yield(boolean notYetDone)
+  private void co_yield(boolean moreRemains)
   {
-    Object arg= notYetDone ? Boolean.TRUE : Boolean.FALSE;
-    try
+    Object arg= moreRemains ? Boolean.TRUE : Boolean.FALSE;
+
+    // %TBD% End-of-file behavior. When moreRemains==false, we have
+    // just ended parsing the document and are about to return
+    // from the parser.
+    //
+    // If we were invoked from the run() loop, we have to provide
+    // the coroutine argument returned above as the next command
+    // to be processed in that loop.
+    //
+    // Conversely, if we've been running in response to
+    // fXMLReader.parse() invoked directly, we will not be returning
+    // to that loop. In that case, the question becomes one of what we
+    // should do instead. The simplest answer would seem to be to do a
+    // co_exit_to immediately, since we don't have a command loop to
+    // continue to talk to.
+
+    if(!moreRemains)
+      {
+	if(fRunningInThread)
+	  {
+	    // Just return. The command loop in run() will send the
+	    // "we're done" announcement and request the next command.
+	    return; // let the parser terminate itself
+	  }
+	  
+	else try 
+	  {
+	    // Forced Termination dialog. Say we're done, wait for a
+	    // termination request (don't accept anything else), and
+	    // shut down.
+	    arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+					      fAppCoroutineID);
+	    while(arg!=null)
+	      {
+                System.err.println(
+                  "Filtering CoroutineSAXParser: unexpected resume parameter, "
+                  +arg.getClass()+" with value=\""+arg+'"');
+		// If you don't do this, it can loop forever with the above
+                // error printing out.  -sb
+		arg = new RuntimeException(
+                  "Filtering CoroutineSAXParser: unexpected resume parameter, "
+                  +arg.getClass()+" with value=\""+arg+'"');
+		arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+						  fAppCoroutineID);
+	      }
+	    
+	    fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
+	    return; // let the parser terminate itself
+	  }
+	catch(java.lang.NoSuchMethodException e)
+	  {
+	    // Shouldn't happen unless we've miscoded our coroutine logic
+	    // "Shut down the garbage smashers on the detention level!"
+	    e.printStackTrace(System.err);
+	    fCoroutineManager.co_exit(fParserCoroutineID);
+	    throw shutdownException;
+	  }
+      }
+
+
+    else try
       {
         arg = fCoroutineManager.co_resume(arg, fParserCoroutineID, fAppCoroutineID);
-        
+
         if (arg == null) {
           fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
           throw shutdownException;
         }
+
 
         else if (arg instanceof Boolean) {
           boolean keepgoing = ((Boolean)arg).booleanValue();
@@ -526,7 +609,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
             if (arg instanceof InputSource) {
               try {
               if(DEBUG)System.out.println("Inactive CoroutineSAXParser new parse "+arg);
-                xmlreader.parse((InputSource)arg);
+                fXMLReader.parse((InputSource)arg);
                 // Tell caller we returned from parsing
                 arg=Boolean.FALSE;
               }
@@ -604,6 +687,11 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    * communication protocol and to avoid having to explicitly use the
    * CoroutineParser's coroutine ID number.
    *
+   * %REVIEW%: If we are NOT running in a thread (if we bound to an
+   * externally invoked XMLReader), this operation is a no-op. I don't
+   * _think_ it can safely synchronously invoke that reader's parse()
+   * operation, or doMore(), which would be the obvious alternatives....
+   *
    * %REVIEW% Can/should this unify with doMore? (if URI hasn't changed,
    * parse more from same file, else end and restart parsing...?
    *
@@ -617,6 +705,10 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    * */
   public Object doParse(InputSource source, int appCoroutineID)
   {
+    // %REVIEW% I'm not wild about this solution...
+    if(!fRunningInThread)
+      return Boolean.TRUE; // "Yes, we expect to deliver events."
+
     try 
       {
         Object result=    

@@ -210,12 +210,17 @@ public class DTMManagerDefault extends DTMManager
         
         // %TBD%  It's probably OK to have these bypass the CoRoutine stuff??
         // Or maybe not?
+	// ... Depends on how broken will things get if they occur at the same
+	// time that someone is trying to read the DTM model. I'd suggest that
+	// we instead extend CoroutineParser to handle these, and let it
+	// pass the registration through to the reader if that's the Right Thng
         reader.setDTDHandler(dtm);
         reader.setErrorHandler(dtm);
                           
         try
         {
           // This is a strange way to start the parse.
+	  // %REVIEW% Consider making coParser just be a throttling filter
           Object gotMore = coParser.doParse(xmlSource, appCoroutine);
           if( gotMore instanceof Exception)
           {
@@ -224,7 +229,8 @@ public class DTMManagerDefault extends DTMManager
           }
           else if (gotMore != Boolean.TRUE)
           {
-      
+	    // This is a strange way to terminate the parser.
+	    // %REVIEW% Consider having coParser self-terminate at end of file.
             dtm.clearCoRoutine();
           }
         }
