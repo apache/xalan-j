@@ -78,7 +78,7 @@ public class XSLProcessorVersion
   /**
    * Constant name of product.
    */
-  public static final String PRODUCT = "Xalan";
+  public static final String PRODUCT = "LotusXSL";
 
   /**
    * Implementation Language.
@@ -136,7 +136,7 @@ public class XSLProcessorVersion
    *          well as defect fixes. 'D' drops may not be as stable as
    *          the final releases.
    */
-  public static int DEVELOPMENT = 2;
+  public static int DEVELOPMENT = 3;
   
   /**
    * Version String like <CODE>"<B>Xalan</B> <B>Language</B> 
