@@ -78,25 +78,62 @@ import org.apache.xml.utils.NodeVector;
 import org.apache.xml.utils.XMLString;
 import org.apache.xml.utils.XMLStringFactory;
 
-/**
- * The <code>DOM2DTM</code> class serves up a DOM via a DTM API.
- */
+/** The <code>DOM2DTM</code> class serves up a DOM's contents via the
+ * DTM API.
+ *
+ * Note that it doesn't necessarily represent a full Document
+ * tree. You can wrap a DOM2DTM around a specific node and its subtree
+ * and the right things should happen. (I don't _think_ we currently
+ * support DocumentFrgment nodes as roots, though that might be worth
+ * considering.)
+ *
+ * Note too that we do not currently attempt to track document
+ * mutation. If you alter the DOM after wrapping DOM2DTM around it,
+ * all bets are off.
+ * */
 public class DOM2DTM extends DTMDefaultBase
 {
-  /** The top of the subtree, may not be the same as m_context if "//foo" pattern. */
+  /** The top of the subtree.
+   * %REVIEW%: 'may not be the same as m_context if "//foo" pattern.'
+   * */
   transient private Node m_root;
 
-  /** The current position in the tree. */
+  /** The current position in the DOM tree. This is used to keep track
+   * of our progress as we incrementally build the DTM from the DOM. */
   transient private Node m_pos;
 
-  /** true if all the nodes have been processed. */
+  /** true if all the nodes have been processed; false if our
+   * incremental build has not yet finished scanning the root DOM
+   * Node's entire subtree.  */
   transient private boolean m_nodesAreProcessed;
 
-  /**
-   * %TBD% Needs doc... how to explain?
-   * [0] index of parent.
-   * [1] index of previous sibling.
-   */
+  /** We use this stack to keep track of some of the context
+   * information as we build the DTM tables. Each time we enter a new
+   * level of DTM hierarchy -- basically, each time we enter a new
+   * element -- we push a two-integer stack frame:
+   *
+   * <ul>
+   * <li>The DTM nodeHandle index of the previous parent</li> and
+   * <li>DTM.NULL, meaning no known previous sibling
+   * (next node will be first-child)</li>
+   * </ul>
+   *
+   * We can retrieve these values via
+   *
+   * <ul>
+   * <li>m_levelInfo.peek(LEVELINFO_PARENT)</li> and
+   * <li>m_levelInfo.peek(LEVELINFO_PREVSIB)</li>
+   * </ul>
+   *
+   * respectively. As children are appended, the previous-sibling
+   * field is maintained to keep track of them, either by popping the
+   * old value and pushing a new one on, or by doing some magic with
+   * m_levelInfo.setElementAt().
+   *
+   * Finally, when we're done constructing this element's children, we
+   * pop both integers off the stack, returning us to our previous
+   * context.
+   * */
   transient private IntStack m_levelInfo = new IntStack();
 
   /**
