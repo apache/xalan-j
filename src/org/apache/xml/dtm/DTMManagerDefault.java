@@ -379,6 +379,10 @@ public class DTMManagerDefault extends DTMManager
    */
   public boolean release(DTM dtm, boolean shouldHardDelete)
   {
+    if(dtm instanceof SAX2DTM)
+    {
+      ((SAX2DTM)dtm).clearCoRoutine();
+    }
 
     int i = getDTMIdentity(dtm);
 
