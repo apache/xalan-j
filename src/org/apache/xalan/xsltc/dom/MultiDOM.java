@@ -75,6 +75,7 @@ import org.apache.xml.dtm.DTMAxisIterator;
 import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.ref.DTMAxisIteratorBase;
 import org.apache.xml.dtm.ref.DTMDefaultBase;
+import org.apache.xml.utils.SuballocatedIntVector;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -87,9 +88,9 @@ public final class MultiDOM implements DOM {
     private static final int SET = 0xFF000000;
     
     private DOM[] _adapters;
+    private DOMAdapter _main;
     private int _free;
     private int _size;
-    private XSLTCDTMManager _dtmManager;
 
     private Hashtable _documents = new Hashtable();
 
@@ -127,10 +128,11 @@ public final class MultiDOM implements DOM {
 
             int nodeid = getNodeIdent(node); 
             final int mask = nodeid & SET;
-            int dom = getDTMId(node);
+            //int dom = getDTMId(node);
 
             // Get a new source first time and when mask changes
             if (_source == null || _mask != mask) {
+                int dom = node >>> DTMManager.IDENT_DTM_NODE_BITS;
                 if (_type == NO_TYPE) {
                     _source = _adapters[dom].getAxisIterator(_axis);
                 } else if (_axis == Axis.CHILD) {
@@ -283,7 +285,9 @@ public final class MultiDOM implements DOM {
         _size = INITIAL_SIZE;
         _free = 1;
         _adapters = new DOM[INITIAL_SIZE];
-        _adapters[0] = main;
+        DOMAdapter adapter = (DOMAdapter)main;
+        _adapters[0] = adapter;
+        _main = adapter;
 
         // %HZ% %REVISIT% Is this the right thing to do here?  In the old
         // %HZ% %REVISIT% version, the main document did not get added through
@@ -299,9 +303,7 @@ public final class MultiDOM implements DOM {
         // %HZ% %REVISIT% encountered, and that method ends up returning the
         // %HZ% %REVISIT% mask of the main document, when what we really what
         // %HZ% %REVISIT% is to read the stylesheet itself!
-        DOMAdapter adapter = (DOMAdapter)main;
         addDOMAdapter(adapter, false);
-        _dtmManager = (XSLTCDTMManager)((DTMDefaultBase)adapter.getDOMImpl()).m_mgr;
     }
 
     public int nextMask() {
@@ -320,18 +322,20 @@ public final class MultiDOM implements DOM {
         // Add the DOM adapter to the array of DOMs
         DOM dom = adapter.getDOMImpl();
         
-        DTMManager dtmManager = null;
+        int domNo = 1;
+        int dtmSize = 1;
+        SuballocatedIntVector dtmIds = null;
         if (dom instanceof DTMDefaultBase) {
-            dtmManager = ((DTMDefaultBase)dom).m_mgr;
+            DTMDefaultBase dtmdb = (DTMDefaultBase)dom;
+            dtmIds = dtmdb.getDTMIDs();
+            dtmSize = dtmIds.size();
+            domNo = dtmIds.elementAt(dtmSize-1) >>> DTMManager.IDENT_DTM_NODE_BITS;
         }
         else if (dom instanceof SimpleResultTreeImpl) {
-            dtmManager = ((SimpleResultTreeImpl)dom).getDTMManager();
+            SimpleResultTreeImpl simpleRTF = (SimpleResultTreeImpl)dom;
+            domNo = simpleRTF.getDocument() >>> DTMManager.IDENT_DTM_NODE_BITS;
         }
-                
-        final int domNo =
-             dtmManager.getDTMIdentity((DTM)dom)
-                   >>> DTMManager.IDENT_DTM_NODE_BITS;
-  
+                  
         if (domNo >= _size) {
             int oldSize = _size;
             do {
@@ -342,7 +346,18 @@ public final class MultiDOM implements DOM {
             System.arraycopy(_adapters, 0, newArray, 0, oldSize);
             _adapters = newArray;
         }
-        _adapters[domNo] = adapter;
+        
+        if (dtmSize == 1) {
+            _adapters[domNo] = adapter;
+        }
+        else if (dtmIds != null) {
+            int domPos = 0;
+            for (int i = dtmSize - 1; i >= 0; i++) {
+                domPos = dtmIds.elementAt(i) >>> DTMManager.IDENT_DTM_NODE_BITS;
+                _adapters[domPos] = adapter;
+            }
+            domNo = domPos;
+        }
 
         // Store reference to document (URI) in hashtable
         if (indexByURI) {
@@ -389,7 +404,7 @@ public final class MultiDOM implements DOM {
     
     public int getDocument() 
     {
-        return _adapters[0].getDocument();
+        return _main.getDocument();
     }
 
     /** 
@@ -397,11 +412,11 @@ public final class MultiDOM implements DOM {
       */
     public DTMAxisIterator getIterator() {
         // main source document @ 0
-        return _adapters[0].getIterator();
+        return _main.getIterator();
     }
     
     public String getStringValue() {
-        return _adapters[0].getStringValue();
+        return _main.getStringValue();
     }
     
     public DTMAxisIterator getChildren(final int node) {
@@ -448,7 +463,12 @@ public final class MultiDOM implements DOM {
     }
 
     public int getExpandedTypeID(final int node) {
-        return _adapters[getDTMId(node)].getExpandedTypeID(node & CLR);
+    	if (node != DTM.NULL) {
+            return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getExpandedTypeID(node & CLR);
+    	}
+    	else {
+    	    return DTM.NULL;
+    	}
     }
 
     public int getNamespaceType(final int node) {
@@ -464,49 +484,49 @@ public final class MultiDOM implements DOM {
         if (node == DTM.NULL) {
             return DTM.NULL;
         }
-        return _adapters[getDTMId(node)].getParent(node & CLR) | node&SET;
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getParent(node & CLR) | node&SET;
     }
     
     public int getAttributeNode(final int type, final int el) {
         if (el == DTM.NULL) {
             return DTM.NULL;
         }
-        return _adapters[getDTMId(el)].getAttributeNode(type, el&CLR) | el&SET;
+        return _adapters[el >>> DTMManager.IDENT_DTM_NODE_BITS].getAttributeNode(type, el&CLR) | el&SET;
     }
     
     public String getNodeName(final int node) {
         if (node == DTM.NULL) {
             return "";
         }
-        return _adapters[getDTMId(node)].getNodeName(node & CLR);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getNodeName(node & CLR);
     }
     
     public String getNodeNameX(final int node) {
         if (node == DTM.NULL) {
             return "";
         }
-        return _adapters[getDTMId(node)].getNodeNameX(node & CLR);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getNodeNameX(node & CLR);
     }
 
     public String getNamespaceName(final int node) {
         if (node == DTM.NULL) {
             return "";
         }
-        return _adapters[getDTMId(node)].getNamespaceName(node & CLR);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getNamespaceName(node & CLR);
     }
     
     public String getStringValueX(final int node) {
         if (node == DTM.NULL) {
             return "";
         }
-        return _adapters[getDTMId(node)].getStringValueX(node & CLR);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getStringValueX(node & CLR);
     }
     
     public void copy(final int node, TransletOutputHandler handler)
         throws TransletException
     {
         if (node != DTM.NULL) {
-            _adapters[getDTMId(node)].copy(node & CLR, handler);
+            _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].copy(node & CLR, handler);
         }
     }
     
@@ -515,7 +535,7 @@ public final class MultiDOM implements DOM {
     {
         int node;
         while ((node = nodes.next()) != DTM.NULL) {
-            _adapters[getDTMId(node)].copy(node & CLR, handler);
+            _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].copy(node & CLR, handler);
         }
     }
 
@@ -526,7 +546,7 @@ public final class MultiDOM implements DOM {
         if (node == DTM.NULL) {
             return "";
         }
-        return _adapters[getDTMId(node)].shallowCopy(node & CLR, handler);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].shallowCopy(node & CLR, handler);
     }
     
     public boolean lessThan(final int node1, final int node2) {
@@ -545,7 +565,9 @@ public final class MultiDOM implements DOM {
     public void characters(final int textNode, TransletOutputHandler handler)
                  throws TransletException
     {
-        _adapters[getDTMId(textNode)].characters(textNode & CLR, handler);
+        if (textNode != DTM.NULL) {
+            _adapters[textNode >>> DTMManager.IDENT_DTM_NODE_BITS].characters(textNode & CLR, handler);
+        }
     }
 
     public void setFilter(StripFilter filter) {
@@ -563,7 +585,7 @@ public final class MultiDOM implements DOM {
 
     public Node makeNode(DTMAxisIterator iter) {
         // TODO: gather nodes from all DOMs ?
-        return _adapters[0].makeNode(iter);
+        return _main.makeNode(iter);
     }
 
     public NodeList makeNodeList(int index) {
@@ -575,7 +597,7 @@ public final class MultiDOM implements DOM {
 
     public NodeList makeNodeList(DTMAxisIterator iter) {
         // TODO: gather nodes from all DOMs ?
-        return _adapters[0].makeNodeList(iter);
+        return _main.makeNodeList(iter);
     }
 
     public String getLanguage(int node) {
@@ -594,28 +616,38 @@ public final class MultiDOM implements DOM {
         if (node == DTM.NULL) {
             node = DOM.NULL;
         }
-        return _adapters[getDTMId(node)].getDocumentURI(0);
+        return _adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].getDocumentURI(0);
     }
 
     public boolean isElement(final int node) {
         if (node == DTM.NULL) {
             return false;
         }
-        return(_adapters[getDTMId(node)].isElement(node & CLR));
+        return(_adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].isElement(node & CLR));
     }
 
     public boolean isAttribute(final int node) {
         if (node == DTM.NULL) {
             return false;
         }
-        return(_adapters[getDTMId(node)].isAttribute(node & CLR));
+        return(_adapters[node >>> DTMManager.IDENT_DTM_NODE_BITS].isAttribute(node & CLR));
     }
     
     public int getDTMId(int nodeHandle)
     {
+        /*
         int id = _dtmManager.getDTMIdentity(_dtmManager.getDTM(nodeHandle))
                        >>> DTMManager.IDENT_DTM_NODE_BITS;
         return (id == -1 ? 0 : id);
+        */
+        if (nodeHandle == DTM.NULL)
+            return 0;
+        
+        int id = nodeHandle >>> DTMManager.IDENT_DTM_NODE_BITS;
+        while (id >= 2 && _adapters[id] == _adapters[id-1]) {
+            id--;
+        }
+        return id;
     }
     
     public int getNodeIdent(int nodeHandle)
@@ -631,12 +663,12 @@ public final class MultiDOM implements DOM {
     
     public DOM getResultTreeFrag(int initSize, int rtfType)
     {
-        return _adapters[0].getResultTreeFrag(initSize, rtfType);
+        return _main.getResultTreeFrag(initSize, rtfType);
     }
     
     public DOM getMain()
     {
-        return _adapters[0];
+        return _main;
     }
     
     /**
@@ -644,7 +676,7 @@ public final class MultiDOM implements DOM {
      */
     public TransletOutputHandler getOutputDomBuilder()
     {
-        return _adapters[0].getOutputDomBuilder();
+        return _main.getOutputDomBuilder();
     }
 
     public String lookupNamespace(int node, String prefix) 
@@ -655,11 +687,11 @@ public final class MultiDOM implements DOM {
 
     // %HZ% Does this method make any sense here???
     public String getUnparsedEntityURI(String entity) {
-        return _adapters[0].getUnparsedEntityURI(entity);
+        return _main.getUnparsedEntityURI(entity);
     }
 
     // %HZ% Does this method make any sense here???
     public Hashtable getElementsWithIDs() {
-        return _adapters[0].getElementsWithIDs();
+        return _main.getElementsWithIDs();
     }
 }
