@@ -11,6 +11,7 @@ import org.xml.sax.helpers.AttributesImpl;
 public class TestDTM {
 
 	public static void main(String argv[]) {
+
 		/*  <?xml version="1.0"?>
 		 *  <top>
 		 *   <A>
@@ -38,37 +39,45 @@ public class TestDTM {
 		doc.endElement("", "C");
 		doc.endElement("", "top");
 		doc.documentEnd();
-		/*int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
 
-		root = doc.createElement("PurchaseOrderList", null);
-		// root.createAttribute("version", "1.1"));
+		boolean BUILDPURCHASEORDER=false;
+		if(BUILDPURCHASEORDER)
+		  {
+		    int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
 
-		for (int i = 0; i < 10; i++) {
+		    root = doc.createElement("PurchaseOrderList", null);
+		    // root.createAttribute("version", "1.1"));
 
-			h = doc.createElement("PurchaseOrder", null);
+		    for (int i = 0; i < 10; i++) {
 
-			c1 = doc.createElement("Item", null);
-			// c1.createAttribute();
-			c1_text = doc.createTextNode("Basketball" + " - " + i);
-			doc.endElement(null, "Item");
+		      h = doc.createElement("PurchaseOrder", null);
 
-			c2 = doc.createElement("Description", null);
-			// c2.createAttribute();
-			c2_text = doc.createTextNode("Professional Leather Michael Jordan Signatured Basketball");
-			doc.endElement(null, "Description");
+		      c1 = doc.createElement("Item", null);
+		      // c1.createAttribute();
+		      c1_text = doc.createTextNode("Basketball" + " - " + i);
+		      doc.endElement(null, "Item");
 
-			c3 = doc.createElement("UnitPrice", null);
-			c3_text = doc.createTextNode("$12.99");
-			doc.endElement(null, "UnitPrice");
+		      c2 = doc.createElement("Description", null);
+		      // c2.createAttribute();
+		      c2_text = doc.createTextNode("Professional Leather Michael Jordan Signatured Basketball");
+		      doc.endElement(null, "Description");
 
-			c4 = doc.createElement("Quanity", null);
-			c4_text = doc.createTextNode("50");
-			doc.endElement(null, "Quanity");
+		      c3 = doc.createElement("UnitPrice", null);
+		      c3_text = doc.createTextNode("$12.99");
+		      doc.endElement(null, "UnitPrice");
 
-			doc.endElement(null, "PurchaseOrder");
-		}
+		      c4 = doc.createElement("Quanity", null);
+		      c4_text = doc.createTextNode("50");
+		      doc.endElement(null, "Quanity");
 
-		doc.endElement(null, "PurchaseOrderList");*/
+		      doc.endElement(null, "PurchaseOrder");
+		    }
+
+		    doc.endElement(null, "PurchaseOrderList");
+		  } // if(BUILDPURCHASEORDER)
+		
+		
+
 		TestDTMNodes.printNodeTable(doc);
 	}
 }
