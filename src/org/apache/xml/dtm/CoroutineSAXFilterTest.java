@@ -2,8 +2,6 @@ package org.apache.xml.dtm;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
-import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
@@ -56,7 +54,7 @@ class CoroutineSAXFilterTest implements Runnable
     // Note that this is a global -- sloppy connection to the thread.
     filter=new CoroutineSAXParser(co, appCoroutineID);
 
-    // Convenience function...
+    // Convenience function... Set handlers
     filter.setXMLReader(theSAXParser);
     
     // Use a serializer as our sample output
@@ -115,14 +113,14 @@ class CoroutineSAXFilterTest implements Runnable
 	(result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
 	result = filter.doMore(more, appCoroutineID))
       {
-	System.out.println("\nSome parsing successful, trying more.\n");
-	
 	// Special test: Terminate parsing early.
 	if(TEST_EARLY_STOP)
 	  {
+	    System.out.println("\nSome parsing successful, trying to stop.\n");
 	    more=false;
 	  }
-	
+	else
+	  System.out.println("\nSome parsing successful, trying more.\n");
       }
     
     if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)

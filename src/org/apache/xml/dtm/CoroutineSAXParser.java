@@ -59,10 +59,12 @@ package org.apache.xml.dtm;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
 import org.xml.sax.XMLReader;
@@ -78,10 +80,25 @@ import org.apache.xml.dtm.CoroutineManager;
  *
  * <p>For a brief usage example, see the unit-test main() method.</p>
  *
- * <p>Status: Passes simple main() unit-test</p>
+ * <p>Status: Passes simple unit-tests in main().
+ * FAILS CoroutineSaxFilterTest termination in the doMore(false) case
+ * NEEDS JAVADOC!</p>
+ *
+ * %TBD% MAJOR ISSUE: In filtering mode, where we aren't the ones who invoked
+ * the XMLHandler's parse() operation, we have no way to capture
+ * exceptions thrown by the ContentHandler -- and thus no way to complete
+ * the doMore(false) dialog in its usual sense, or to be informed if
+ * the XMLHandler crashes for other reasons. Two possible solutions:
+ *	In this mode, conduct the whole dialog within doMore(). Ugh.
+ * Or:
+ *	Change the dialogs -- cut over to pure filtering mode, where
+ *		we only process one file and doMore(false) can respond with
+ *		co_exit_to().
+ *
  * */
 public class CoroutineSAXParser
-implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
+implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandler
+{
 
   boolean DEBUG=false; //Internal status report
 
@@ -95,10 +112,16 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   private boolean fParseInProgress=false;
   private XMLReader fXMLReader=null;
   private boolean fRunningInThread=false;
-  private org.xml.sax.ContentHandler clientContentHandler=null;
-  private org.xml.sax.ext.LexicalHandler clientLexicalHandler=null;
+  private ContentHandler clientContentHandler=null; // %REVIEW% support multiple?
+  private LexicalHandler clientLexicalHandler=null; // %REVIEW% support multiple?
+  private ErrorHandler clientErrorHandler=null; // %REVIEW% support multiple?
   private int eventcounter;
   private int frequency=10;
+
+  // Horrendous kluge to run filter to completion. See co_yield()'s
+  // internal comments for details. "Is this any way to run a railroad?"
+  private boolean fNeverYieldAgain=false;
+  
 
   //
   // Constructors
@@ -174,6 +197,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     
     fXMLReader=parser;
     fXMLReader.setContentHandler(this);
+    fXMLReader.setErrorHandler(this); // to report fatal errors in filtering mode
 
     // Not supported by all SAX2 parsers:
     try 
@@ -202,10 +226,16 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   // Register a lexical handler for us to output to
   // Not all parsers support this...
   // ??? Should we register directly on the parser?
-  // NOTE NAME.
+  // NOTE NAME -- subclassing issue in the Xerces version
   public void setLexHandler(LexicalHandler handler)
   {
     clientLexicalHandler=handler;
+  }
+  // Register an error handler for us to output to
+  // NOTE NAME -- subclassing issue in the Xerces version
+  public void setErrHandler(ErrorHandler handler)
+  {
+    clientErrorHandler=handler;
   }
 
   // Set the number of events between resumes of our coroutine
@@ -412,6 +442,68 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   }
 
   //
+  // ErrorHandler support.
+  //
+  // PROBLEM: Xerces is apparently _not_ calling the ErrorHandler for
+  // exceptions thrown by the ContentHandler, which prevents us from
+  // handling this properly when running in filtering mode with Xerces
+  // as our event source.  It's unclear whether this is a Xerces bug
+  // or a SAX design flaw.
+  // 
+  // %REVIEW% Current solution: In filtering mode, it is REQUIRED that
+  // event source make sure this method is invoked if the event stream
+  // abends before endDocument is delivered. If that means explicitly calling
+  // us in the exception handling code because it won't be delivered as part
+  // of the normal SAX ErrorHandler stream, that's fine; Not Our Problem.
+  //
+  public void error(SAXParseException exception) throws SAXException
+  {
+    if(null!=clientErrorHandler)
+      clientErrorHandler.error(exception);
+  }
+  
+  public void fatalError(SAXParseException exception) throws SAXException
+  {
+    // When we're in filtering mode we need to make sure that
+    // we terminate the parsing coroutine transaction -- announce
+    // the problem and shut down the dialog.
+
+    // PROBLEM: Xerces is apparently _not_ calling the ErrorHandler for
+    // exceptions thrown by the ContentHandler... specifically, doTerminate.
+    // %TBD% NEED A SOLUTION!
+    
+    if(!fRunningInThread)
+      {
+	try
+	  {
+	    fCoroutineManager.co_exit_to(exception,
+					 fParserCoroutineID,fAppCoroutineID);
+	    // %TBD% Do we need to wait for terminate?
+	  }
+	catch(NoSuchMethodException e)
+	  {
+	    // Shouldn't happen unless we've miscoded our coroutine logic
+	    // "Shut down the garbage smashers on the detention level!"
+	    e.printStackTrace(System.err);
+	    fCoroutineManager.co_exit(fParserCoroutineID);
+
+	    // No need to throw shutdownException; we're already
+	    // in the process of murdering the parser.
+	  }
+      }
+
+    if(null!=clientErrorHandler)
+      clientErrorHandler.error(exception);
+  }
+  
+  public void warning(SAXParseException exception) throws SAXException
+  {
+    if(null!=clientErrorHandler)
+      clientErrorHandler.error(exception);
+  }
+  
+
+  //
   // coroutine support
   //
 
@@ -474,9 +566,13 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    */
   private void co_yield(boolean moreRemains)
   {
+    // Horrendous kluge to run filter to completion. See below.
+    if(fNeverYieldAgain)
+      return;
+    
     Object arg= moreRemains ? Boolean.TRUE : Boolean.FALSE;
-
-    // %TBD% End-of-file behavior. When moreRemains==false, we have
+    
+    // %REVIEW% End-of-file behavior. When moreRemains==false, we have
     // just ended parsing the document and are about to return
     // from the parser.
     //
@@ -490,7 +586,6 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     // should do instead. The simplest answer would seem to be to do a
     // co_exit_to immediately, since we don't have a command loop to
     // continue to talk to.
-
     if(!moreRemains)
       {
 	if(fRunningInThread)
@@ -505,7 +600,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
 	    // Forced Termination dialog. Say we're done, wait for a
 	    // termination request (don't accept anything else), and
 	    // shut down.
-	    arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+	    arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
 					      fAppCoroutineID);
 	    while(arg!=null)
 	      {
@@ -522,7 +617,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
 	      }
 	    
 	    fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
-	    return; // let the parser terminate itself
+	    return; // let the parser return
 	  }
 	catch(java.lang.NoSuchMethodException e)
 	  {
@@ -532,12 +627,80 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
 	    fCoroutineManager.co_exit(fParserCoroutineID);
 	    throw shutdownException;
 	  }
-      }
+      } // if moreRemains
 
 
     else try
       {
         arg = fCoroutineManager.co_resume(arg, fParserCoroutineID, fAppCoroutineID);
+
+	// %REVIEW% I'm really not happy with the following:
+	//
+	// If we're running in filter mode, driven by an external SAX
+	// event source, and have been been yielded back to with
+	// Boolean.FALSE (doMore(false)) there are two additional
+	// problems.
+	// 
+	// First: Scott tells me that our technique of throwing an
+	// exception from the ContentHandler to terminate SAX parsing,
+	// while almost a universal practice in the SAX community, is not
+	// acceptable because we can't force this contract upon the event
+	// generator. (Though he feels we _can_ force them to accept a
+	// contract to explicitly send us a fatalError event if parsing
+	// terminates due to some other SAXException... basically, it's
+	// the old "this is a normal condition so it shouldn't be an
+	// exception" rationalle, which has some validity to it.)
+	// Instead, and despite the wasted cycles, he wants me to simply
+	// let the event stream run to completion without passing the
+	// events along to our own client. That requires disabling
+	// co_yeild() as well. IF AND WHEN SAX ADDS AN OFFICIAL
+	// STOP-PARSING-EARLY OPERATION, we can leverage that.
+	//
+	// Second: The current architecture of CoroutineSAXParser's
+	// coroutine transactions assumes that doMore(false) will be
+	// followed by either doParse(newInputSource), or
+	// doTerminate(). We must complete that coroutine dialog.
+	// 
+	// "Black magic is a matter of symbolism and intent."
+	// -- Randall Garrett
+	//
+	// %TBD% We _MUST_ get away from this architecture and switch
+	// to CoroutineSAXFilter, just so we don't have to go through
+	// this "no, I don't want another file, thank you very much"
+	// transaction. In our application we should never need it,
+	// and the only justification for running the parse within a
+	// coroutine request -- capturing SAXExceptions -- could be
+	// handled per the above discussion.
+	// 
+	if(!fRunningInThread && arg==Boolean.FALSE)
+	  {
+	    clientContentHandler=null;
+	    clientLexicalHandler=null;
+	    // Anyone else?
+	
+	    fNeverYieldAgain=true; // Horrendous kluge parsing to completion:
+
+	    // Forced Termination dialog. Say we're done, wait for a
+	    // termination request (don't accept anything else), and
+	    // shut down.
+	    arg = fCoroutineManager.co_resume(Boolean.FALSE, fParserCoroutineID,
+					      fAppCoroutineID);
+	    while(arg!=null)
+	      {
+		String msg="Filtering CoroutineSAXParser: "+
+		  "unexpected resume parameter, "+
+		  arg.getClass()+" with value=\""+arg+'"';
+                System.err.println(msg);
+		// If you don't do this, it can loop forever with the above
+                // error printing out.  -sb
+		arg = new RuntimeException(msg);
+		arg = fCoroutineManager.co_resume(arg, fParserCoroutineID,
+						  fAppCoroutineID);
+	      }
+	    
+	    fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
+	    return; // let the parser run to completion and return
+	  }
 
         if (arg == null) {
           fCoroutineManager.co_exit_to(arg, fParserCoroutineID, fAppCoroutineID);
@@ -772,7 +935,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    * for further parsing. Boolean.FALSE if parsing ran to completion.
    * Exception if the parser objected for some reason.
    * */
-  public Object doMore (boolean parsemore, int appCoroutineID)
+  public Object doMore(boolean parsemore, int appCoroutineID)
   {
     try 
       {
@@ -866,11 +1029,6 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
         InputSource source = new InputSource(args[arg]);
         Object result=null;
         boolean more=true;
-        /**    
-          for(result = co.co_resume(source, appCoroutineID, parserCoroutineID);
-          (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-          result = co.co_resume(more, appCoroutineID, parserCoroutineID))
-          **/
         for(result = parser.doParse(source, appCoroutineID);
             (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
             result = parser.doMore(more, appCoroutineID))
