@@ -99,6 +99,20 @@ public class IntVector
     m_mapSize = blocksize;
     m_map = new int[blocksize];
   }
+  
+  /**
+   * Construct a IntVector, using the given block size.
+   *
+   * @param blocksize Size of block to allocate
+   */
+  public IntVector(int blocksize, int increaseSize)
+  {
+
+    m_blocksize = increaseSize;
+    m_mapSize = blocksize;
+    m_map = new int[blocksize];
+  }
+
 
   /**
    * Get the length of the list.
