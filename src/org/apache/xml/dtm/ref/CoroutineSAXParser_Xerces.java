@@ -322,8 +322,9 @@ implements CoroutineParser
           System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
         }
         else if (result instanceof Exception) {
-          System.out.println("\nParser threw exception:");
-          ((Exception)result).printStackTrace();
+          throw new org.apache.xml.utils.WrappedRuntimeException((Exception)result);
+//          System.out.println("\nParser threw exception:");
+//          ((Exception)result).printStackTrace();
         }
         
       }
