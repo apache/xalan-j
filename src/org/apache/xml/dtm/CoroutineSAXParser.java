@@ -156,7 +156,11 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   /** Bind to the XMLReader. This operation is ignored if the reader has
    * previously been set.
    *
-   * %REVIEW% Should it instead unbind from the previous reader?
+   * Just a convenience routine; obviously you can explicitly register
+   * this as a listener with the same effect.
+   *
+   * %REVIEW% Should it unbind from the previous reader if there is one?
+   * %REVIEW% Do we really need to set fXMLReader???
    *
    * %TBD% This is a quick-hack solution. I'm not convinced that it's
    * adequate. In particular, since in this model parser.parse() is
