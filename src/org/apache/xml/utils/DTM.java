@@ -59,24 +59,27 @@ package org.apache.xml.utils;
 /**
  * <code>DTM</code> is an XML document model expressed as a table rather than
  * an object tree. It attempts to provide an interface to a parse tree that 
- * has very little object creation.
+ * has very little object creation, and to (invisibly) support incremental
+ * construction of the model.
  * 
  * <p>Nodes in the DTM are identified by integer "handles".  A handle must 
- * be unique within a process, an carries both node identification and 
+ * be unique within a process, and carries both node identification and 
  * document identification.  It must be possible to compare two handles 
- * for identity with "==".</p>
+ * (and thus their nodes) for identity with "==".</p>
  * 
  * <p>Namespace URLs, local-names, and expanded-names can all be represented 
- * by integer ID values.  An expanded name is made of a combination of the URL 
+ * by integer ID values which index into string pools stored outside the
+ * main tree structure.  An expanded name is made of a combination of the URL 
  * ID, and the local-name ID.</p>
  * 
  * <p>The model of the tree, as well as the general navigation model, is 
  * that of XPath 1.0, for the moment.  The model will eventually be adapted to 
  * match the XPath 2.0 data model, XML Schema, and InfoSet.</p>
  * 
- * <p>DTM does _not_ directly support the W3C's Document Object Model. However,
- * it attempts to come close enough that an implementation of DTM can be created 
- * that wraps a DOM.</p>
+ * <p>DTM does _not_ directly support the W3C's Document Object
+ * Model. However, it attempts to come close enough that an
+ * implementation of DTM can be created that wraps a DOM and vice
+ * versa.</p>
  * 
  * <p>State: In progress!!</p>
  */
@@ -137,6 +140,7 @@ public interface DTM
    */
   public static final short NOTATION_NODE             = 12;
 
+  // Node type(s) not shared with the DOM:
   /**
    * The node is a <code>namespace node</code>.
    */
@@ -166,42 +170,46 @@ public interface DTM
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
    * 
-   * @param nodeHandle int Handle of the node..
-   * @return int DTM node-number of first child, or -1 to indicate none exists.
+   * @param nodeHandle int Handle of the node.
+   * @return int DTM node-number of first child,
+   * or DTM.NULL to indicate none exists.
    */
   public int getFirstChild(int nodeHandle);
 
   /**
-   * Given a node handle, advance to its last child.
+   * Given a node handle, get the handle of the node's last child.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
    * 
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int Node-number of last child,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getLastChild(int nodeHandle);
 
   /**
    * Given a node handle, get the index of the node's first attribute.
+   * If not yet resolved, waits for more nodes to be added to the document and
+   * tries again.
    * 
-   * @param nodeHandle int Handle of the node..
-   * @return Handle of first attribute, or -1 to indicate none exists.
+   * @param nodeHandle int Handle of the node.
+   * @return Handle of first attribute, or DTM.NULL to indicate none exists.
    */
   public int getFirstAttribute(int nodeHandle);
   
   /**
-   * Given a node handle, get the index of the node's first child.
+   * Given a node handle, get the index of the node's first namespace node.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again
    * 
    * @param nodeHandle handle to node, which should probably be an element 
    *                   node, but need not be.
    *                   
-   * @param inScope    true if all namespaces in scope should be returned, 
-   *                   false if only the namespace declarations should be 
-   *                   returned.
-   * @return handle of first namespace, or -1 to indicate none exists.
+   * @param inScope true if all namespaces in scope should be
+   *                   returned, false if only the node's own
+   *                   namespace declarations should be returned.
+   * @return handle of first namespace,
+   * or DTM.NULL to indicate none exists.
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope);
 
@@ -209,40 +217,42 @@ public interface DTM
    * Given a node handle, advance to its next sibling.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int Node-number of next sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextSibling(int nodeHandle);
   
   /**
    * Given a node handle, find its preceeding sibling.
-   * WARNING: DTM is asymmetric; this operation is resolved by search, and is
-   * relatively expensive.
-   * @param postition int Handle of the node..
+   * WARNING: DTM implementations may be asymmetric; in some,
+   * this operation is resolved by search, and is relatively expensive.
    *
    * @param nodeHandle the id of the node.
    * @return int Node-number of the previous sib,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getPreviousSibling(int nodeHandle);
 
   /**
    * Given a node handle, advance to the next attribute. If an
    * element, we advance to its first attribute; if an attr, we advance to
-   * the next attr on the same node.
+   * the next attr of the same element.
    * 
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int DTM node-number of the resolved attr,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextAttribute(int nodeHandle);
 
   /**
-   * Given a namespace handle, advance to the next namespace.
+   * Given a namespace handle, advance to the next namespace in the same scope
+   * (local or local-plus-inherited, as selected by getFirstNamespaceNode)
    * 
-   * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
-   * @return handle of next namespace, or -1 to indicate none exists.
+   * @param namespaceHandle handle to node which must be of type
+   * NAMESPACE_NODE.
+   * @return handle of next namespace,
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextNamespaceNode(int namespaceHandle, boolean inScope);
 
@@ -252,9 +262,9 @@ public interface DTM
    * tries again.
    *
    * @param subtreeRootNodeHandle
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return handle of next descendant,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextDescendant(int subtreeRootHandle, int nodeHandle);
 
@@ -264,7 +274,7 @@ public interface DTM
    * @param axisContextHandle the start of the axis that is being traversed.
    * @param nodeHandle
    * @return handle of next sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextFollowing(int axisContextHandle, int nodeHandle);
   
@@ -274,7 +284,7 @@ public interface DTM
    * @param axisContextHandle the start of the axis that is being traversed.
    * @param nodeHandle the id of the node.
    * @return int Node-number of preceding sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextPreceding(int axisContextHandle, int nodeHandle);
 
@@ -282,8 +292,8 @@ public interface DTM
    * Given a node handle, find its parent node.
    *
    * @param nodeHandle the id of the node.
-   * @return int Node-number of parent,
-   * or -1 to indicate none exists.
+   * @return int Node handle of parent,
+   * or DTM.NULL to indicate none exists.
    */
   public int getParent(int nodeHandle);
 
@@ -301,8 +311,8 @@ public interface DTM
    * the nodeHandle is a document node, it will return NULL.
    *
    * @param nodeHandle the id of the node.
-   * @return int Node handle of owning document, or -1 if the nodeHandle is 
-   *             a document.
+   * @return int Node handle of owning document,
+   * or DTM.NULL if the nodeHandle is a document.
    */
   public int getOwnerDocument(int nodeHandle);
 
@@ -409,7 +419,7 @@ public interface DTM
    * Given a node handle, return the prefix used to map to the namespace.
    * (As defined in Namespaces, this is the portion of the name before any
    * colon character).
-   * @param postition int Handle of the node..
+   * @param postition int Handle of the node.
    *
    * @param nodeHandle the id of the node.
    * @return String prefix of this node's name, or null if no explicit
@@ -421,7 +431,7 @@ public interface DTM
    * Given a node handle, return its DOM-style namespace URI
    * (As defined in Namespaces, this is the declared URI which this node's
    * prefix -- or default in lieu thereof -- was mapped to.)
-   * @param postition int Handle of the node..
+   * @param postition int Handle of the node.
    *
    * @param nodeHandle the id of the node.
    * @return String URI value of this node's namespace, or null if no
@@ -433,7 +443,7 @@ public interface DTM
    * Given a node handle, return its node value. This is mostly
    * as defined by the DOM, but may ignore some conveniences.
    * <p>
-   * @param postition int Handle of the node..
+   * @param postition int Handle of the node.
    *
    * @param nodeHandle The node id.
    * @return String Value of this node, or null if not
@@ -443,7 +453,7 @@ public interface DTM
 
   /**
    * Given a node handle, return its DOM-style node type.
-   * @param postition int Handle of the node..
+   * @param postition int Handle of the node.
    *
    * @param nodeHandle The node id.
    * @return int Node type, as per the DOM's Node._NODE constants.
