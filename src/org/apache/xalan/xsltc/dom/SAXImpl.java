@@ -1113,7 +1113,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       if (_preserve)
           return false;
       else
-          return super.getShouldStripWhitespace(); 
+          return super.getShouldStripWhitespace();
   }
 
     /**
@@ -1724,6 +1724,25 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
             }
         }
     }
+    
+    /**
+     * Copy the string value of a Text node directly to an output handler
+     * %REVISIT% Move this interface to SAX2DTM2 with the new serializer.
+     */
+    public void handleTextEvents(final int nodeID, TransletOutputHandler handler)
+      throws TransletException
+    {
+        if (nodeID != DTM.NULL) {
+            _ch2toh.setTOH(handler);
+            try {
+      	      int dataIndex = m_dataOrQName.elementAt(nodeID);
+              m_chars.sendSAXcharacters(_ch2toh, m_data.elementAt(dataIndex), 
+                      m_data.elementAt(dataIndex + 1));                
+            } catch (SAXException e) {
+                throw new TransletException(e);
+            }
+        }      
+    }
 
     /**
      * Copy a node-set to an output handler
@@ -1763,42 +1782,48 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
       switch(type)
       {
-      case DTM.ROOT_NODE:
-       case DTM.DOCUMENT_NODE:
-        for(int c=getFirstChild(node); c!=DTM.NULL; c=getNextSibling(c))
-          copy(c, handler);
-        break;
-      case DTM.PROCESSING_INSTRUCTION_NODE:
-        copyPI(node, handler);
-        break;
-      case DTM.COMMENT_NODE:
-        handler.comment(getStringValueX(node));
-        break;
-      case DTM.TEXT_NODE:
-        boolean oldEscapeSetting = false;
-        boolean escapeBit = false;
+        case DTM.ROOT_NODE:
+        case DTM.DOCUMENT_NODE:
+          for(int c = _firstch2(nodeID); c != DTM.NULL; c = _nextsib2(c))
+            copy(makeNodeHandle(c), handler);
+          break;
+        case DTM.PROCESSING_INSTRUCTION_NODE:
+          copyPI(node, handler);
+          break;
+        case DTM.COMMENT_NODE:
+          handler.comment(getStringValueX(node));
+          break;
+        case DTM.TEXT_NODE:
+          boolean oldEscapeSetting = false;
+          boolean escapeBit = false;
 
-        if (_dontEscape != null) {
+          if (_dontEscape != null) {
             escapeBit = _dontEscape.getBit(getNodeIdent(node));
             if (escapeBit) {
                 oldEscapeSetting = handler.setEscaping(false);
             }
-        }
-        characters(node, handler);
+          }
+          //characters(node, handler);
+          handleTextEvents(nodeID, handler);
         
-        if (escapeBit) {
+          if (escapeBit) {
             handler.setEscaping(oldEscapeSetting);
-        }
-        break;
-      case DTM.ATTRIBUTE_NODE:
-        shallowCopy(node, handler);
-        break;
-      case DTM.NAMESPACE_NODE:
-        shallowCopy(node, handler);
-        break;
-      default:
-        if (type == DTM.ELEMENT_NODE) 
-        {
+          }
+          break;
+        case DTM.ATTRIBUTE_NODE:
+          final String attrURI = getNamespaceName(node);
+          if (attrURI.length() != 0) {
+            final String prefix = getPrefix(node);
+            handler.namespace(prefix, attrURI);
+          }
+          handler.attribute(getNodeName(node), getNodeValue(node));
+          break;
+        case DTM.NAMESPACE_NODE:
+          handler.namespace(getNodeNameX(node), getNodeValue(node));
+          break;
+        default:
+          if (type == DTM.ELEMENT_NODE) 
+          {
           // Start element definition
           final String name = copyElement(nodeID, eType, handler);
           
@@ -1826,26 +1851,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
             else
               break;
           }
-          // Copy element attribute
-          /*
-          for(int a=getFirstAttribute(node); a!=DTM.NULL; a=getNextAttribute(a))
-            {
-              final String uri = getNamespaceName(a);
-              if (uri.length() != 0) {
-                final String prefix = getPrefix(a);
-                handler.namespace(prefix, uri);
-              }
-              handler.attribute(getNodeName(a), getNodeValue(a));
-            }
-          for(int a = getFirstNamespaceNode(node, true);
-                  a != DTM.NULL;
-                  a = getNextNamespaceNode(node, a, true)) 
-           {
-              handler.namespace(getNodeNameX(a),
-                                getNodeValue(a));
-            }
-          */
-          
+
           // Copy element children
           for (int c = _firstch2(nodeID); c != DTM.NULL; c = _nextsib2(c))
             copy(makeNodeHandle(c), handler);
@@ -1910,7 +1916,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       case DTM.DOCUMENT_NODE:
         return EMPTYSTRING;
       case DTM.TEXT_NODE:
-        characters(node, handler);      
+        //characters(node, handler);
+        handleTextEvents(nodeID, handler);
         return null;
       case DTM.PROCESSING_INSTRUCTION_NODE:
         copyPI(node, handler);
@@ -1923,13 +1930,13 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                           getNodeValue(node)); //makeStringValue(node));
         return null;
       case DTM.ATTRIBUTE_NODE:
-      final String uri = getNamespaceName(node);
-          if (uri.length() != 0) {
+        final String uri = getNamespaceName(node);
+        if (uri.length() != 0) {
             final String prefix = getPrefix(node); // _prefixArray[_prefix[node]];
             handler.namespace(prefix, uri);
-          }
-      handler.attribute(getNodeName(node), getNodeValue(node)); //makeStringValue(node));
-          return null;  
+        }
+        handler.attribute(getNodeName(node), getNodeValue(node)); //makeStringValue(node));
+        return null;  
       default:
           final String uri1 = getNamespaceName(node);
           if (uri1.length() != 0) {
