@@ -474,7 +474,7 @@ public interface DTM
    * Tests whether DTM DOM implementation implements a specific feature and 
    * that feature is supported by this node.
    * @param feature The name of the feature to test.
-   * @param versionThis is the version number of the feature to test.
+   * @param version This is the version number of the feature to test.
    *   If the version is not 
    *   specified, supporting any version of the feature will cause the 
    *   method to return <code>true</code>.
