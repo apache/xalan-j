@@ -122,7 +122,7 @@ public class DTMDocumentImpl implements DTM {
 
 	// nodes array: integer array blocks to hold the first level reference of the nodes,
 	// each reference slot is addressed by a nodeHandle index value.
-	// Assumed indices are not larger than {@link NODEHANDLE_MASK}
+	// Assumes indices are not larger than {@link NODEHANDLE_MASK}
         // ({@link DOCHANDLE_SHIFT} bits).
 	ChunkedIntArray nodes = new ChunkedIntArray(4);
 
@@ -152,6 +152,11 @@ public class DTMDocumentImpl implements DTM {
 
 	/**
 	 * Construct a DTM.
+	 *
+	 * %REVIEW% Do we really want to support a no-arguments constructor
+	 * defaulting to document number 0? Or do we want to insist the
+	 * document ID number always be supplied, and let the caller pass 0
+	 * if that's really what they intend? The latter seems safer.
 	 */
 	public DTMDocumentImpl(){
 		initDocument(0);		 // clear nodes and document handle
@@ -172,6 +177,7 @@ public class DTMDocumentImpl implements DTM {
 	private final int appendNode(int w0, int w1, int w2, int w3)
 	{
 		// A decent compiler will probably inline this.
+	        // %REVIEW% jjk Do we want to rely on "a decent JIT compiler"?
 		int slotnumber = nodes.appendSlot(w0, w1, w2, w3);
 
 		if (DEBUG) System.out.println(slotnumber+": "+w0+" "+w1+" "+w2+" "+w3);
@@ -205,6 +211,8 @@ public class DTMDocumentImpl implements DTM {
 
 	/**
 	 * Set a reference pointer to the element name symbol table.
+	 * %REVIEW% Should this really be Public? Changing it while
+	 * DTM is in use would be a disaster.
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
@@ -212,8 +220,19 @@ public class DTMDocumentImpl implements DTM {
 		m_elementNames = poolRef;
 	}
 
+        /**
+	 * Get a reference pointer to the element name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+        public DTMStringPool getElementNameTable() {
+                 return m_elementNames;
+         }
+
 	/**
 	 * Set a reference pointer to the namespace URI symbol table.
+	 * %REVIEW% Should this really be Public? Changing it while
+	 * DTM is in use would be a disaster.
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
@@ -221,8 +240,19 @@ public class DTMDocumentImpl implements DTM {
 		m_nsNames = poolRef;
 	}
 
+        /**
+	 * Get a reference pointer to the namespace URI symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+        public DTMStringPool getNsNameTable() {
+                 return m_nsNames;
+         }
+
 	/**
 	 * Set a reference pointer to the attribute name symbol table.
+	 * %REVIEW% Should this really be Public? Changing it while
+	 * DTM is in use would be a disaster.
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
@@ -230,13 +260,33 @@ public class DTMDocumentImpl implements DTM {
 		m_attributeNames = poolRef;
 	}
 
+        /**
+	 * Get a reference pointer to the attribute name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+        public DTMStringPool getAttributeNameTable() {
+                 return m_attributeNames;
+         }
+
 	/**
 	 * Set a reference pointer to the prefix name symbol table.
+	 * %REVIEW% Should this really be Public? Changing it while
+	 * DTM is in use would be a disaster.
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
 	public void setPrefixNameTable(DTMStringPool poolRef) {
 		m_prefixNames = poolRef;
+	}
+
+	/**
+	 * Get a reference pointer to the prefix name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+	public DTMStringPool getPrefixNameTable() {
+		return m_prefixNames;
 	}
 
 	/**
@@ -250,12 +300,44 @@ public class DTMDocumentImpl implements DTM {
 	  //		m_expandedNames = poolRef;
 	  //	}
 
+
+         /**
+          * Set a reference pointer to the content-text repository
+          *
+          * @param bufferRef FastStringBuffer reference to an instance of
+          * buffer
+          */
+         void setContentBuffer(FastStringBuffer buffer) {
+                 m_char = buffer;
+         }
+ 
+         /**
+          * Get a reference pointer to the content-text repository
+          *
+          * @return FastStringBuffer reference to an instance of buffer
+          */
+         void getContentBuffer() {
+                 return m_char;
+         }
+
+
+
+
+
 	// ========= Document Handler Functions =========
+        // %TBD% jjk -- DocumentHandler is SAX Level 1, and should
+        // be phased out in favor of ContentHandler/LexicalHandler
 
 	/**
 	 * Receive notification of the beginning of a dtm document.
 	 *
 	 * The DTMManager will invoke this method when the dtm is created.
+	 *
+	 * %REVIEW% Given the way getDocument() is currently coded,
+	 * the docHandle parameter is apparently supposed to be the
+	 * document number pre-shifted up into the high bits. Do we
+	 * really want to require that, or should we accept the
+	 * document number instead and shift it for them?
 	 *
 	 * @param docHandle int the handle for the DTM document.
 	 */
@@ -282,7 +364,7 @@ public class DTMDocumentImpl implements DTM {
 	{
 		done = true;
 		// %TBD% may need to notice the last slot number and slot count to avoid
-		// residule data from provious use of this DTM
+		// residual data from provious use of this DTM
 	}
 
 	/**
@@ -536,6 +618,10 @@ public class DTMDocumentImpl implements DTM {
 	 * The node created will be chained according to its natural order of request
 	 * received.  %TBD% It can be rechained later via the optional DTM writable interface.
 	 *
+	 * %REVIEW% for text normalization issues, unless we are willing to
+	 * insist that all adjacent text must be merged before this method
+	 * is called.
+	 *
 	 * @param ch The characters from the XML document.
 	 * @param start The start position in the array.
 	 * @param length The number of characters to read from the array.
@@ -667,7 +753,7 @@ public class DTMDocumentImpl implements DTM {
 				nodes.readSlot(kid, gotslot);
 			}
 			// If parent slot matches given parent, return kid
-			if (gotslot[1] == nodeHandle)	return kid & m_docHandle;
+			if (gotslot[1] == nodeHandle)	return kid | m_docHandle;
 		}
 		// No child found
 		return NULL;
@@ -689,15 +775,15 @@ public class DTMDocumentImpl implements DTM {
 		int lastChild = NULL;
 		for (int nextkid = getFirstChild(nodeHandle); nextkid != NULL;
 				nextkid = getNextSibling(nextkid)) {
-			lastChild = nextkid & m_docHandle;
+			lastChild = nextkid;
 		}
-		return lastChild;
+		return lastChild | m_docHandle;		
 	}
 
 	/**
 	 * Retrieves an attribute node by by qualified name and namespace URI.
 	 *
-	 * @param nodeHandle int Handle of the node.
+	 * @param nodeHandle int Handle of the node upon which to look up this attribute.
 	 * @param namespaceURI The namespace URI of the attribute to
 	 *   retrieve, or null.
 	 * @param name The local name of the attribute to
@@ -718,7 +804,7 @@ public class DTMDocumentImpl implements DTM {
 		// Iterate through Attribute Nodes
 		while (type == ATTRIBUTE_NODE) {
 			if ((nsIndex == (gotslot[0] << 16)) && (gotslot[3] == nameIndex))
-				return nodeHandle & m_docHandle;
+				return nodeHandle | m_docHandle;
 			// Goto next sibling
 			nodeHandle = gotslot[2];
 			nodes.readSlot(nodeHandle, gotslot);
@@ -734,13 +820,19 @@ public class DTMDocumentImpl implements DTM {
 	 */
 	public int getFirstAttribute(int nodeHandle) {
 		nodeHandle &= NODEHANDLE_MASK;
+
+		// %REVIEW% jjk: Just a quick observation: If you're going to
+		// call readEntry repeatedly on the same node, it may be
+		// more efficiently to do a readSlot to get the data locally,
+		// reducing the addressing and call-and-return overhead.
+
 		// Should we check if handle is element (do we want sanity checks?)
 		if (ELEMENT_NODE != (nodes.readEntry(nodeHandle, 0) & 0xFFFF))
 			return NULL;
 		// First Attribute (if any) should be at next position in table
 		nodeHandle++;
 		return(ATTRIBUTE_NODE == (nodes.readEntry(nodeHandle, 0) & 0xFFFF)) ? 
-		nodeHandle & m_docHandle : NULL;
+		nodeHandle | m_docHandle : NULL;
 	}
 
 	/**
@@ -787,6 +879,9 @@ public class DTMDocumentImpl implements DTM {
 		}
 		// Next Sibling is in the next position if it shares the same parent
 		int thisParent = nodes.readEntry(nodeHandle, 1);
+		
+		// %REVIEW% jjk: Old code was reading from nodehandle+1.
+		// That would be ++nodeHandle, not nodeHandle++. Check this!
 		if (nodes.readEntry(nodeHandle++, 1) == thisParent)
 			return (m_docHandle | nodeHandle);
 
@@ -812,9 +907,9 @@ public class DTMDocumentImpl implements DTM {
 		int kid = NULL;
 		for (int nextkid = getFirstChild(parent); nextkid != nodeHandle;
 				nextkid = getNextSibling(nextkid)) {
-			kid = (m_docHandle | nextkid);
+			kid = nextkid;
 		}
-		return kid;
+		return kid | m_docHandle;
 	}
 
 	/**
@@ -829,7 +924,13 @@ public class DTMDocumentImpl implements DTM {
 	public int getNextAttribute(int nodeHandle) {
 		nodeHandle &= NODEHANDLE_MASK;
 		nodes.readSlot(nodeHandle, gotslot);
+
+		//%REVIEW% Why are we using short here? There's no storage
+		//reduction for an automatic variable, especially one used
+		//so briefly, and it typically costs more cycles to process
+		//than an int would.
 		short type = (short) (gotslot[0] & 0xFFFF);
+
 		if (type == ELEMENT_NODE) {
 			return getFirstAttribute(nodeHandle);
 		} else if (type == ATTRIBUTE_NODE) {
@@ -841,6 +942,10 @@ public class DTMDocumentImpl implements DTM {
 
 	/**
 	 * Given a namespace handle, advance to the next namespace.
+	 *
+	 * %TBD% THIS METHOD DOES NOT MATCH THE CURRENT SIGNATURE IN
+	 * THE DTM INTERFACE.  FIX IT, OR JUSTIFY CHANGING THE DTM
+	 * API.
 	 *
 	 * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
 	 * @return handle of next namespace, or DTM.NULL to indicate none exists.
@@ -863,7 +968,7 @@ public class DTMDocumentImpl implements DTM {
 	public int getNextDescendant(int subtreeRootHandle, int nodeHandle) {
 		subtreeRootHandle &= NODEHANDLE_MASK;
 		nodeHandle &= NODEHANDLE_MASK;
-		// Document root - no next-sib
+		// Document root [Document Node? -- jjk] - no next-sib
 		if (nodeHandle == 0)
 			return NULL;
 		while (!m_isError) {
@@ -1549,6 +1654,9 @@ public class DTMDocumentImpl implements DTM {
 	throws org.xml.sax.SAXException {}
 
 	// ==== Construction methods (may not be supported by some implementations!) =====
+	// %REVIEW% jjk: These probably aren't the right API. At the very least
+	// they need to deal with current-insertion-location and end-element
+	// issues.
 
 	/**
 	 * Append a child to the end of the child list of the current node. Please note that the node
@@ -1584,4 +1692,115 @@ public class DTMDocumentImpl implements DTM {
 		// ###shs Think more about how this differs from createTextNode
 		createTextNode(str);
 	}
+
+
+  // ==== BUILDER methods ====
+  // %TBD% jjk: These are API sketches based on the assumption that the SAX
+  // ContentHandler adapter code lives in the DTMBuilder object and
+  // invokes these to actually construct the DTM nodes. An alternative
+  // would be to move that code directly into this class and have those
+  // methods construct the DTM directly. NOTE that it is assumed that the
+  // Builder code and the DTM instance have already negotiated to share the
+  // string pools/buffers, and that the Builder will accept full responsibility
+  // for populating those -- including normalizing across consecutive blocks
+  // of characters().
+
+  /** Append a text child at the current insertion point. Assumes that the
+   * actual content of the text has previously been appended to the m_char
+   * buffer (shared with the builder).
+   *
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendTextChild(int contentStart,int contentLength)
+  {
+    // %TBD%
+  }
+  
+  /** Append a comment child at the current insertion point. Assumes that the
+   * actual content of the comment has previously been appended to the m_char
+   * buffer (shared with the builder).
+   *
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendComment(int contentStart,int contentLength)
+  {
+    // %TBD%
+  }
+  
+  
+  /** Append an Element child at the current insertion point. This
+   * Element then _becomes_ the insertion point; subsequent appends
+   * become its lastChild until an appendEndElement() call is made.
+   * 
+   * Assumes that the symbols (local name, namespace URI and prefix)
+   * have already been added to the pools
+   *
+   * @param namespaceIndex: Index within the namespaceURI string pool
+   * @param localNameIndex Index within the local name string pool
+   * @param prefixIndex: Index within the prefix string pool
+   * */
+  void startElement(int namespaceIndex,int localNameIndex, int prefixIndex)
+  {
+    // %TBD%
+  }
+  
+  /** Append a Namespace Declaration child at the current insertion point.
+   * Assumes that the symbols (namespace URI and prefix) have already been
+   * added to the pools
+   *
+   * @param prefixIndex: Index within the prefix string pool
+   * @param namespaceIndex: Index within the namespaceURI string pool
+   * @param isID: If someone really insists on writing a bad DTD, it is
+   * theoretically possible for a namespace declaration to also be declared
+   * as being a node ID. I don't really want to support that stupidity,
+   * but I'm not sure we can refuse to accept it.
+   * */
+  void appendNSDeclaration(int prefixIndex, int namespaceIndex,
+                           boolean isID)
+  {
+    // %TBD%
+  }
+
+  /** Append a Namespace Declaration child at the current insertion
+   * point.  Assumes that the symbols (namespace URI, local name, and
+   * prefix) have already been added to the pools, and that the content has
+   * already been appended to m_char. Note that the attribute's content has
+   * been flattened into a single string; DTM does _NOT_ attempt to model
+   * the details of entity references within attribute values.
+   *
+   * @param namespaceIndex int Index within the namespaceURI string pool
+   * @param localNameIndex int Index within the local name string pool
+   * @param prefixIndex int Index within the prefix string pool
+   * @param isID boolean True if this attribute was declared as an ID
+   * (for use in supporting getElementByID).
+   * @param contentStart int Starting offset of node's content in m_char.
+   * @param contentLength int Length of node's content in m_char.
+   * */
+  void appendAttribute(int namespaceIndex, int localNameIndex, int prefixIndex,
+                       boolean isID,
+                       int contentStart, int contentLength)
+  {
+    // %TBD%
+  }
+  
+
+
+  /** Terminate the element currently acting as an insertion point. Subsequent
+   * insertions will occur as the last child of this element's parent.
+   * */
+  void appendEndElement()
+  {
+    // %TBD%
+  }
+  
+  /**  All appends to this document have finished; do whatever final
+   * cleanup is needed. I expect this will actually be a no-op.
+   * */
+  void appendEndDocument()
+  {
+    // %TBD%
+  }
+
 }
