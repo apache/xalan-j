@@ -69,7 +69,6 @@ import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
 import org.apache.xml.utils.XMLCharacterRecognizer;
 import org.apache.xml.utils.SystemIDResolver;
-
 import org.apache.xml.dtm.*;
 
 /**
@@ -84,8 +83,8 @@ public class SAX2DTM extends DTMDefaultBase
   /** simple DEBUG flag, for dumping diagnostics info. */
   private static final boolean DEBUG = false;
 
-
-  /** If we're building the model incrementally on demand, we need to
+  /**
+   * If we're building the model incrementally on demand, we need to
    * be able to tell the source when to send us more data.
    *
    * Note that if this has not been set, and you attempt to read ahead
@@ -93,12 +92,13 @@ public class SAX2DTM extends DTMDefaultBase
    * exception. We could try to wait-and-retry instead, as a very poor
    * fallback, but that has all the known problems with multithreading
    * on multiprocessors and we Don't Want to Go There.
-   * 
+   *
    * @see setCoroutineParser
    */
-  private CoroutineParser m_coroutineParser=null;
+  private CoroutineParser m_coroutineParser = null;
 
-  /** If we're building the model incrementally on demand, we need to
+  /**
+   * If we're building the model incrementally on demand, we need to
    * be able to tell the source who to return the data to.
    *
    * Note that if this has not been set, and you attempt to read ahead
@@ -106,10 +106,10 @@ public class SAX2DTM extends DTMDefaultBase
    * exception. We could try to wait-and-retry instead, as a very poor
    * fallback, but that has all the known problems with multithreading
    * on multiprocessors and we Don't Want to Go There.
-   * 
+   *
    * @see setCoroutineParser
    */
-  private int m_appCoroutineID=-1;
+  private int m_appCoroutineID = -1;
 
   /**
    * The number of nodes, which is also used to determine the next
@@ -151,8 +151,8 @@ public class SAX2DTM extends DTMDefaultBase
 
   /** The SAX Document locator */
   transient private Locator m_locator = null;
-  
-  /** Tree Walker for dispatchToEvents.  */
+
+  /** Tree Walker for dispatchToEvents. */
   protected DTMTreeWalker m_walker = new DTMTreeWalker();
 
   /** pool of string values that come as strings. */
@@ -191,18 +191,31 @@ public class SAX2DTM extends DTMDefaultBase
                                          "#comment", "#document",  // Comment, Document
                                          null, "#document-fragment",  // Doctype, DocumentFragment
                                          null };  // Notation
-              
-  /** 
-   * Vector of entities.  Each record is composed of four Strings: 
+
+  /**
+   * Vector of entities.  Each record is composed of four Strings:
    *  publicId, systemID, notationName, and name.
-   */                           
+   */
   private Vector m_entities = null;
-  
+
+  /** m_entities public ID offset. */
   private static final int ENTITY_FIELD_PUBLICID = 0;
+
+  /** m_entities system ID offset. */
   private static final int ENTITY_FIELD_SYSTEMID = 1;
+
+  /** m_entities notation name offset. */
   private static final int ENTITY_FIELD_NOTATIONNAME = 2;
+
+  /** m_entities name offset. */
   private static final int ENTITY_FIELD_NAME = 3;
+
+  /** Number of entries per record for m_entities. */
   private static final int ENTITY_FIELDS_PER = 4;
+  
+  /** Flag tells if text is pending that we need to 
+   *  check for whitespace stripping. */
+  private boolean m_textPending = false;
 
   /**
    * Construct a SAX2DTM object ready to be constructed from SAX2
@@ -225,15 +238,19 @@ public class SAX2DTM extends DTMDefaultBase
     if (null == m_ent)
       m_ent = new ExpandedNameTable();
 
-    int doc = addNode(DTM.DOCUMENT_NODE, m_ent.getExpandedNameID(DTM.DOCUMENT_NODE), 
-            m_level,
-            DTM.NULL, DTM.NULL, 0, true);
+    int doc = addNode(DTM.DOCUMENT_NODE,
+                      m_ent.getExpandedNameID(DTM.DOCUMENT_NODE), m_level,
+                      DTM.NULL, DTM.NULL, 0, true);
+
     m_level++;
+
     m_parents.push(doc);
+
     m_previous = DTM.NULL;
   }
 
-  /** Bind a CoroutineParser to this DTM. If we discover we need nodes
+  /**
+   * Bind a CoroutineParser to this DTM. If we discover we need nodes
    * that have not yet been built, we will ask this object to send us more
    * events, and it will manage interactions with its data sources.
    *
@@ -246,6 +263,7 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void setCoroutineParser(CoroutineParser coroutineParser)
   {
+
     // Establish coroutine link so we can request more data
     //
     // Note: It's possible that some versions of CoroutineParser may
@@ -253,10 +271,12 @@ public class SAX2DTM extends DTMDefaultBase
     // that we obtain an Application Coroutine ID. (This relies on the
     // coroutine transaction details having been encapsulated in the
     // CoroutineParser.do...() methods.)
-    m_coroutineParser=coroutineParser;
-    CoroutineManager cm=coroutineParser.getCoroutineManager();
-    if(cm!=null)
-      m_appCoroutineID=cm.co_joinCoroutineSet(-1);
+    m_coroutineParser = coroutineParser;
+
+    CoroutineManager cm = coroutineParser.getCoroutineManager();
+
+    if (cm != null)
+      m_appCoroutineID = cm.co_joinCoroutineSet(-1);
 
     // Establish SAX-stream link so we can receive the requested data
     coroutineParser.setContentHandler(this);
@@ -268,8 +288,9 @@ public class SAX2DTM extends DTMDefaultBase
     //coroutineParser.setDTDHandler(this);
     //coroutineParser.setDeclHandler(this);
   }
-  
-  /** getContentHandler returns "our SAX builder" -- the thing that
+
+  /**
+   * getContentHandler returns "our SAX builder" -- the thing that
    * someone else should send SAX events to in order to extend this
    * DTM model.
    *
@@ -279,23 +300,25 @@ public class SAX2DTM extends DTMDefaultBase
    * "this" if the DTM object has a built-in SAX ContentHandler,
    * the CoroutineParser if we're bound to one and should receive
    * the SAX stream via it for incremental build purposes...
-   * */
+   */
   public org.xml.sax.ContentHandler getContentHandler()
   {
+
     if (m_coroutineParser instanceof CoroutineSAXParser)
       return (ContentHandler) m_coroutineParser;
     else
       return this;
   }
 
-  /** @return true iff we're building this model incrementally (eg
+  /**
+   * @return true iff we're building this model incrementally (eg
    * we're partnered with a CoroutineParser) and thus require that the
    * transformation and the parse run simultaneously. Guidance to the
    * DTMManager.
-   * */
+   */
   public boolean needsTwoThreads()
   {
-    return null!=m_coroutineParser;
+    return null != m_coroutineParser;
   }
 
   /**
@@ -335,14 +358,14 @@ public class SAX2DTM extends DTMDefaultBase
         int offset = -1;
         int length = 0;
         int level = getNodeInfo(identity, OFFSET_LEVEL);
-        
+
         identity = firstChild;
 
-        while(DTM.NULL != identity 
-          && (getNodeInfo(identity, OFFSET_LEVEL) > level))
+        while (DTM.NULL != identity
+               && (getNodeInfo(identity, OFFSET_LEVEL) > level))
         {
-
           type = getNodeType(identity);
+
           if (isTextType(type))
           {
             int dataIndex = getNodeInfoNoWait(identity, OFFSET_DATA_OR_QNAME);
@@ -354,6 +377,7 @@ public class SAX2DTM extends DTMDefaultBase
 
             length += m_data.elementAt(dataIndex + 1);
           }
+
           identity = getNextNodeIdentity(identity);
         }
 
@@ -398,11 +422,17 @@ public class SAX2DTM extends DTMDefaultBase
     if (0 == namespaceID)
     {
       String name = m_ent.getLocalName(expandedTypeID);
+      int type = getNodeType(nodeHandle);
 
-      if (name == null)
+      if (type == DTM.NAMESPACE_NODE)
       {
-        int type = getNodeType(nodeHandle);
-
+        if (name == null)
+          return "xmlns";
+        else
+          return "xmlns:" + name;
+      }
+      else if (name == null)
+      {
         return m_fixednames[type];
       }
       else
@@ -412,6 +442,7 @@ public class SAX2DTM extends DTMDefaultBase
     {
       int qnameIndex = getNodeInfoNoWait(nodeHandle & m_mask,
                                          OFFSET_DATA_OR_QNAME);
+
       if (qnameIndex < 0)
       {
         qnameIndex = -qnameIndex;
@@ -450,6 +481,7 @@ public class SAX2DTM extends DTMDefaultBase
     {
       int qnameIndex = getNodeInfoNoWait(nodeHandle & m_mask,
                                          OFFSET_DATA_OR_QNAME);
+
       if (qnameIndex < 0)
       {
         qnameIndex = -qnameIndex;
@@ -509,32 +541,36 @@ public class SAX2DTM extends DTMDefaultBase
 
     if (identity >= m_size)
     {
-      if(m_coroutineParser==null)
-	identity = DTM.NULL;
-      else while(identity >= m_size)
-	{
-	  Object gotMore=m_coroutineParser.doMore(true,m_appCoroutineID);
+      if (m_coroutineParser == null)
+        identity = DTM.NULL;
+      else
+        while (identity >= m_size)
+        {
+          Object gotMore = m_coroutineParser.doMore(true, m_appCoroutineID);
 
-	  // gotMore may be a Boolean (TRUE if still parsing, FALSE if
-	  // EOF) or an exception if CoroutineParser malfunctioned
-	  // (code error rather than user error).
-	  //
-	  // %REVIEW% Currently the ErrorHandlers sketched herein are
-	  // no-ops, so I'm going to initially leave this also as a
-	  // no-op.
-	  if(!(gotMore instanceof Boolean))
-	    {
-	      // %TBD% 
-	    }
+          // gotMore may be a Boolean (TRUE if still parsing, FALSE if
+          // EOF) or an exception if CoroutineParser malfunctioned
+          // (code error rather than user error).
+          //
+          // %REVIEW% Currently the ErrorHandlers sketched herein are
+          // no-ops, so I'm going to initially leave this also as a
+          // no-op.
+          if (!(gotMore instanceof Boolean))
+          {
 
-	  if(gotMore!=Boolean.TRUE & (identity >= m_size))
-	    {
-	      // EOF reached without satisfying the request
-	      m_coroutineParser=null;	// Drop connection, stop trying
-	      // %TBD% deregister as its listener?
-	      identity = DTM.NULL;	// Record not-found.
-	    }
-	}
+            // %TBD% 
+          }
+
+          if (gotMore != Boolean.TRUE & (identity >= m_size))
+          {
+
+            // EOF reached without satisfying the request
+            m_coroutineParser = null;  // Drop connection, stop trying
+
+            // %TBD% deregister as its listener?
+            identity = DTM.NULL;  // Record not-found.
+          }
+        }
     }
 
     return identity;
@@ -608,60 +644,6 @@ public class SAX2DTM extends DTMDefaultBase
   }
 
   /**
-   * This is a specialized function that tests to see if the last whitespace
-   * node added should be stripped, and then returns the identity of the
-   * next node to be added for the given type.
-   *
-   * @param type The type of the next node to be added.
-   * @param doIncrement Tells if the m_size should be incremented.
-   *
-   * @return The identity of the next node to be added.
-   */
-  private final int getNextIdentityForType(int type)
-  {
-
-    if (0 == m_size)
-      return m_size++;
-
-    int lastNodeIdentity = m_size - 1;
-    int nodeIndex;
-    int lastType = getNodeType(lastNodeIdentity);
-    
-    if (getShouldStripWhitespace() && isTextType(lastType)
-            /* &&!isTextType(type) */)
-    {
-      int dataIndex = getNodeInfoNoWait(lastNodeIdentity,
-                                        OFFSET_DATA_OR_QNAME);
-      int offset = m_data.elementAt(dataIndex);
-      int length = m_data.elementAt(dataIndex + 1);
-
-      if (m_chars.isWhitespace(offset, length))
-      {
-        nodeIndex = lastNodeIdentity;
-
-        m_chars.setLength(m_chars.size() - length);
-        
-        // Go back and set the previous sibling to NULL for next.
-        int prev = getNodeInfo(lastNodeIdentity, OFFSET_PREVSIBLING);
-        if(DTM.NULL != prev)
-        {
-          m_info.setElementAt(DTM.NULL, (prev * NODEINFOBLOCKSIZE) + OFFSET_NEXTSIBLING);
-        }
-      }
-      else
-      {
-        nodeIndex = m_size++;
-      }
-    }
-    else
-    {
-      nodeIndex = m_size++;
-    }
-
-    return nodeIndex;
-  }
-
-  /**
    * Construct the node map from the node.
    *
    * @param type raw type ID, one of DTM.XXX_NODE.
@@ -670,7 +652,7 @@ public class SAX2DTM extends DTMDefaultBase
    * @param parentIndex The current parent index.
    * @param previousSibling The previous sibling index.
    * @param dataOrPrefix index into m_data table, or string handle.
-   * @param canHaveFirstChild true if the node can have a first child, false 
+   * @param canHaveFirstChild true if the node can have a first child, false
    *                          if it is atomic.
    *
    * @return The index identity of the node that was added.
@@ -680,20 +662,11 @@ public class SAX2DTM extends DTMDefaultBase
                         int dataOrPrefix, boolean canHaveFirstChild)
   {
 
-    int lastNodeIdentity = m_size - 1;
-    int nodeIndex = getNextIdentityForType(type);
+    int nodeIndex = m_size++;
     int startInfo = nodeIndex * NODEINFOBLOCKSIZE;
-    
-    if(nodeIndex == lastNodeIdentity)
-    {
-      if(level == getNodeInfo(lastNodeIdentity, OFFSET_LEVEL))
-      {
-        previousSibling = getNodeInfo(lastNodeIdentity, OFFSET_PREVSIBLING);
-        m_previous = previousSibling;
-      }
-    }
-    else
-      m_info.addElements(NODEINFOBLOCKSIZE);
+
+    m_info.addElements(NODEINFOBLOCKSIZE);
+
     m_info.setElementAt(level, startInfo + OFFSET_LEVEL);
     m_info.setElementAt(type, startInfo + OFFSET_TYPE);
     m_info.setElementAt((canHaveFirstChild) ? NOTPROCESSED : DTM.NULL,
@@ -830,18 +803,23 @@ public class SAX2DTM extends DTMDefaultBase
 
     String url = "";
 
-    if(null == m_entities)
+    if (null == m_entities)
       return url;
-      
+
     int n = m_entities.size();
-    for (int i = 0; i < n; i += ENTITY_FIELDS_PER) 
+
+    for (int i = 0; i < n; i += ENTITY_FIELDS_PER)
     {
-      String ename = (String)m_entities.elementAt(i+ENTITY_FIELD_NAME);
-      if(null != ename && ename.equals(name))
+      String ename = (String) m_entities.elementAt(i + ENTITY_FIELD_NAME);
+
+      if (null != ename && ename.equals(name))
       {
-        String nname = (String)m_entities.elementAt(i+ENTITY_FIELD_NOTATIONNAME);
-        if(null != nname)
+        String nname = (String) m_entities.elementAt(i
+                         + ENTITY_FIELD_NOTATIONNAME);
+
+        if (null != nname)
         {
+
           // The draft says: "The XSLT processor may use the public 
           // identifier to generate a URI for the entity instead of the URI 
           // specified in the system identifier. If the XSLT processor does 
@@ -851,13 +829,14 @@ public class SAX2DTM extends DTMDefaultBase
           // the resource containing the entity declaration as the base 
           // URI [RFC2396]."
           // So I'm falling a bit short here.
-          url = (String)m_entities.elementAt(i+ENTITY_FIELD_SYSTEMID);
-    
+          url = (String) m_entities.elementAt(i + ENTITY_FIELD_SYSTEMID);
+
           if (null == url)
           {
-            url = (String)m_entities.elementAt(i+ENTITY_FIELD_PUBLICID);
+            url = (String) m_entities.elementAt(i + ENTITY_FIELD_PUBLICID);
           }
         }
+
         break;
       }
     }
@@ -886,12 +865,13 @@ public class SAX2DTM extends DTMDefaultBase
     if (DTM.ELEMENT_NODE == type)
     {
       int prefixIndex = getNodeInfoNoWait(identity, OFFSET_DATA_OR_QNAME);
-      if(0 == prefixIndex)
+
+      if (0 == prefixIndex)
         return "";
       else
       {
         String qname = m_valuesOrPrefixes.indexToString(prefixIndex);
-  
+
         return getPrefix(qname, null);
       }
     }
@@ -928,18 +908,18 @@ public class SAX2DTM extends DTMDefaultBase
                               String name)
   {
 
-    for (int attrH = getFirstAttribute(nodeHandle); DTM.NULL != attrH; 
-         attrH = getNextAttribute(attrH)) 
+    for (int attrH = getFirstAttribute(nodeHandle); DTM.NULL != attrH;
+            attrH = getNextAttribute(attrH))
     {
       String attrNS = getNamespaceURI(attrH);
       String attrName = getLocalName(attrH);
-      
-      boolean nsMatch = namespaceURI == attrNS || (namespaceURI != null &&
-                        namespaceURI.equals(attrNS));
-      if(nsMatch && name.equals(attrName))
+      boolean nsMatch = namespaceURI == attrNS
+                        || (namespaceURI != null
+                            && namespaceURI.equals(attrNS));
+
+      if (nsMatch && name.equals(attrName))
         return attrH;
     }
-    
 
     return DTM.NULL;
   }
@@ -1015,14 +995,14 @@ public class SAX2DTM extends DTMDefaultBase
         int offset = -1;
         int length = 0;
         int level = getNodeInfo(identity, OFFSET_LEVEL);
-        
+
         identity = firstChild;
 
-        while(DTM.NULL != identity && 
-             (getNodeInfo(identity, OFFSET_LEVEL) > level))
+        while (DTM.NULL != identity
+               && (getNodeInfo(identity, OFFSET_LEVEL) > level))
         {
           type = getNodeType(identity);
-          
+
           if (isTextType(type))
           {
             int dataIndex = getNodeInfoNoWait(identity, OFFSET_DATA_OR_QNAME);
@@ -1034,6 +1014,7 @@ public class SAX2DTM extends DTMDefaultBase
 
             length += m_data.elementAt(dataIndex + 1);
           }
+
           identity = getNextNodeIdentity(identity);
         }
 
@@ -1115,12 +1096,13 @@ public class SAX2DTM extends DTMDefaultBase
       {
         int indexOfNSSep = qname.indexOf(':');
 
-        if(qname.equals("xmlns"))
-          prefix="";
-        else if(qname.startsWith("xmlns:"))
-          prefix = qname.substring(indexOfNSSep+1);
+        if (qname.equals("xmlns"))
+          prefix = "";
+        else if (qname.startsWith("xmlns:"))
+          prefix = qname.substring(indexOfNSSep + 1);
         else
-          prefix = (indexOfNSSep > 0) ? qname.substring(0, indexOfNSSep) : null;
+          prefix = (indexOfNSSep > 0)
+                   ? qname.substring(0, indexOfNSSep) : null;
       }
       else
       {
@@ -1131,10 +1113,10 @@ public class SAX2DTM extends DTMDefaultBase
     {
       int indexOfNSSep = qname.indexOf(':');
 
-      if(qname.equals("xmlns"))
-        prefix="";
-      else if(qname.startsWith("xmlns:"))
-        prefix = qname.substring(indexOfNSSep+1);
+      if (qname.equals("xmlns"))
+        prefix = "";
+      else if (qname.startsWith("xmlns:"))
+        prefix = qname.substring(indexOfNSSep + 1);
       else
         prefix = (indexOfNSSep > 0) ? qname.substring(0, indexOfNSSep) : null;
     }
@@ -1156,6 +1138,48 @@ public class SAX2DTM extends DTMDefaultBase
   {
     m_idAttributes.put(id, new Integer(elem));
   }
+  
+  /**
+   * Check the last text node to see if it should be stripped.
+   */
+  protected void flushText()
+  {
+    if (m_textPending)
+    {
+      m_textPending = false;
+      if(!getShouldStripWhitespace())
+        return;
+        
+      int lastNodeIdentity = m_size - 1;
+
+      int dataIndex = getNodeInfoNoWait(lastNodeIdentity,
+                                        OFFSET_DATA_OR_QNAME);
+                                        
+      int offset = m_data.elementAt(dataIndex);
+      int length = m_data.elementAt(dataIndex + 1);
+
+      if (m_chars.isWhitespace(offset, length))
+      {
+        m_chars.setLength(m_chars.size() - length);
+
+        // Go back and set the previous sibling to NULL for next.
+        int prev = getNodeInfo(lastNodeIdentity, OFFSET_PREVSIBLING);
+
+        if (DTM.NULL != prev)
+        {
+          m_info.setElementAt(NOTPROCESSED,
+                              (prev * getNodeInfoBlockSize())
+                              + OFFSET_NEXTSIBLING);
+          m_previous = prev;
+        }
+
+        m_info.setSize(m_info.size() - getNodeInfoBlockSize());
+
+        m_size--;
+      }
+    }
+  }
+
 
   ////////////////////////////////////////////////////////////////////
   // Implementation of the EntityResolver interface.
@@ -1238,28 +1262,31 @@ public class SAX2DTM extends DTMDefaultBase
           String name, String publicId, String systemId, String notationName)
             throws SAXException
   {
-    
-    if(null == m_entities)
+
+    if (null == m_entities)
     {
       m_entities = new Vector();
     }
 
     try
     {
-      systemId = SystemIDResolver.getAbsoluteURI(systemId, 
+      systemId = SystemIDResolver.getAbsoluteURI(systemId,
                                                  getDocumentBaseURI(0));
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       throw new org.xml.sax.SAXException(e);
     }
-    
+
     //  private static final int ENTITY_FIELD_PUBLICID = 0;
     m_entities.addElement(publicId);
+
     //  private static final int ENTITY_FIELD_SYSTEMID = 1;
     m_entities.addElement(systemId);
+
     //  private static final int ENTITY_FIELD_NOTATIONNAME = 2;
     m_entities.addElement(notationName);
+
     //  private static final int ENTITY_FIELD_NAME = 3;
     m_entities.addElement(name);
   }
@@ -1315,6 +1342,7 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void endDocument() throws SAXException
   {
+    flushText();
 
     m_info.setElementAt(DTM.NULL, OFFSET_NEXTSIBLING);
 
@@ -1330,7 +1358,9 @@ public class SAX2DTM extends DTMDefaultBase
     m_parents = null;
     m_prefixMappings = null;
     m_contextIndexes = null;
+
     m_level--;
+
     // dumpDTM();
   }
 
@@ -1394,7 +1424,7 @@ public class SAX2DTM extends DTMDefaultBase
    *
    * @param prefix non-null prefix string.
    *
-   * @return true if the declaration has already been declared in the 
+   * @return true if the declaration has already been declared in the
    *         current context.
    */
   protected boolean declAlreadyDeclared(String prefix)
@@ -1445,9 +1475,9 @@ public class SAX2DTM extends DTMDefaultBase
           String uri, String localName, String qName, Attributes attributes)
             throws SAXException
   {
+    flushText();
 
     int exName = m_ent.getExpandedNameID(uri, localName, DTM.ELEMENT_NODE);
-
     String prefix = getPrefix(qName, uri);
     int prefixIndex = (null != prefix)
                       ? m_valuesOrPrefixes.stringToIndex(qName) : 0;
@@ -1475,9 +1505,9 @@ public class SAX2DTM extends DTMDefaultBase
       exName = m_ent.getExpandedNameID(null, prefix, DTM.NAMESPACE_NODE);
 
       int val = m_valuesOrPrefixes.stringToIndex(declURL);
-      
-      prev = addNode(DTM.NAMESPACE_NODE, exName, m_level, elemNode,
-                     prev, val, false);
+
+      prev = addNode(DTM.NAMESPACE_NODE, exName, m_level, elemNode, prev,
+                     val, false);
     }
 
     int n = attributes.getLength();
@@ -1496,6 +1526,7 @@ public class SAX2DTM extends DTMDefaultBase
               && (attrQName.equals("xmlns")
                   || attrQName.startsWith("xmlns:")))
       {
+
         // System.out.println("prefix: "+prefix);
         if (declAlreadyDeclared(prefix))
           continue;  // go to the next attribute.
@@ -1526,8 +1557,7 @@ public class SAX2DTM extends DTMDefaultBase
       }
 
       exName = m_ent.getExpandedNameID(attrUri, attrLocalName, nodeType);
-      prev = addNode(nodeType, exName, m_level, elemNode, prev, val,
-                     false);
+      prev = addNode(nodeType, exName, m_level, elemNode, prev, val, false);
     }
 
     if (DTM.NULL != prev)
@@ -1551,6 +1581,7 @@ public class SAX2DTM extends DTMDefaultBase
 
     m_contextIndexes.push(m_prefixMappings.size());  // for the children.
   }
+  
 
   /**
    * Receive notification of the end of an element.
@@ -1578,6 +1609,7 @@ public class SAX2DTM extends DTMDefaultBase
   public void endElement(String uri, String localName, String qName)
           throws SAXException
   {
+    flushText();
 
     // If no one noticed, startPrefixMapping is a drag.
     // Pop the context for the last child (the one pushed by startElement)
@@ -1586,30 +1618,6 @@ public class SAX2DTM extends DTMDefaultBase
     // Do it again for this one (the one pushed by the last endElement).
     m_prefixMappings.setSize(m_contextIndexes.pop());
     m_contextIndexes.push(m_prefixMappings.size());  // for the next element.
-    
-    int lastNodeIdentity = m_size - 1;
-    int lastType = getNodeType(lastNodeIdentity);
-    if (getShouldStripWhitespace() && isTextType(lastType))
-    {
-      int dataIndex = getNodeInfoNoWait(lastNodeIdentity,
-                                        OFFSET_DATA_OR_QNAME);
-      int offset = m_data.elementAt(dataIndex);
-      int length = m_data.elementAt(dataIndex + 1);
-
-      if (m_chars.isWhitespace(offset, length))
-      {
-        m_chars.setLength(m_chars.size() - length);
-        
-        // Go back and set the previous sibling to NULL for next.
-        int prev = getNodeInfo(lastNodeIdentity, OFFSET_PREVSIBLING);
-        if(DTM.NULL != prev)
-        {
-          m_info.setElementAt(DTM.NULL, (prev * NODEINFOBLOCKSIZE) + OFFSET_NEXTSIBLING);
-        }
-        m_info.setSize(m_info.size()-getNodeInfoBlockSize());
-        m_size--;
-      }
-    }
 
     m_level--;
 
@@ -1662,35 +1670,24 @@ public class SAX2DTM extends DTMDefaultBase
     m_data.addElement(length);
     m_chars.append(ch, start, length);
 
-    boolean needToAddNode = true;
-
-    if (m_size > 1)
+    if (m_textPending)
     {
       int lastNodeIdentity = m_previous;
 
-      if (DTM.NULL != lastNodeIdentity)
-      {
-        int lastType = getNodeType(lastNodeIdentity);
+      dataIndex =
+        getNodeInfoNoWait(lastNodeIdentity, OFFSET_DATA_OR_QNAME) + 1;
 
-        if (isTextType(lastType))
-        {
-          dataIndex =
-            getNodeInfoNoWait(lastNodeIdentity, OFFSET_DATA_OR_QNAME) + 1;
-
-          m_data.setElementAt(m_data.elementAt(dataIndex) + length,
-                              dataIndex);
-
-          needToAddNode = false;
-        }
-      }
+      m_data.setElementAt(m_data.elementAt(dataIndex) + length,
+                          dataIndex);
     }
-
-    if (needToAddNode)
+    else
     {
+
       // System.out.println("Adding text node: prev ="+m_previous+", parent="+m_parents.peek());
       m_previous = addNode(m_textType, exName, m_level, m_parents.peek(),
                            m_previous, dataIndex, false);
-      // System.out.println("new previous: "+m_previous);
+
+      m_textPending = true;
     }
   }
 
@@ -1737,6 +1734,7 @@ public class SAX2DTM extends DTMDefaultBase
   public void processingInstruction(String target, String data)
           throws SAXException
   {
+    flushText();
 
     int exName = m_ent.getExpandedNameID(null, target,
                                          DTM.PROCESSING_INSTRUCTION_NODE);
@@ -2049,6 +2047,7 @@ public class SAX2DTM extends DTMDefaultBase
    */
   public void comment(char ch[], int start, int length) throws SAXException
   {
+    flushText();
 
     int exName = m_ent.getExpandedNameID(DTM.COMMENT_NODE);
 
