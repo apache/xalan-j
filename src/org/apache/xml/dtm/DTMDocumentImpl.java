@@ -914,6 +914,11 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 short type = (short) (gotslot[0] & 0xFFFF);
 
                 // Check to see if Element or Document node
+		//
+		// %REVIEW% This says child of Document is child of
+		// root element. That's not DOM-like. How does it compare
+		// to XPath's model? (For DOM-like behavior, Doc.getFirstChild
+		// is always going to be nodeHandle 1 (if that node exists).
                 if ((type == ELEMENT_NODE) || (type == DOCUMENT_NODE) || 
                                 (type == ENTITY_REFERENCE_NODE)) {
                         // In case when Document root is given
@@ -1036,12 +1041,19 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 
         /**
          * Given a node handle, advance to its next sibling.
-         * %TBD% Remove - If not yet resolved, waits for more nodes to be added to the document and
-         * tries again.
+	 *
+	 * %TBD% This currently uses the DTM-internal definition of sibling;
+	 * eg, the last attr's next sib is the first child. If we're rewriting
+	 * for XPath emulation, that needs to be corrected.
+	 *
+         * %TBD% CODE INTERACTION WITH COROUTINE PARSE - If not yet
+         * resolved, should wait for more nodes to be added to the document
+         * and tries again.
+	 *
          * @param nodeHandle int Handle of the node.
          * @return int Node-number of next sibling,
          * or DTM.NULL to indicate none exists.
-         */
+         * */
         public int getNextSibling(int nodeHandle) {
                 nodeHandle &= NODEHANDLE_MASK;
                 // Document root has no next sibling
