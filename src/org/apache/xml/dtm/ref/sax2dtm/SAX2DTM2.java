@@ -146,7 +146,7 @@ public class SAX2DTM2 extends SAX2DTM
   {
 
     /** The extended type ID that was requested. */
-    private int _nodeType = -1;
+    private int _nodeType = DTM.NULL;
 
     /**
      * Set start to END should 'close' the iterator,
@@ -164,8 +164,12 @@ public class SAX2DTM2 extends SAX2DTM
       if (_isRestartable)
       {
         _startNode = node;
-        _currentNode = getParent(node);
-
+        
+        if (node != DTM.NULL)
+          _currentNode = _parent2(makeNodeIdentity(node));
+        else
+          _currentNode = DTM.NULL;
+        
         return resetPosition();
       }
 
@@ -199,20 +203,28 @@ public class SAX2DTM2 extends SAX2DTM
     public int next()
     {
       int result = _currentNode;
+      if (result == END)
+        return DTM.NULL;
 
-      if (_nodeType >= DTM.NTYPES) {
-        if (_nodeType != getExpandedTypeID(_currentNode)) {
-          result = END;
+      // %OPT% The most common case is handled first.
+      if (_nodeType == NULL) {
+        _currentNode = END;
+        return returnNode(makeNodeHandle(result));
+      }
+      else if (_nodeType >= DTM.NTYPES) {
+        if (_nodeType == _exptype2(result)) {
+          _currentNode = END;
+	  return returnNode(makeNodeHandle(result));
         }
-      } else if (_nodeType != NULL) {
-        if (_nodeType != getNodeType(_currentNode)) {
-          result = END;
+      } 
+      else {
+        if (_nodeType == _type2(result)) {
+	  _currentNode = END;
+	  return returnNode(makeNodeHandle(result));          
         }
       }
-
-      _currentNode = END;
-
-      return returnNode(result);
+      
+      return DTM.NULL;      
     }
   }  // end of ParentIterator
 
@@ -349,32 +361,33 @@ public class SAX2DTM2 extends SAX2DTM
      */
     public int next()
     {
-    	if(_startNode == _currentNode)
+      if(_startNode == _currentNode)
         return NULL;
 
-      int nodeType = _nodeType;
-      int node = _startNode;
-      int expType = getExpandedTypeID(node);
+      final int node = _startNode;
+      int expType = _exptype2(makeNodeIdentity(node));
 
       _currentNode = node;
 
-      if (nodeType >= DTM.NTYPES) {
-        if (nodeType == expType) {
+      if (_nodeType >= DTM.NTYPES) {
+        if (_nodeType == expType) {
           return returnNode(node);
         }
-      } else {
+      } 
+      else {
         if (expType < DTM.NTYPES) {
-          if (expType == nodeType) {
+          if (expType == _nodeType) {
             return returnNode(node);
           }
-        } else {
-          if (m_extendedTypes[expType].getNodeType() == nodeType) {
+        } 
+        else {
+          if (m_extendedTypes[expType].getNodeType() == _nodeType) {
             return returnNode(node);
           }
         }
       }
 
-      return END;
+      return NULL;
     }
   }  // end of TypedRootIterator
 
@@ -1554,18 +1567,19 @@ public class SAX2DTM2 extends SAX2DTM
     public int next()
     {
 
-      //final int result = super.next();
       final int result = _currentNode;
-      int nodeType = _nodeType;
-
+      if (result == END)
+        return DTM.NULL;
+      
       _currentNode = END;
 
-      if (nodeType >= DTM.NTYPES) {
-        if (getExpandedTypeID(result) == nodeType) {
+      if (_nodeType >= DTM.NTYPES) {
+        if (_exptype2(makeNodeIdentity(result)) == _nodeType) {
           return returnNode(result);
         }
-      } else {
-        if (getNodeType(result) == nodeType) {
+      } 
+      else {
+        if (_type2(makeNodeIdentity(result)) == _nodeType) {
           return returnNode(result);
         }
       }
@@ -2062,6 +2076,10 @@ public class SAX2DTM2 extends SAX2DTM
 
   /**
    * Override SAX2DTM.getStringValue(int)
+   *
+   *%REVISIT% There should be no need to override this interface.
+   * It is only a temporary solution to keep the extensions working.
+   * We can get rid of this when the code becomes more integrated.
    *
    * If the caller supplies an XMLStringFactory, the getStringValue() interface
    * in SAX2DTM will be called. Otherwise just calls getStringValueX() and
