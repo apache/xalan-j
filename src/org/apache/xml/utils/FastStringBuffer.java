@@ -1018,9 +1018,14 @@ public class FastStringBuffer
             throws org.xml.sax.SAXException
   {
 
-    int stop = start + length;
     int startChunk = start >>> m_chunkBits;
     int startColumn = start & m_chunkMask;
+    if (startColumn + length < m_chunkMask && m_innerFSB == null) {
+        ch.characters(m_array[startChunk], startColumn, length);
+        return;
+    }
+    
+    int stop = start + length;
     int stopChunk = stop >>> m_chunkBits;
     int stopColumn = stop & m_chunkMask;
 
