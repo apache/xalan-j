@@ -166,6 +166,14 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
   
   /**
+   * %TBD% Doc
+   */
+  public int getDTMIdentity(DTM dtm)
+  {
+    return m_dtmManager.getDTMIdentity(dtm);
+  }
+  
+  /**
    * Creates an empty <code>DocumentFragment</code> object. 
    * @return A new <code>DocumentFragment handle</code>.
    */
