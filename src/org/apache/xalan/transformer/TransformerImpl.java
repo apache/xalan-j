@@ -75,6 +75,8 @@ import org.apache.xalan.templates.ElemAttributeSet;
 import org.apache.xalan.templates.ElemTemplateElement;
 import org.apache.xalan.templates.StylesheetComposed;
 import org.apache.xalan.templates.ElemForEach;
+import org.apache.xalan.templates.ElemApplyTemplates;
+import org.apache.xalan.templates.ElemUse;
 import org.apache.xalan.templates.StylesheetRoot;
 import org.apache.xalan.templates.Stylesheet;
 import org.apache.xalan.templates.ElemWithParam;
@@ -109,6 +111,7 @@ import org.apache.xpath.VariableStack;
 import org.apache.xpath.SourceTreeManager;
 import org.apache.xpath.compiler.XPathParser;
 import org.apache.xpath.axes.ContextNodeList;
+import org.apache.xpath.Expression;
 
 // Serializer Imports
 import org.apache.xalan.serialize.Serializer;
@@ -118,6 +121,9 @@ import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.DTMWSFilter;
+
+// We have to figure out what to do about this one.
+import org.apache.xml.dtm.ref.ExpandedNameTable;
 
 // SAX2 Imports
 import org.xml.sax.ContentHandler;
@@ -259,9 +265,14 @@ public class TransformerImpl extends Transformer
    * A node vector used as a stack to track the current
    * ElemTemplateElement.  Needed for the
    * org.apache.xalan.transformer.TransformState interface,
-   * so a tool can discover the calling template. 
+   * so a tool can discover the calling template. Note the use of an array 
+   * for this limits the recursion depth to 4K.
    */
-  Stack m_currentTemplateElements = new Stack();
+  ElemTemplateElement[] m_currentTemplateElements 
+      = new ElemTemplateElement[XPathContext.RECURSIONLIMIT];
+  
+  /** The top of the currentTemplateElements stack. */
+  int m_currentTemplateElementsTop = 0;
 
   /**
    * A node vector used as a stack to track the current
@@ -448,9 +459,16 @@ public class TransformerImpl extends Transformer
       m_countersTable = null;
       m_stackGuard = new StackGuard();
 
-      getXPathContext().reset();
-      getXPathContext().getVarStack().setSize(1);
-      m_currentTemplateElements.removeAllElements();
+      m_xcontext.reset();
+      m_xcontext.getVarStack().setSize(1);
+
+      int n = m_currentTemplateElements.length;
+      for (int i = 0; i < n; i++) 
+      {
+        m_currentTemplateElements[i] = null;
+      }
+      m_currentTemplateElementsTop = 0;
+      
       m_currentMatchTemplates.removeAllElements();
       m_currentMatchedNodes.removeAllElements();
 
@@ -466,7 +484,7 @@ public class TransformerImpl extends Transformer
 
       // m_inputContentHandler = null;
       // For now, reset the document cache each time.
-      getXPathContext().getSourceTreeManager().reset();
+      m_xcontext.getSourceTreeManager().reset();
     }
 
     //    m_reportInPostExceptionFromThread = false;
@@ -534,7 +552,7 @@ public class TransformerImpl extends Transformer
 
     try
     {
-      DTMManager mgr = this.getXPathContext().getDTMManager();
+      DTMManager mgr = m_xcontext.getDTMManager();
       DTM dtm = mgr.getDTM(source, false, this, true, true);
       boolean hardDelete = true;  // %REVIEW% I have to think about this. -sb
 
@@ -1360,7 +1378,7 @@ public class TransformerImpl extends Transformer
   public void setParameter(String name, String namespace, Object value)
   {
 
-    VariableStack varstack = getXPathContext().getVarStack();
+    VariableStack varstack = m_xcontext.getVarStack();
     QName qname = new QName(namespace, name);
     XObject xobject = XObject.create(value);
 
@@ -1545,7 +1563,7 @@ public class TransformerImpl extends Transformer
     {
       VariableStack varstack = new VariableStack();
 
-      getXPathContext().setVarStack(varstack);
+      m_xcontext.setVarStack(varstack);
 
       m_userParams = null;
     }
@@ -1595,7 +1613,7 @@ public class TransformerImpl extends Transformer
       {
         int sourceNode = xctxt.getCurrentNode();
 
-        var = param.execute(getXPathContext(), sourceNode, xslParamElement);
+        var = param.execute(m_xcontext, sourceNode, xslParamElement);
       }
       else if (null == xslParamElement.getFirstChildElem())
       {
@@ -1660,7 +1678,7 @@ public class TransformerImpl extends Transformer
     // global variables should be in scope.  Have to think on 
     // this more...
     XObject xobj;
-    XPathContext xctxt = getXPathContext();
+    XPathContext xctxt = m_xcontext;
     VariableStack vs = xctxt.getVarStack();
     StylesheetRoot sr = getStylesheet();
     Vector vars = sr.getVariablesAndParamsComposed();
@@ -1723,7 +1741,7 @@ public class TransformerImpl extends Transformer
 
     synchronized (m_reentryGuard)
     {
-      getXPathContext().getSourceTreeManager().setURIResolver(resolver);
+      m_xcontext.getSourceTreeManager().setURIResolver(resolver);
     }
   }
 
@@ -1736,7 +1754,7 @@ public class TransformerImpl extends Transformer
    */
   public URIResolver getURIResolver()
   {
-    return getXPathContext().getSourceTreeManager().getURIResolver();
+    return m_xcontext.getSourceTreeManager().getURIResolver();
   }
 
   // ======== End Transformer Implementation ========  
@@ -1795,7 +1813,7 @@ public class TransformerImpl extends Transformer
           throws TransformerException
   {
 
-    XPathContext xctxt = getXPathContext();
+    XPathContext xctxt = m_xcontext;
     DTM dtmFrag = xctxt.getDTM(null, true, this, false, false);
     ContentHandler rtfHandler = dtmFrag.getContentHandler();
 
@@ -1875,8 +1893,7 @@ public class TransformerImpl extends Transformer
     ElemTemplateElement firstChild = elem.getFirstChildElem();
     if(null == firstChild)
       return "";
-    if(firstChild.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT && 
-       firstChild.getNextSiblingElem() == null)
+    if(elem.hasTextLitOnly())
     {
       return ((ElemTextLiteral)firstChild).getNodeValue();
     }
@@ -2013,12 +2030,11 @@ public class TransformerImpl extends Transformer
 
         // Find the XSL template that is the best match for the 
         // element.        
-        XPathContext xctxt = getXPathContext();
-        PrefixResolver savedPrefixResolver = xctxt.getNamespaceContext();
+        XPathContext xctxt = m_xcontext;
 
         try
         {
-          xctxt.setNamespaceContext(xslInstruction);
+          xctxt.pushNamespaceContext(xslInstruction);
 
           QName mode = this.getMode();
 
@@ -2027,7 +2043,7 @@ public class TransformerImpl extends Transformer
         }
         finally
         {
-          xctxt.setNamespaceContext(savedPrefixResolver);
+          xctxt.popNamespaceContext();
         }
       }
 
@@ -2113,7 +2129,240 @@ public class TransformerImpl extends Transformer
 
     return true;
   }
-
+  
+// Experemental... but causes bugs that I don't want to track down 
+// right now. -sb
+//  /**
+//   * <meta name="usage" content="advanced"/>
+//   * Perform a query if needed, and call transformNode for each child.
+//   *
+//   * @param caller The calling for-each template.
+//   * @param template The owning template context.
+//   *
+//   * @throws TransformerException Thrown in a variety of circumstances.
+//   */
+//  public void transformSelectedNodes(
+//          ElemForEach caller, ElemTemplateElement template)
+//            throws TransformerException
+//  {
+//
+//    final XPathContext xctxt = m_xcontext;
+//    final int sourceNode = xctxt.getCurrentNode();
+//    DTMIterator sourceNodes = caller.getSelect().asIterator(xctxt, sourceNode);
+//
+//    try
+//    {
+//
+//      //      if (TransformerImpl.S_DEBUG)
+//      //        transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+//      //                          "test", m_selectExpression,
+//      //                          new org.apache.xpath.objects.XNodeSet(sourceNodes));
+//      final Vector keys = (caller.getSortElemCount() > 0)
+//                          ? null
+//                          : processSortKeys(caller, sourceNode);
+//
+//      // Sort if we need to.
+//      if (null != keys)
+//        sourceNodes = caller.sortNodes(xctxt, keys, sourceNodes);
+//
+//      final ResultTreeHandler rth = getResultTreeHandler();
+//      ContentHandler chandler = rth.getContentHandler();
+//      final TemplateList tl = m_stylesheetRoot.getTemplateListComposed();
+//      final boolean needToFindTemplate = (null == template);
+//      final boolean quiet = m_quietConflictWarnings;
+//      
+//      xctxt.pushCurrentNode(DTM.NULL);
+//      int[] currentNodes = xctxt.getCurrentNodeStack();
+//      int currentNodePos = xctxt.getCurrentNodeFirstFree() - 1;
+//      
+//      xctxt.pushCurrentExpressionNode(DTM.NULL);
+//      int[] currentExpressionNodes = xctxt.getCurrentExpressionNodeStack();
+//      int currentExpressionNodePos = xctxt.getCurrentExpressionNodesFirstFree() - 1;
+//
+//      // StylesheetComposed stylesheet = getStylesheetComposed();
+//      boolean didSetVars = false;
+//      SourceLocator savedLocator = null;
+//      boolean check = false;
+//      int savedSearchStart = 0;
+//
+//      try
+//      {
+//        // Should be able to get this from the iterator but there must be a bug.
+//        DTM dtm = xctxt.getDTM(sourceNode);
+//        int docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
+//        
+//        int child;
+//        while (DTM.NULL != (child = sourceNodes.nextNode()))
+//        {
+//          currentNodes[currentNodePos] = child;
+//          currentExpressionNodes[currentExpressionNodePos] = child;
+//
+//          if((child & DTMManager.IDENT_DTM_DEFAULT) != docID)
+//          {
+//            dtm = xctxt.getDTM(child);
+//            docID = sourceNode & DTMManager.IDENT_DTM_DEFAULT;
+//          }
+//          
+//          final int exNodeType = dtm.getExpandedTypeID(child);
+//          final int nodeType = (exNodeType >> ExpandedNameTable.ROTAMOUNT_TYPE);
+//
+//          if (needToFindTemplate)
+//          {
+//            final QName mode = getMode();
+//
+//            template = tl.getTemplateFast(xctxt, child, exNodeType, mode, 
+//                                          -1, quiet, dtm);
+//
+//            // If that didn't locate a node, fall back to a default template rule.
+//            // See http://www.w3.org/TR/xslt#built-in-rule.
+//            if (null == template)
+//            {
+//              switch (nodeType)
+//              {
+//              case DTM.DOCUMENT_FRAGMENT_NODE :
+//              case DTM.ELEMENT_NODE :
+//                template = m_stylesheetRoot.getDefaultRule();
+//                break;
+//              case DTM.ATTRIBUTE_NODE :
+//              case DTM.CDATA_SECTION_NODE :
+//              case DTM.TEXT_NODE :
+//                rth.flushPending(true);
+//                dtm.dispatchCharactersEvents(child, chandler, false);
+//                continue;
+//              case DTM.DOCUMENT_NODE :
+//                template = m_stylesheetRoot.getDefaultRootRule();
+//                break;
+//              default :
+//
+//                // No default rules for processing instructions and the like.
+//                continue;
+//              }
+//            }
+//          }
+//
+//          if (!didSetVars)
+//          {
+//            didSetVars = true;
+//            check = (m_stackGuard.m_recursionLimit > -1);
+//
+//            savedLocator = xctxt.getSAXLocator();
+//
+//            xctxt.pushContextNodeList(sourceNodes);
+//            pushElemTemplateElement(null);
+//
+//            savedSearchStart = caller.pushParams(this, xctxt);
+//          }
+//
+//          ElemTemplateElement t = template.getFirstChildElem();
+//
+//          // If we are processing the default text rule, then just clone 
+//          // the value directly to the result tree.
+//          try
+//          {
+//            if (needToFindTemplate)
+//              pushPairCurrentMatched(template, child);
+//
+//            if (check)
+//              m_stackGuard.push(caller, child);
+//
+//            // Fire a trace event for the template.
+//            if (TransformerImpl.S_DEBUG)
+//              getTraceManager().fireTraceEvent(template);
+//
+//            // And execute the child templates.
+//            // Loop through the children of the template, calling execute on 
+//            // each of them.
+//            for (; t != null; t = t.getNextSiblingElem())
+//            {
+//              xctxt.setSAXLocator(t);
+//              setCurrentElement(t);
+//
+//              switch (t.getXSLToken())
+//              {
+//              case Constants.ELEMNAME_COPY :
+//              
+//                if ((DTM.DOCUMENT_NODE != nodeType)
+//                        && (DTM.DOCUMENT_FRAGMENT_NODE != nodeType))
+//                {
+//                  // TODO: Process the use-attribute-sets stuff
+//
+//                  if (DTM.ELEMENT_NODE == nodeType)
+//                  {
+//                    String ns = dtm.getNamespaceURI(child);
+//                    String localName = dtm.getLocalName(child);
+//                    String qname = dtm.getNodeNameX(child);
+//          
+//                    rth.startElement(ns, localName, qname, null);
+//
+//                    if(null != ((ElemUse)t).getUseAttributeSets())
+//                      ((ElemUse)t).applyAttrSets(this, m_stylesheetRoot);
+//                      
+//                    rth.processNSDecls(child, nodeType, dtm);
+//                    executeChildTemplates(t, true);
+//
+//                    rth.endElement(ns, localName, qname);
+//                  }
+//                  else
+//                  {
+//                    ClonerToResultTree.cloneToResultTree(child, nodeType, 
+//                                                         dtm, rth, false);
+//                    if (TransformerImpl.S_DEBUG)
+//                      getTraceManager().fireTraceEvent(t);
+//                  }
+//                }
+//                else
+//                {
+//                  if (TransformerImpl.S_DEBUG)
+//                    getTraceManager().fireTraceEvent(t);
+//
+//                  if(null != ((ElemUse)t).getUseAttributeSets())
+//                    ((ElemUse)t).applyAttrSets(this, m_stylesheetRoot);
+//                  executeChildTemplates(t, true);
+//                }
+//                break;
+//              default :
+//                t.execute(this);
+//              }
+//            }
+//            if(savedSearchStart > 0)
+//              caller.reMarkParams(xctxt);
+//          }
+//          finally
+//          {
+//            if (needToFindTemplate)
+//              popCurrentMatched();
+//
+//            if (check)
+//              m_stackGuard.pop();
+//          }
+//        }
+//      }
+//      finally
+//      {
+//        if (didSetVars)
+//        {
+//          xctxt.setSAXLocator(savedLocator);
+//          xctxt.popContextNodeList();
+//          popElemTemplateElement();
+//          caller.popParams(xctxt, savedSearchStart);
+//        }
+//
+//        // if(null != sourceNodes)
+//        //  sourceNodes.detach();                
+//      }
+//    }
+//    catch (SAXException se)
+//    {
+//      getErrorListener().fatalError(new TransformerException(se));
+//    }
+//    finally
+//    {
+//      xctxt.popCurrentExpressionNode();
+//      xctxt.popCurrentNode();
+//      sourceNodes.detach();
+//    }
+//  }
+  
   /**
    * <meta name="usage" content="advanced"/>
    * Execute each of the children of a template element.  This method
@@ -2134,7 +2383,7 @@ public class TransformerImpl extends Transformer
             throws TransformerException
   {
 
-    XPathContext xctxt = getXPathContext();
+    XPathContext xctxt = m_xcontext;
 
     try
     {
@@ -2221,8 +2470,7 @@ public class TransformerImpl extends Transformer
     if (null == t)
       return;
       
-    if(t.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT && 
-       t.getNextSiblingElem() == null)
+    if(elem.hasTextLitOnly())
     {
       char[] chars = ((ElemTextLiteral)t).getChars();
       try
@@ -2237,7 +2485,7 @@ public class TransformerImpl extends Transformer
       return;
     }
 
-    XPathContext xctxt = getXPathContext();
+    XPathContext xctxt = m_xcontext;
 
     // Check for infinite loops if we have to.
     boolean check = (m_stackGuard.m_recursionLimit > -1);
@@ -2247,16 +2495,16 @@ public class TransformerImpl extends Transformer
 
     // We need to push an element frame in the variables stack, 
     // so all the variables can be popped at once when we're done.
-    VariableStack varstack = getXPathContext().getVarStack();
+    VariableStack varstack = xctxt.getVarStack();
 
     varstack.pushElemFrame();
 
-    SourceLocator savedLocator = xctxt.getSAXLocator();
+    xctxt.pushSAXLocatorNull();
+    int currentTemplateElementsTop = m_currentTemplateElementsTop;
+    m_currentTemplateElementsTop++;
 
     try
     {
-      pushElemTemplateElement(null);
-
       // Loop through the children of the template, calling execute on 
       // each of them.
       for (; t != null; t = t.getNextSiblingElem())
@@ -2266,15 +2514,14 @@ public class TransformerImpl extends Transformer
           continue;
 
         xctxt.setSAXLocator(t);
-        m_currentTemplateElements.setElementAt(
-          t, m_currentTemplateElements.size() - 1);
+        m_currentTemplateElements[currentTemplateElementsTop] = t;
         t.execute(this);
       }
     }
     finally
     {
-      popElemTemplateElement();
-      xctxt.setSAXLocator(savedLocator);
+      m_currentTemplateElementsTop--;
+      xctxt.popSAXLocator();
 
       // Pop all the variables in this element frame.
       varstack.popElemFrame();
@@ -2303,7 +2550,7 @@ public class TransformerImpl extends Transformer
   {
 
     Vector keys = null;
-    XPathContext xctxt = getXPathContext();
+    XPathContext xctxt = m_xcontext;
     int nElems = foreach.getSortElemCount();
 
     if (nElems > 0)
@@ -2389,7 +2636,7 @@ public class TransformerImpl extends Transformer
    */
   public void pushElemTemplateElement(ElemTemplateElement elem)
   {
-    m_currentTemplateElements.push(elem);
+    m_currentTemplateElements[m_currentTemplateElementsTop++] = elem;
   }
 
   /**
@@ -2397,7 +2644,7 @@ public class TransformerImpl extends Transformer
    */
   public void popElemTemplateElement()
   {
-    m_currentTemplateElements.pop();
+    m_currentTemplateElementsTop--;
   }
 
   /**
@@ -2409,8 +2656,7 @@ public class TransformerImpl extends Transformer
    */
   public void setCurrentElement(ElemTemplateElement e)
   {
-    m_currentTemplateElements.setElementAt(e, m_currentTemplateElements.size()
-                                           - 1);
+    m_currentTemplateElements[m_currentTemplateElementsTop-1] = e;
   }
 
   /**
@@ -2422,7 +2668,7 @@ public class TransformerImpl extends Transformer
    */
   public ElemTemplateElement getCurrentElement()
   {
-    return (ElemTemplateElement) m_currentTemplateElements.peek();
+    return m_currentTemplateElements[m_currentTemplateElementsTop-1];
   }
 
   /**
@@ -2520,7 +2766,7 @@ public class TransformerImpl extends Transformer
 
     try
     {
-      DTMIterator cnl = getXPathContext().getContextNodeList();
+      DTMIterator cnl = m_xcontext.getContextNodeList();
 
       return (cnl == null) ? null : (DTMIterator) cnl.cloneWithReset();
     }
@@ -2567,7 +2813,7 @@ public class TransformerImpl extends Transformer
    * @return The stylesheet that is associated with this
    * transformer.
    */
-  public StylesheetRoot getStylesheet()
+  public final StylesheetRoot getStylesheet()
   {
     return m_stylesheetRoot;
   }
@@ -2616,7 +2862,7 @@ public class TransformerImpl extends Transformer
    *
    * @return The XPathContext reference, never null.
    */
-  public XPathContext getXPathContext()
+  public final XPathContext getXPathContext()
   {
     return m_xcontext;
   }
