@@ -234,10 +234,7 @@ public class XPath implements Serializable
   /**
    * <meta name="usage" content="experimental"/>
    * Given an expression and a context, evaluate the XPath
-   * and call the callback as nodes are found.  Only some simple
-   * types of expresions right now can call back, so if this
-   * method returns null, then the callbacks have been called, otherwise
-   * a valid XObject will be returned.
+   * and return the result.
    * 
    * @param xctxt The execution context.
    * @param contextNode The node that "." expresses.
@@ -264,10 +261,7 @@ public class XPath implements Serializable
   /**
    * <meta name="usage" content="experimental"/>
    * Given an expression and a context, evaluate the XPath
-   * and call the callback as nodes are found.  Only some simple
-   * types of expresions right now can call back, so if this
-   * method returns null, then the callbacks have been called, otherwise
-   * a valid XObject will be returned.
+   * and return the result.
    * 
    * @param xctxt The execution context.
    * @param contextNode The node that "." expresses.

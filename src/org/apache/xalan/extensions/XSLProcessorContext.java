@@ -64,6 +64,7 @@ import org.apache.xml.dtm.DTMIterator;
 
 import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.ResultTreeHandler;
+import org.apache.xalan.transformer.ClonerToResultTree;
 import org.apache.xalan.templates.Stylesheet;
 import org.apache.xml.utils.QName;
 
@@ -266,7 +267,8 @@ public class XSLProcessorContext
           while (DTM.NULL != pos)
           {
             rtreeHandler.flushPending();
-            rtreeHandler.cloneToResultTree(pos, true);
+            ClonerToResultTree.cloneToResultTree(pos, dtm.getNodeType(pos), 
+                                                   dtm, rtreeHandler, true);
 
             int nextNode = dtm.getFirstChild(pos);
 

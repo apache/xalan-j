@@ -2072,7 +2072,8 @@ public class TransformerImpl extends Transformer
         {
         case DTM.CDATA_SECTION_NODE :
         case DTM.TEXT_NODE :
-          m_resultTreeHandler.m_cloner.cloneToResultTree(child, false);
+          ClonerToResultTree.cloneToResultTree(child, nodeType, 
+                                        dtm, getResultTreeHandler(), false);
           break;
         case DTM.ATTRIBUTE_NODE :
           dtm.dispatchCharactersEvents(child, getResultTreeHandler(), false);

@@ -205,18 +205,16 @@ public class NodeSet extends NodeVector
   }
   
   /**
-   * The root node of the <code>DTMIterator</code>, as specified when it
-   * was created.  Note the root node is not the root node of the 
-   * document tree, but the context node from where the itteration 
-   * begins.
+   * Initialize the context values for this expression
+   * after it is cloned.
    *
-   * @param nodeHandle int Handle of the context node.
+   * @param execContext The XPath runtime context for this
+   * transformation.
    */
-  public void setRoot(int nodeHandle)
+  public void setRoot(int context, Object environment)
   {
-  // %TBD%
+    // no-op, I guess...  (-sb)
   }
-
 
   /**
    * Clone this NodeSet.

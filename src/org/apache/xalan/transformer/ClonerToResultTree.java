@@ -97,6 +97,89 @@ public class ClonerToResultTree
     m_transformer = transformer;
   }
 
+//  /**
+//   * Clone an element with or without children.
+//   * TODO: Fix or figure out node clone failure!
+//   * the error condition is severe enough to halt processing.
+//   *
+//   * @param node The node to clone
+//   * @param shouldCloneAttributes Flag indicating whether to 
+//   * clone children attributes
+//   * 
+//   * @throws TransformerException
+//   */
+//  public void cloneToResultTree(int node, boolean shouldCloneAttributes)
+//    throws TransformerException
+//  {
+//
+//    try
+//    {
+//      XPathContext xctxt = m_transformer.getXPathContext();
+//      DTM dtm = xctxt.getDTM(node);
+//
+//      int type = dtm.getNodeType(node);
+//      switch (type)
+//      {
+//      case DTM.TEXT_NODE :
+//        dtm.dispatchCharactersEvents(node, m_rth, false);
+//        break;
+//      case DTM.DOCUMENT_FRAGMENT_NODE :
+//      case DTM.DOCUMENT_NODE :
+//
+//        // Can't clone a document, but refrain from throwing an error
+//        // so that copy-of will work
+//        break;
+//      case DTM.ELEMENT_NODE :
+//        {
+//          Attributes atts;
+//
+//          if (shouldCloneAttributes)
+//          {
+//            m_rth.addAttributes(node);
+//            m_rth.processNSDecls(node, type, dtm);
+//          }
+//
+//          String ns = dtm.getNamespaceURI(node);
+//          String localName = dtm.getLocalName(node);
+//
+//          m_rth.startElement(ns, localName, dtm.getNodeNameX(node), null);
+//        }
+//        break;
+//      case DTM.CDATA_SECTION_NODE :
+//        m_rth.startCDATA();          
+//        dtm.dispatchCharactersEvents(node, m_rth, false);
+//        m_rth.endCDATA();
+//        break;
+//      case DTM.ATTRIBUTE_NODE :
+//        m_rth.addAttribute(node);
+//        break;
+//      case DTM.COMMENT_NODE :
+//        XMLString xstr = dtm.getStringValue (node);
+//        xstr.dispatchAsComment(m_rth);
+//        break;
+//      case DTM.ENTITY_REFERENCE_NODE :
+//        m_rth.entityReference(dtm.getNodeNameX(node));
+//        break;
+//      case DTM.PROCESSING_INSTRUCTION_NODE :
+//        {
+//          // %REVIEW% Is the node name the same as the "target"?
+//          m_rth.processingInstruction(dtm.getNodeNameX(node), 
+//                                      dtm.getNodeValue(node));
+//        }
+//        break;
+//      default :
+//        //"Can not create item in result tree: "+node.getNodeName());
+//        m_transformer.getMsgMgr().error(null, 
+//                         XSLTErrorResources.ER_CANT_CREATE_ITEM,
+//                         new Object[]{ dtm.getNodeName(node) });  
+//      }
+//    }
+//    catch(org.xml.sax.SAXException se)
+//    {
+//      throw new TransformerException(se);
+//    }
+//  }  // end cloneToResultTree function
+  
   /**
    * Clone an element with or without children.
    * TODO: Fix or figure out node clone failure!
@@ -108,19 +191,18 @@ public class ClonerToResultTree
    * 
    * @throws TransformerException
    */
-  public void cloneToResultTree(int node, boolean shouldCloneAttributes)
+  public static void cloneToResultTree(int node, int nodeType, DTM dtm, 
+                                             ResultTreeHandler rth,
+                                             boolean shouldCloneAttributes)
     throws TransformerException
   {
 
     try
     {
-      XPathContext xctxt = m_transformer.getXPathContext();
-      DTM dtm = xctxt.getDTM(node);
-
-      switch (dtm.getNodeType(node))
+      switch (nodeType)
       {
       case DTM.TEXT_NODE :
-        dtm.dispatchCharactersEvents(node, m_rth, false);
+        dtm.dispatchCharactersEvents(node, rth, false);
         break;
       case DTM.DOCUMENT_FRAGMENT_NODE :
       case DTM.DOCUMENT_NODE :
@@ -134,43 +216,42 @@ public class ClonerToResultTree
 
           if (shouldCloneAttributes)
           {
-            m_rth.addAttributes(node);
-            m_rth.processNSDecls(node);
+            rth.addAttributes(node);
+            rth.processNSDecls(node, nodeType, dtm);
           }
 
           String ns = dtm.getNamespaceURI(node);
           String localName = dtm.getLocalName(node);
 
-          m_rth.startElement(ns, localName, dtm.getNodeNameX(node), null);
+          rth.startElement(ns, localName, dtm.getNodeNameX(node), null);
         }
         break;
       case DTM.CDATA_SECTION_NODE :
-        m_rth.startCDATA();          
-        dtm.dispatchCharactersEvents(node, m_rth, false);
-        m_rth.endCDATA();
+        rth.startCDATA();          
+        dtm.dispatchCharactersEvents(node, rth, false);
+        rth.endCDATA();
         break;
       case DTM.ATTRIBUTE_NODE :
-        m_rth.addAttribute(node);
+        rth.addAttribute(node);
         break;
       case DTM.COMMENT_NODE :
         XMLString xstr = dtm.getStringValue (node);
-        xstr.dispatchAsComment(m_rth);
+        xstr.dispatchAsComment(rth);
         break;
       case DTM.ENTITY_REFERENCE_NODE :
-        m_rth.entityReference(dtm.getNodeNameX(node));
+        rth.entityReference(dtm.getNodeNameX(node));
         break;
       case DTM.PROCESSING_INSTRUCTION_NODE :
         {
           // %REVIEW% Is the node name the same as the "target"?
-          m_rth.processingInstruction(dtm.getNodeNameX(node), 
+          rth.processingInstruction(dtm.getNodeNameX(node), 
                                       dtm.getNodeValue(node));
         }
         break;
       default :
         //"Can not create item in result tree: "+node.getNodeName());
-        m_transformer.getMsgMgr().error(null, 
-                         XSLTErrorResources.ER_CANT_CREATE_ITEM,
-                         new Object[]{ dtm.getNodeName(node) });  
+        throw new  TransformerException(
+                         "Can't clone node: "+dtm.getNodeName(node));
       }
     }
     catch(org.xml.sax.SAXException se)

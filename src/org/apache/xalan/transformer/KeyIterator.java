@@ -137,7 +137,8 @@ public class KeyIterator extends WalkingIterator
 
     super(nscontext);
 
-    initContext(xctxt);
+    int current = xctxt.getCurrentNode();
+    setRoot(current, xctxt);
 
     m_name = name;
     m_keyDeclarations = keyDeclarations;

@@ -969,6 +969,7 @@ public class StylesheetRoot extends StylesheetComposed
     ElemApplyTemplates childrenElement = new ElemApplyTemplates();
 
     childrenElement.setIsDefaultTemplate(true);
+    childrenElement.setSelect(m_selectDefault);
     m_defaultRule.appendChild(childrenElement);
 
     // -----------------------------
@@ -1001,6 +1002,7 @@ public class StylesheetRoot extends StylesheetComposed
 
     childrenElement.setIsDefaultTemplate(true);
     m_defaultRootRule.appendChild(childrenElement);
+    childrenElement.setSelect(m_selectDefault);
   }
 
   /**

@@ -78,11 +78,6 @@ import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XNodeSet;
 import org.apache.xpath.objects.XString;
 
-// DOM Imports
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.traversal.TreeWalker;
-//import org.w3c.dom.Node;
-
 import org.apache.xalan.extensions.ExpressionContext;
 
 // SAX2 imports
@@ -140,7 +135,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
    public DTMManager getDTMManager()
    {
-     return m_dtmManager;
+     return this;
    }
   
   /**
@@ -185,7 +180,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.getDTM(nodeHandle);
   }
-  
+//  
   /**
    * Given a W3C DOM node, try and return a DTM handle.
    * Note: calling this may be non-optimal.
@@ -198,8 +193,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.getDTMHandleFromNode(node);
   }
-
-  
+//
+//  
   /**
    * %TBD% Doc
    */
@@ -207,7 +202,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.getDTMIdentity(dtm);
   }
-  
+//  
   /**
    * Creates an empty <code>DocumentFragment</code> object. 
    * @return A new <code>DocumentFragment handle</code>.
@@ -216,7 +211,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.createDocumentFragment();
   }
-  
+//  
   /**
    * Release a DTM either to a lru pool, or completely remove reference.
    * DTMs without system IDs are always hard deleted.
@@ -247,7 +242,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.createDTMIterator(xpathCompiler, pos);
   }
-
+//
   /**
    * Create a new <code>DTMIterator</code> based on an XPath
    * <a href="http://www.w3.org/TR/xpath#NT-LocationPath>LocationPath</a> or
@@ -266,7 +261,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     return m_dtmManager.createDTMIterator(xpathString, presolver);
   }
-
+//
   /**
    * Create a new <code>DTMIterator</code> based only on a whatToShow and
    * a DTMFilter.  The traversal semantics are defined as the descendant
@@ -300,7 +295,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   public DTMIterator createDTMIterator(int node)
   {
     DescendantIterator iter = new DescendantIterator();
-    iter.initContext(this, node);
+    iter.setRoot(node, this);
     return iter;
     // return m_dtmManager.createDTMIterator(node);
   }
@@ -666,13 +661,20 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    * (Is this really needed?)
    */
   private PrefixResolver m_currentPrefixResolver = null;
+  
+  private static final int RECURSIONLIMIT = (1024*4);
 
   /** The stack of <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a> objects.
-   *  Not to be confused with the current node list.  */
-  private NodeVector m_currentNodes = new NodeVector();
+   *  Not to be confused with the current node list.  %REVIEW% Note that there 
+   *  are no bounds check and resize for this stack, so if it is blown, it's all 
+   *  over.  */
+  private int m_currentNodes[] = new int[RECURSIONLIMIT];
+  protected int m_currentNodesFirstFree = 0;
+   
+//  private NodeVector m_currentNodes = new NodeVector();
   
-  public NodeVector getCurrentNodeStack() {return m_currentNodes; }
-  public void setCurrentNodeStack(NodeVector nv) { m_currentNodes = nv; }
+  public int[] getCurrentNodeStack() {return m_currentNodes; }
+  public void setCurrentNodeStack(int[] nv) { m_currentNodes = nv; }
 
   /**
    * Get the current context node.
@@ -681,7 +683,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final int getCurrentNode()
   {
-    return m_currentNodes.peepOrNull();
+    int i = m_currentNodesFirstFree-1;
+    return (i < 0) ? DTM.NULL : m_currentNodes[i];
   }
   
   /**
@@ -692,8 +695,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void pushCurrentNodeAndExpression(int cn, int en)
   {
-    m_currentNodes.push(cn);
-    m_currentExpressionNodes.push(en);
+    m_currentNodes[m_currentNodesFirstFree++] = cn;
+    m_currentExpressionNodes[m_currentExpressionNodesFirstFree++] = cn;
   }
 
   /**
@@ -701,8 +704,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void popCurrentNodeAndExpression()
   {
-    m_currentNodes.popQuick();
-    m_currentExpressionNodes.popQuick();
+    m_currentNodesFirstFree--;
+    m_currentExpressionNodesFirstFree--;
   }
 
   /**
@@ -712,7 +715,12 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void pushCurrentNode(int n)
   {
-    m_currentNodes.push(n);
+    m_currentNodes[m_currentNodesFirstFree++] = n;
+  }
+  
+  public int getCurrentNodeFirstFree()
+  {
+    return m_currentNodesFirstFree;
   }
 
   /**
@@ -720,7 +728,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void popCurrentNode()
   {
-    m_currentNodes.popQuick();
+    m_currentNodesFirstFree--;
   }
   
   /**
@@ -779,10 +787,16 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   private NodeVector m_predicateRoots = new NodeVector();
 
   /** A stack of the current sub-expression nodes.  */
-  private NodeVector m_currentExpressionNodes = new NodeVector();
-  
-  public NodeVector getCurrentExpressionNodeStack() { return m_currentExpressionNodes; }
-  public void setCurrentExpressionNodeStack(NodeVector nv) { m_currentExpressionNodes = nv; }
+  private int m_currentExpressionNodes[] = new int[RECURSIONLIMIT];
+  protected int m_currentExpressionNodesFirstFree = 0;
+     
+  public int[] getCurrentExpressionNodeStack() { return m_currentExpressionNodes; }
+  public void setCurrentExpressionNodeStack(int[] nv) { m_currentExpressionNodes = nv; }
+  public int getCurrentExpressionNodesFirstFree()
+  {
+    return m_currentExpressionNodesFirstFree;
+  }
+
   
   private IntStack m_predicatePos = new IntStack();
   
@@ -808,7 +822,8 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final int getCurrentExpressionNode()
   {
-    return m_currentExpressionNodes.peepOrNull();
+    int i = m_currentExpressionNodesFirstFree-1;
+    return (i < 0) ? DTM.NULL : m_currentExpressionNodes[i];
   }
 
   /**
@@ -818,7 +833,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void pushCurrentExpressionNode(int n)
   {
-    m_currentExpressionNodes.push(n);
+    m_currentExpressionNodes[m_currentExpressionNodesFirstFree++] = n;
   }
 
   /**
@@ -826,7 +841,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public final void popCurrentExpressionNode()
   {
-    m_currentExpressionNodes.popQuick();
+    m_currentExpressionNodesFirstFree--;
   }
 
   /**
@@ -931,7 +946,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     }
   }
   
-  XPathExpressionContext expresionContext = new XPathExpressionContext();
+  XPathExpressionContext expressionContext = new XPathExpressionContext();
   
   /**
    * The the expression context for extensions for this context.
@@ -940,7 +955,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public ExpressionContext getExpressionContext()
   {
-    return expresionContext;
+    return expressionContext;
   }
   
   class XPathExpressionContext implements ExpressionContext
@@ -952,7 +967,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
      */
     public org.w3c.dom.Node getContextNode()
     {
-      int context = m_currentNodes.peepOrNull();
+      int context = getCurrentNode();
       
       return getDTM(context).getNode(context);
     }

@@ -221,7 +221,7 @@ public class DTMManagerDefault extends DTMManager
         if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
 
-        if (true && incremental)
+        if (false && incremental)
         {
 
           // Create a CoroutineManager to manage the coordination between the 

@@ -89,6 +89,7 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.SourceLocator;
 import org.apache.xml.utils.SAXSourceLocator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.Axis;
 
 import javax.xml.transform.ErrorListener;
@@ -673,10 +674,8 @@ public class Compiler extends OpMap
     locPathDepth++;
     try
     {
-      LocPathIterator iter = WalkerFactory.newLocPathIterator(this, opPos);
-      if(locPathDepth == 0)
-        iter.setIsTopLevel(true);
-      return iter;
+      DTMIterator iter = WalkerFactory.newDTMIterator(this, opPos, (locPathDepth == 0));
+      return (Expression)iter; // cast OK, I guess.
     }
     finally
     {

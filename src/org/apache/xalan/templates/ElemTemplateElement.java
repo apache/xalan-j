@@ -379,7 +379,7 @@ public class ElemTemplateElement extends UnImplNode
       last.m_nextSibling = elem;
     }
 
-    elem.m_parentNode = this;
+    elem.setParentElem(this);
 
     return elem;
   }
@@ -1151,6 +1151,16 @@ public class ElemTemplateElement extends UnImplNode
   public ElemTemplateElement getParentElem()
   {
     return m_parentNode;
+  }
+
+  /**
+   * Set the parent as an ElemTemplateElement.
+   *
+   * @param parent This node's parent as an ElemTemplateElement
+   */
+  public void setParentElem(ElemTemplateElement p)
+  {
+    m_parentNode = p;
   }
 
   /**

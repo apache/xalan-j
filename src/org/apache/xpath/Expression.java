@@ -69,6 +69,8 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 
 import org.apache.xml.utils.SAXSourceLocator;
+import org.apache.xml.utils.PrefixResolver;
+import org.apache.xml.dtm.DTMIterator;
 
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.ErrorListener;
@@ -170,6 +172,34 @@ public abstract class Expression implements java.io.Serializable
     throws javax.xml.transform.TransformerException
   {
     return execute(xctxt).nodeset().nextNode();
+  }
+  
+  /**
+   * <meta name="usage" content="experimental"/>
+   * Given an select expression and a context, evaluate the XPath
+   * and return the resulting iterator.
+   * 
+   * @param xctxt The execution context.
+   * @param contextNode The node that "." expresses.
+   * 
+   * @throws TransformerException thrown if the active ProblemListener decides
+   * the error condition is severe enough to halt processing.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public DTMIterator asIterator(
+          XPathContext xctxt, int contextNode)
+            throws javax.xml.transform.TransformerException
+  {
+    try
+    {
+      xctxt.pushCurrentNodeAndExpression(contextNode, contextNode);
+      return execute(xctxt).nodeset();
+    }
+    finally
+    {
+      xctxt.popCurrentNodeAndExpression();
+    }
   }
     
   /**

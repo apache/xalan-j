@@ -143,6 +143,28 @@ public class ElemUse extends ElemTemplateElement
   {
     return m_attributeSetsNames;
   }
+  
+  /**
+   * Add the attributes from the named attribute sets to the attribute list.
+   * TODO: Error handling for: "It is an error if there are two attribute sets
+   * with the same expanded-name and with equal import precedence and that both
+   * contain the same attribute unless there is a definition of the attribute
+   * set with higher import precedence that also contains the attribute."
+   *
+   * @param transformer non-null reference to the the current transform-time state.
+   * @param stylesheet The owning root stylesheet
+   * @param attributeSetsNames List of attribute sets names to apply
+   * @param sourceNode non-null reference to the <a href="http://www.w3.org/TR/xslt#dt-current-node">current source node</a>.
+   * @param mode reference, which may be null, to the <a href="http://www.w3.org/TR/xslt#modes">current mode</a>.
+   *
+   * @throws TransformerException
+   */
+  public void applyAttrSets(
+          TransformerImpl transformer, StylesheetRoot stylesheet)
+            throws TransformerException
+  {
+    applyAttrSets(transformer, stylesheet, m_attributeSetsNames);
+  }
 
   /**
    * Add the attributes from the named attribute sets to the attribute list.

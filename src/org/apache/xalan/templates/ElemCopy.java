@@ -70,6 +70,7 @@ import org.apache.xalan.trace.*;
 import org.apache.xalan.res.XSLTErrorResources;
 import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.ResultTreeHandler;
+import org.apache.xalan.transformer.ClonerToResultTree;
 
 import javax.xml.transform.TransformerException;
 
@@ -134,12 +135,12 @@ public class ElemCopy extends ElemUse
           TransformerImpl transformer)
             throws TransformerException
   {
-		XPathContext xctxt = transformer.getXPathContext();
+                XPathContext xctxt = transformer.getXPathContext();
       
     try
     {
       int sourceNode = xctxt.getCurrentNode();
-			xctxt.pushCurrentNode(sourceNode);
+                        xctxt.pushCurrentNode(sourceNode);
       DTM dtm = xctxt.getDTM(sourceNode);
       short nodeType = dtm.getNodeType(sourceNode);
 
@@ -148,12 +149,13 @@ public class ElemCopy extends ElemUse
         ResultTreeHandler rthandler = transformer.getResultTreeHandler();
 
         // TODO: Process the use-attribute-sets stuff
-        rthandler.cloneToResultTree(sourceNode, false);
+        ClonerToResultTree.cloneToResultTree(sourceNode, nodeType, dtm, 
+                                             rthandler, false);
 
         if (DTM.ELEMENT_NODE == nodeType)
         {
           super.execute(transformer);
-          rthandler.processNSDecls(sourceNode);
+          rthandler.processNSDecls(sourceNode, nodeType, dtm);
           transformer.executeChildTemplates(this, true);
           
           String ns = dtm.getNamespaceURI(sourceNode);
@@ -180,7 +182,7 @@ public class ElemCopy extends ElemUse
     {
       throw new TransformerException(se);
     }
-		finally
+                finally
     {
       xctxt.popCurrentNode();
     }

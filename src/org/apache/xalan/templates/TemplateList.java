@@ -65,6 +65,8 @@ import java.io.Serializable;
 //import org.w3c.dom.Node;
 import org.apache.xml.dtm.DTM;
 
+import org.apache.xml.dtm.ref.ExpandedNameTable;
+
 import javax.xml.transform.TransformerException;
 
 import org.apache.xml.utils.QName;
@@ -500,6 +502,129 @@ public class TemplateList implements java.io.Serializable
 
     return (null == head) ? m_wildCardPatterns : head;
   }
+  
+  /**
+   * Get the head of the most likely list of associations to check, based on 
+   * the name and type of the targetNode argument.
+   *
+   * @param xctxt The XPath runtime context.
+   * @param targetNode The target node that will be checked for a match.
+   * @param dtm The dtm owner for the target node.
+   *
+   * @return The head of a linked list that contains all possible match pattern to 
+   * template associations.
+   */
+  public TemplateSubPatternAssociation getHeadFast(XPathContext xctxt, 
+                                               int targetNode, DTM dtm,
+                                               int expNameID)
+  {
+    TemplateSubPatternAssociation head;
+
+    switch (expNameID >> ExpandedNameTable.ROTAMOUNT_TYPE)
+    {
+    case DTM.ELEMENT_NODE :
+    case DTM.ATTRIBUTE_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getLocalName(targetNode));
+      break;
+    case DTM.TEXT_NODE :
+    case DTM.CDATA_SECTION_NODE :
+      head = m_textPatterns;
+      break;
+    case DTM.ENTITY_REFERENCE_NODE :
+    case DTM.ENTITY_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
+      break;
+    case DTM.PROCESSING_INSTRUCTION_NODE :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getLocalName(targetNode));
+      break;
+    case DTM.COMMENT_NODE :
+      head = m_commentPatterns;
+      break;
+    case DTM.DOCUMENT_NODE :
+    case DTM.DOCUMENT_FRAGMENT_NODE :
+      head = m_docPatterns;
+      break;
+    case DTM.NOTATION_NODE :
+    default :
+      head = (TemplateSubPatternAssociation) m_patternTable.get(
+        dtm.getNodeName(targetNode)); // %REVIEW% I think this is right
+    }
+
+    return (null == head) ? m_wildCardPatterns : head;
+  }
+  
+  /**
+   * Given a target element, find the template that best
+   * matches in the given XSL document, according
+   * to the rules specified in the xsl draft.  This variation of getTemplate 
+   * assumes the current node and current expression node have already been 
+   * pushed. 
+   *
+   * @param xctxt
+   * @param targetNode
+   * @param mode A string indicating the display mode.
+   * @param maxImportLevel The maximum importCountComposed that we should consider or -1
+   *        if we should consider all import levels.  This is used by apply-imports to
+   *        access templates that have been overridden.
+   * @param quietConflictWarnings
+   * @return Rule that best matches targetElem.
+   * @throws XSLProcessorException thrown if the active ProblemListener and XPathContext decide
+   * the error condition is severe enough to halt processing.
+   *
+   * @throws TransformerException
+   */
+  public ElemTemplate getTemplateFast(XPathContext xctxt,
+                                int targetNode,
+                                int expTypeID,
+                                QName mode,
+                                int maxImportLevel,
+                                boolean quietConflictWarnings,
+                                DTM dtm)
+            throws TransformerException
+  {
+
+    TemplateSubPatternAssociation head = getHeadFast(xctxt, targetNode, 
+                                                     dtm, expTypeID);
+                                                     
+    if(null == head)
+      return null;
+
+    // XSLT functions, such as xsl:key, need to be able to get to 
+    // current ElemTemplateElement via a cast to the prefix resolver.
+    // Setting this fixes bug idkey03.
+    final PrefixResolver savedPR = xctxt.getNamespaceContext();
+    try
+    {
+      do
+      {
+        if ( (maxImportLevel > -1) && (head.getImportLevel() > maxImportLevel) )
+        {
+          continue;
+        }
+        ElemTemplate template = head.getTemplate();        
+        xctxt.setNamespaceContext(template);
+        
+        if ((head.m_stepPattern.execute(xctxt, targetNode) != NodeTest.SCORE_NONE)
+                && head.matchMode(mode))
+        {
+          if (quietConflictWarnings)
+            checkConflicts(head, xctxt, targetNode, mode);
+
+          return template;
+        }
+      }
+      while (null != (head = head.getNext()));
+    }
+    finally
+    {
+      xctxt.setNamespaceContext(savedPR);
+    }
+
+    return null;
+  }  // end findTemplate
 
   /**
    * Given a target element, find the template that best
