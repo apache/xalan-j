@@ -545,8 +545,9 @@ public abstract class AbstractTranslet implements Translet {
 	throws TransletException {
         if (string != null)
         {
-	final int length = string.length();
-	handler.characters(string.toCharArray(), 0, length);
+	//final int length = string.length();
+	//handler.characters(string.toCharArray(), 0, length);
+	    handler.characters(string);
         }
     }
 

@@ -350,37 +350,57 @@ abstract public class StreamOutput extends OutputBase {
     protected String escapeString(String value) {
 	final char[] ch = value.toCharArray();
 	final int limit = ch.length;
-	StringBuffer result = new StringBuffer();
+	StringBuffer result = null;
 	
 	int offset = 0;
 	for (int i = 0; i < limit; i++) {
 	    switch (ch[i]) {
 	    case '&':
+		if (result == null) {
+		    result = new StringBuffer();
+		}		
 		result.append(ch, offset, i - offset).append(AMP);
 		offset = i + 1;
 		break;
 	    case '"':
+		if (result == null) {
+		    result = new StringBuffer();
+		}
 		result.append(ch, offset, i - offset).append(QUOT);
 		offset = i + 1;
 		break;
 	    case '<':
+		if (result == null) {
+		    result = new StringBuffer();
+		}
 		result.append(ch, offset, i - offset).append(LT);
 		offset = i + 1;
 		break;
 	    case '>':
+		if (result == null) {
+		    result = new StringBuffer();
+		}
 		result.append(ch, offset, i - offset).append(GT);
 		offset = i + 1;
 		break;
 	    case '\n':
+		if (result == null) {
+		    result = new StringBuffer();
+		}
 		result.append(ch, offset, i - offset).append(CRLF);
 		offset = i + 1;
 		break;
 	    }
 	}
 
-	if (offset < limit) {
-	    result.append(ch, offset, limit - offset);
+	if (result == null) {
+	    return value;
 	}
-	return result.toString();
+	else {
+	    if (offset < limit) {
+	        result.append(ch, offset, limit - offset);
+	    }
+	    return result.toString();
+	}
     }
 }
