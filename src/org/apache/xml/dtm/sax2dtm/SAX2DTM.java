@@ -1116,12 +1116,21 @@ public class SAX2DTM extends DTMDefaultBase
   public int getElementById(String elementId)
   {
 
-    Integer intObj = (Integer) m_idAttributes.get(elementId);
-
-    if (null != intObj)
-      return intObj.intValue();
-    else
-      return DTM.NULL;
+    Integer intObj;
+    
+    do
+    {
+      intObj = (Integer) m_idAttributes.get(elementId);
+  
+      if (null != intObj)
+        return intObj.intValue();
+      
+      if(false == nextNode())
+        break;
+    }
+      while(null == intObj);
+    
+    return DTM.NULL;
   }
 
   /**
