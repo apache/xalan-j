@@ -268,7 +268,7 @@ public class XObject extends Expression implements Serializable
    */
   public String str()
   {
-		return (m_obj != null) ? m_obj.toString() : "null";    
+    return (m_obj != null) ? m_obj.toString() : "";    
   }
 
   /**
