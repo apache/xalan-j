@@ -167,9 +167,10 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler, ErrorHandl
     setXMLReader(parser);
 
     fRunningInThread=true;
-    Thread t = new Thread(this);
-    t.setDaemon(false);
-    t.start();
+		org.apache.xalan.transformer.TransformerImpl.runTransformThread(this);
+    //Thread t = new Thread(this);
+    //t.setDaemon(false);
+    //t.start();
   }
 
   //

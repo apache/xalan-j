@@ -332,6 +332,21 @@ public abstract class DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public abstract DTMIterator createDTMIterator(int node);
+  
+  /* Flag indicating whether an incremental transform is desired */
+  public static boolean m_incremental = false;  
+  
+  /**
+   * Set a flag indicating whether an incremental transform is desired 
+   * @param incremental boolean to use to set m_incremental.
+   *
+   */
+  public static void setIncremental(boolean incremental)
+  {
+    m_incremental = incremental;  
+  }
+  
+  
 
   // -------------------- private methods --------------------
 
