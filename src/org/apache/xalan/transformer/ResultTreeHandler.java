@@ -897,7 +897,7 @@ public class ResultTreeHandler extends QueuedEvents
   public void ensureNamespaceDeclDeclared(DTM dtm, int namespace) throws org.xml.sax.SAXException
   {
     String uri = dtm.getNodeValue(namespace);
-    String prefix = dtm.getPrefix(namespace);
+    String prefix = dtm.getNodeNameX(namespace);
 
     if ((uri != null && uri.length() > 0) && (null != prefix))
     {
@@ -1048,7 +1048,8 @@ public class ResultTreeHandler extends QueuedEvents
         for (int namespace = dtm.getFirstNamespaceNode(src, true);
              DTM.NULL != namespace; namespace = dtm.getNextNamespaceNode(src, namespace, true))
         {
-          String prefix = dtm.getPrefix(namespace);
+          // String prefix = dtm.getPrefix(namespace);
+          String prefix = dtm.getNodeNameX(namespace);
           String desturi = getURI(prefix);
           String srcURI = dtm.getStringValue(namespace);
 
@@ -1292,7 +1293,8 @@ public class ResultTreeHandler extends QueuedEvents
     DTM dtm = m_transformer.getXPathContext().getDTM(attr);
     if(DTM.NAMESPACE_NODE == dtm.getNodeType(attr))
     {
-      String prefix = dtm.getPrefix(attr);
+      // String prefix = dtm.getPrefix(attr);
+      String prefix = dtm.getNodeNameX(attr);
       String uri = getURI(prefix);
   
       if ((null != uri) && uri.equals(dtm.getStringValue(attr)))
@@ -1316,7 +1318,8 @@ public class ResultTreeHandler extends QueuedEvents
   {
     if(DTM.NAMESPACE_NODE == dtm.getNodeType(attr))
     {
-      String prefix = dtm.getPrefix(attr);
+      // String prefix = dtm.getPrefix(attr);
+      String prefix = dtm.getNodeNameX(attr);
       String uri = getURI(prefix);
   
       if ((null != uri) && uri.equals(dtm.getStringValue(attr)))

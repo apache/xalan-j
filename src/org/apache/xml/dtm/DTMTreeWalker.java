@@ -275,7 +275,8 @@ public class DTMTreeWalker
       for (int nsn = m_dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
            nsn = m_dtm.getNextNamespaceNode(node, nsn, true))
       {
-        String prefix = m_dtm.getPrefix(nsn);
+        // String prefix = m_dtm.getPrefix(nsn);
+        String prefix = m_dtm.getNodeNameX(nsn);
 
         this.m_contentHandler.startPrefixMapping(prefix,
                                                  m_dtm.getStringValue(nsn));
@@ -390,7 +391,8 @@ public class DTMTreeWalker
       for (int nsn = m_dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
            nsn = m_dtm.getNextNamespaceNode(node, nsn, true))
       {
-        String prefix = m_dtm.getPrefix(nsn);
+        // String prefix = m_dtm.getPrefix(nsn);
+        String prefix = m_dtm.getNodeNameX(nsn);
 
         this.m_contentHandler.endPrefixMapping(prefix);
       }

@@ -132,7 +132,10 @@ public class DTMManagerDefault extends DTMManager
       m_dtms.add(dtm);
       
       if(DUMPTREE)
+      {
+        System.out.println("Dumping DOM2DTM");
         dtm.dumpDTM();
+      }
 
       return dtm;
     }
@@ -202,15 +205,20 @@ public class DTMManagerDefault extends DTMManager
         }
         catch(RuntimeException re)
         {
+          re.printStackTrace();
           throw re;
         }
         catch(Exception e)
         {
+          e.printStackTrace();
           throw new org.apache.xml.utils.WrappedRuntimeException(e);
         }
 
         if(DUMPTREE)
+        {
+          System.out.println("Dumping SAX2DOM");
           dtm.dumpDTM();
+        }
         return dtm;
       }
       else
