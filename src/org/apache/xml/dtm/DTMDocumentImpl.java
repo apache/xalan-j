@@ -372,8 +372,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
       java.lang.String qName, Attributes atts) 
        throws org.xml.sax.SAXException
   {
-/**/System.out.println("Atts=="+atts);
-
     processAccumulatedText();
 
     // %TBD% Split prefix off qname
@@ -419,7 +417,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
     for(int i=nAtts-1;i>=0;--i)	
       {
         qName=atts.getQName(i);
-        if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
+        if(!(qName.startsWith("xmlns:") || "xmlns".equals(qName)))
           {
             // %TBD% I hate having to extract the prefix into a new
             // string when we may never use it. Consider pooling whole
@@ -880,506 +878,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 // 	// of appendAccumulatedText for the next set of characters receives
 // 	int charStringStart=0,charStringLength=0;
 
-<<<<<<< DTMDocumentImpl.java
-
-	// ========= Document Navigation Functions =========
-
-	/** Given a node handle, test if it has child nodes.
-	 * <p> %REVIEW% This is obviously useful at the DOM layer, where it
-	 * would permit testing this without having to create a proxy
-	 * node. It's less useful in the DTM API, where
-	 * (dtm.getFirstChild(nodeHandle)!=DTM.NULL) is just as fast and
-	 * almost as self-evident. But it's a convenience, and eases porting
-	 * of DOM code to DTM.  </p>
-	 *
-	 * @param nodeHandle int Handle of the node.
-	 * @return int true if the given node has child nodes.
-	 */
-	public boolean hasChildNodes(int nodeHandle) {
-		return(getFirstChild(nodeHandle) != NULL);
-	}
-
-	/**
-	 * Given a node handle, get the handle of the node's first child.
-	 * If not yet resolved, waits for more nodes to be added to the document and
-	 * tries again.
-	 *
-	 * @param nodeHandle int Handle of the node.
-	 * @return int DTM node-number of first child, or DTM.NULL to indicate none exists.
-	 */
-	public int getFirstChild(int nodeHandle) {
-		// ###shs worry about tracing/debug later
-		nodeHandle &= NODEHANDLE_MASK;
-		// Read node into variable
-		nodes.readSlot(nodeHandle, gotslot);
-
-		// type is the last half of first slot
-		short type = (short) (gotslot[0] & 0xFFFF);
-
-		// Check to see if Element or Document node
-		if ((type == ELEMENT_NODE) || (type == DOCUMENT_NODE) || 
-				(type == ENTITY_REFERENCE_NODE)) {
-			// In case when Document root is given
-			if (nodeHandle == 0) nodeHandle = 1;
-			int kid = nodeHandle + 1;
-			nodes.readSlot(kid, gotslot);
-			while (ATTRIBUTE_NODE == (gotslot[0] & 0xFFFF)) {
-				// points to next sibling
-				kid = gotslot[2];
-				// Return NULL if node has only attributes
-				if (kid == NULL) return NULL; 
-				nodes.readSlot(kid, gotslot);
-			}
-			// If parent slot matches given parent, return kid
-			if (gotslot[1] == nodeHandle)	return kid | m_docHandle;
-		}
-		// No child found
-		return NULL;
-	}
-
-	/**
-	* Given a node handle, advance to its last child.
-	* If not yet resolved, waits for more nodes to be added to the document and
-	* tries again.
-	*
-	* @param nodeHandle int Handle of the node.
-	* @return int Node-number of last child,
-	* or DTM.NULL to indicate none exists.
-	*/
-	public int getLastChild(int nodeHandle) {
-		// ###shs put trace/debug later
-		nodeHandle &= NODEHANDLE_MASK;
-		// do not need to test node type since getFirstChild does that
-		int lastChild = NULL;
-		for (int nextkid = getFirstChild(nodeHandle); nextkid != NULL;
-				nextkid = getNextSibling(nextkid)) {
-			lastChild = nextkid;
-		}
-		return lastChild | m_docHandle;		
-	}
-
-	/**
-	 * Retrieves an attribute node by by qualified name and namespace URI.
-	 *
-	 * @param nodeHandle int Handle of the node upon which to look up this attribute.
-	 * @param namespaceURI The namespace URI of the attribute to
-	 *   retrieve, or null.
-	 * @param name The local name of the attribute to
-	 *   retrieve.
-	 * @return The attribute node handle with the specified name (
-	 *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such
-	 *   attribute.
-	 */
-	public int getAttributeNode(int nodeHandle, String namespaceURI, String name) {
-		int nsIndex = m_nsNames.stringToIndex(namespaceURI),
-									nameIndex = m_localNames.stringToIndex(name);
-		nodeHandle &= NODEHANDLE_MASK;
-		nodes.readSlot(nodeHandle, gotslot);
-		short type = (short) (gotslot[0] & 0xFFFF);
-		// If nodeHandle points to element next slot would be first attribute
-		if (type == ELEMENT_NODE)
-			nodeHandle++;
-		// Iterate through Attribute Nodes
-		while (type == ATTRIBUTE_NODE) {
-			if ((nsIndex == (gotslot[0] << 16)) && (gotslot[3] == nameIndex))
-				return nodeHandle | m_docHandle;
-			// Goto next sibling
-			nodeHandle = gotslot[2];
-			nodes.readSlot(nodeHandle, gotslot);
-		}
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, get the index of the node's first attribute.
-	 *
-	 * @param nodeHandle int Handle of the Element node.
-	 * @return Handle of first attribute, or DTM.NULL to indicate none exists.
-	 */
-	public int getFirstAttribute(int nodeHandle) {
-		nodeHandle &= NODEHANDLE_MASK;
-
-		// %REVIEW% jjk: Just a quick observation: If you're going to
-		// call readEntry repeatedly on the same node, it may be
-		// more efficiently to do a readSlot to get the data locally,
-		// reducing the addressing and call-and-return overhead.
-
-		// Should we check if handle is element (do we want sanity checks?)
-		if (ELEMENT_NODE != (nodes.readEntry(nodeHandle, 0) & 0xFFFF))
-			return NULL;
-		// First Attribute (if any) should be at next position in table
-		nodeHandle++;
-		return(ATTRIBUTE_NODE == (nodes.readEntry(nodeHandle, 0) & 0xFFFF)) ? 
-		nodeHandle | m_docHandle : NULL;
-	}
-
-	/**
-	 * Given a node handle, get the index of the node's first child.
-	 * If not yet resolved, waits for more nodes to be added to the document and
-	 * tries again
-	 *
-	 * @param nodeHandle handle to node, which should probably be an element
-	 *                   node, but need not be.
-	 *
-	 * @param inScope    true if all namespaces in scope should be returned,
-	 *                   false if only the namespace declarations should be
-	 *                   returned.
-	 * @return handle of first namespace, or DTM.NULL to indicate none exists.
-	 */
-	public int getFirstNamespaceNode(int nodeHandle, boolean inScope) {
-
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, advance to its next sibling.
-	 * %TBD% Remove - If not yet resolved, waits for more nodes to be added to the document and
-	 * tries again.
-	 * @param nodeHandle int Handle of the node.
-	 * @return int Node-number of next sibling,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getNextSibling(int nodeHandle) {
-		nodeHandle &= NODEHANDLE_MASK;
-		// Document root has no next sibling
-		if (nodeHandle == 0)
-			return NULL;
-
-		short type = (short) (nodes.readEntry(nodeHandle, 0) & 0xFFFF);
-		if ((type == ELEMENT_NODE) || (type == ATTRIBUTE_NODE) ||
-				(type == ENTITY_REFERENCE_NODE)) {
-			int nextSib = nodes.readEntry(nodeHandle, 2);
-			if (nextSib == NULL)
-				return NULL;
-			if (nextSib != 0)
-				return (m_docHandle | nextSib);
-			// ###shs should cycle/wait if nextSib is 0? Working on threading next
-		}
-		// Next Sibling is in the next position if it shares the same parent
-		int thisParent = nodes.readEntry(nodeHandle, 1);
-		
-		// If next node has same parent, it's a sibling.
-		// NOTE that this is a DTM-level sib, _not_ a DOM-level
-		// sib.
-		// %TBD% Since DTM internals treat attrs
-		// and namespace nodes as leading children, this will
-		// advance from them to normal kids unless it is modified
-		// to check nodetype.
-		if (nodes.readEntry(++nodeHandle, 1) == thisParent)
-			return (m_docHandle | nodeHandle);
-
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, find its preceeding sibling.
-	 * WARNING: DTM is asymmetric; this operation is resolved by search, and is
-	 * relatively expensive.
-	 *
-	 * @param nodeHandle the id of the node.
-	 * @return int Node-number of the previous sib,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getPreviousSibling(int nodeHandle) {
-		nodeHandle &= NODEHANDLE_MASK;
-		// Document root has no previous sibling
-		if (nodeHandle == 0)
-			return NULL;
-
-		int parent = nodes.readEntry(nodeHandle, 1);
-		int kid = NULL;
-		for (int nextkid = getFirstChild(parent); nextkid != nodeHandle;
-				nextkid = getNextSibling(nextkid)) {
-			kid = nextkid;
-		}
-		return kid | m_docHandle;
-	}
-
-	/**
-	 * Given a node handle, advance to the next attribute. If an
-	 * element, we advance to its first attribute; if an attr, we advance to
-	 * the next attr on the same node.
-	 *
-	 * @param nodeHandle int Handle of the node.
-	 * @return int DTM node-number of the resolved attr,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getNextAttribute(int nodeHandle) {
-		nodeHandle &= NODEHANDLE_MASK;
-		nodes.readSlot(nodeHandle, gotslot);
-
-		//%REVIEW% Why are we using short here? There's no storage
-		//reduction for an automatic variable, especially one used
-		//so briefly, and it typically costs more cycles to process
-		//than an int would.
-		short type = (short) (gotslot[0] & 0xFFFF);
-
-		if (type == ELEMENT_NODE) {
-			return getFirstAttribute(nodeHandle);
-		} else if (type == ATTRIBUTE_NODE) {
-			if (gotslot[2] != NULL)
-				return (m_docHandle | gotslot[2]);
-		}
-		return NULL;
-	}
-
-	/**
-	 * Given a namespace handle, advance to the next namespace.
-	 *
-	 * %TBD% THIS METHOD DOES NOT MATCH THE CURRENT SIGNATURE IN
-	 * THE DTM INTERFACE.  FIX IT, OR JUSTIFY CHANGING THE DTM
-	 * API.
-	 *
-	 * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
-	 * @return handle of next namespace, or DTM.NULL to indicate none exists.
-	 */
-	public int getNextNamespaceNode(int baseHandle,int namespaceHandle, boolean inScope) {
-		// ###shs need to work on namespace
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, advance to its next descendant.
-	 * If not yet resolved, waits for more nodes to be added to the document and
-	 * tries again.
-	 *
-	 * @param subtreeRootNodeHandle
-	 * @param nodeHandle int Handle of the node.
-	 * @return handle of next descendant,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getNextDescendant(int subtreeRootHandle, int nodeHandle) {
-		subtreeRootHandle &= NODEHANDLE_MASK;
-		nodeHandle &= NODEHANDLE_MASK;
-		// Document root [Document Node? -- jjk] - no next-sib
-		if (nodeHandle == 0)
-			return NULL;
-		while (!m_isError) {
-			// Document done and node out of bounds
-			if (done && (nodeHandle > nodes.slotsUsed()))
-				break;
-			if (nodeHandle > subtreeRootHandle) {
-				nodes.readSlot(nodeHandle+1, gotslot);
-				if (gotslot[2] != 0) {
-					short type = (short) (gotslot[0] & 0xFFFF);
-					if (type == ATTRIBUTE_NODE) {
-						nodeHandle +=2;
-					} else {
-						int nextParentPos = gotslot[1];
-						if (nextParentPos >= subtreeRootHandle)
-							return (m_docHandle | (nodeHandle+1));
-						else
-							break;
-					}
-				} else if (!done) {
-					// Add wait logic here
-				} else
-					break;
-			} else {
-				nodeHandle++;
-			}
-		}
-		// Probably should throw error here like original instead of returning
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, advance to the next node on the following axis.
-	 *
-	 * @param axisContextHandle the start of the axis that is being traversed.
-	 * @param nodeHandle
-	 * @return handle of next sibling,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getNextFollowing(int axisContextHandle, int nodeHandle) {
-		//###shs still working on
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, advance to the next node on the preceding axis.
-	 *
-	 * @param axisContextHandle the start of the axis that is being traversed.
-	 * @param nodeHandle the id of the node.
-	 * @return int Node-number of preceding sibling,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getNextPreceding(int axisContextHandle, int nodeHandle) {
-		// ###shs copied from Xalan 1, what is this suppose to do?
-		nodeHandle &= NODEHANDLE_MASK;
-		while (nodeHandle > 1) {
-			nodeHandle--;
-			if (ATTRIBUTE_NODE == (nodes.readEntry(nodeHandle, 0) & 0xFFFF))
-				continue;
-
-			// if nodeHandle is _not_ an ancestor of
-			// axisContextHandle, specialFind will return it.
-			// If it _is_ an ancestor, specialFind will return -1
-
-			// %REVIEW% unconditional return defeats the
-			// purpose of the while loop -- does this
-			// logic make any sense?
-
-			return (m_docHandle | nodes.specialFind(axisContextHandle, nodeHandle));
-		}
-		return NULL;
-	}
-
-	/**
-	 * Given a node handle, find its parent node.
-	 *
-	 * @param nodeHandle the id of the node.
-	 * @return int Node-number of parent,
-	 * or DTM.NULL to indicate none exists.
-	 */
-	public int getParent(int nodeHandle) {
-		// Should check to see within range?
-
-		// Document Root should not have to be handled differently
-		return (m_docHandle | nodes.readEntry(nodeHandle, 1));
-	}
-
-	/**
-	 * Returns the root element of the document.
-	 * @return nodeHandle to the Document Root.
-	 */
-	public int getDocumentRoot() {
-		return (m_docHandle | m_docElement);
-	}
-
-	/**
-		* Given a node handle, find the owning document node.
-		*
-		* @param nodeHandle the id of the node.
-		* @return int Node handle of document, which should always be valid.
-		*/
-	public int getDocument() {
-		return m_docHandle;
-	}
-
-	/**
-	 * Given a node handle, find the owning document node.  This has the exact
-	 * same semantics as the DOM Document method of the same name, in that if
-	 * the nodeHandle is a document node, it will return NULL.
-	 *
-	 * <p>%REVIEW% Since this is DOM-specific, it may belong at the DOM
-	 * binding layer. Included here as a convenience function and to
-	 * aid porting of DOM code to DTM.</p>
-	 *
-	 * @param nodeHandle the id of the node.
-	 * @return int Node handle of owning document, or NULL if the nodeHandle is
-	 *             a document.
-	 */
-	public int getOwnerDocument(int nodeHandle) {
-		// Assumption that Document Node is always in 0 slot
-		if ((nodeHandle & NODEHANDLE_MASK) == 0)
-			return NULL;
-		return (nodeHandle & DOCHANDLE_MASK);
-	}
-
-
-	/**
-	 * Get the string-value of a node as a String object
-	 * (see http://www.w3.org/TR/xpath#data-model
-	 * for the definition of a node's string-value).
-	 *
-	 * @param nodeHandle The node ID.
-	 *
-	 * @return A string object that represents the string-value of the given node.
-	 */
-	public String getStringValue(int nodeHandle) {
-	// ###zaj - researching 
-	nodes.readSlot(nodeHandle, gotslot);
-	int nodetype=gotslot[0] & 0xFF;		
-	String value=null;
-
-	switch (nodetype) {			
-	case TEXT_NODE:   
-	case COMMENT_NODE:
-	case CDATA_SECTION_NODE: 
-		value=m_char.getString(gotslot[2], gotslot[3]);		
-		break;
-	case PROCESSING_INSTRUCTION_NODE:
-	case ATTRIBUTE_NODE:	
-	case ELEMENT_NODE:
-	case ENTITY_REFERENCE_NODE:
-	default:
-		break;
-	}
-	return value; 
-	       
-	}
-
-	/**
-	 * Get number of character array chunks in
-	 * the string-value of a node.
-	 * (see http://www.w3.org/TR/xpath#data-model
-	 * for the definition of a node's string-value).
-	 * Note that a single text node may have multiple text chunks.
-	 *
-	 * EXPLANATION: This method is an artifact of the fact that the
-	 * underlying m_chars object may not store characters in a
-	 * single contiguous array -- for example,the current
-	 * FastStringBuffer may split a single node's text across
-	 * multiple allocation units.  This call tells us how many
-	 * separate accesses will be required to retrieve the entire
-	 * content. PLEASE NOTE that this may not be the same as the
-	 * number of SAX characters() events that caused the text node
-	 * to be built in the first place, since m_chars buffering may
-	 * be on different boundaries than the parser's buffers.
-	 *
-	 * @param nodeHandle The node ID.
-	 *
-	 * @return number of character array chunks in
-	 *         the string-value of a node.
-	 * */
-	//###zaj - tbd
-	public int getStringValueChunkCount(int nodeHandle)
-	{
-		//###zaj    return value 
-		return 0;
-	}
-
-	/**
-	 * Get a character array chunk in the string-value of a node.
-	 * (see http://www.w3.org/TR/xpath#data-model
-	 * for the definition of a node's string-value).
-	 * Note that a single text node may have multiple text chunks.
-	 *
-	 * EXPLANATION: This method is an artifact of the fact that
-	 * the underlying m_chars object may not store characters in a
-	 * single contiguous array -- for example,the current
-	 * FastStringBuffer may split a single node's text across
-	 * multiple allocation units.  This call retrieves a single
-	 * contiguous portion of the text -- as much as m-chars was
-	 * able to store in a single allocation unit.  PLEASE NOTE
-	 * that this may not be the same granularityas the SAX
-	 * characters() events that caused the text node to be built
-	 * in the first place, since m_chars buffering may be on
-	 * different boundaries than the parser's buffers.
-	 *
-	 * @param nodeHandle The node ID.
-	 * @param chunkIndex Which chunk to get.
-	 * @param startAndLen An array of 2 where the start position and length of
-	 *                    the chunk will be returned.
-	 *
-	 * @return The character array reference where the chunk occurs.  */
-	//###zaj - tbd 
-	public char[] getStringValueChunk(int nodeHandle, int chunkIndex,
-																		int[] startAndLen) {return new char[0];}
-
-	/**
-	 * Given a node handle, return an ID that represents the node's expanded name.
-	 *
-	 * @param nodeHandle The handle to the node in question.
-	 *
-	 * @return the expanded-name id of the node.
-	 */
-	public int getExpandedNameID(int nodeHandle) {
-	   nodes.readSlot(nodeHandle, gotslot);
-
-=======
-
         // ========= Document Navigation Functions =========
 
         /** Given a node handle, test if it has child nodes.
@@ -1563,9 +1061,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 // Next Sibling is in the next position if it shares the same parent
                 int thisParent = nodes.readEntry(nodeHandle, 1);
                 
-                // %REVIEW% jjk: Old code was reading from nodehandle+1.
-                // That would be ++nodeHandle, not nodeHandle++. Check this!
-                if (nodes.readEntry(nodeHandle++, 1) == thisParent)
+                if (nodes.readEntry(++nodeHandle, 1) == thisParent)
                         return (m_docHandle | nodeHandle);
 
                 return NULL;
@@ -1877,8 +1373,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          */
         public int getExpandedNameID(int nodeHandle) {
            nodes.readSlot(nodeHandle, gotslot);
-
->>>>>>> 1.1.2.10
            String qName = m_localNames.indexToString(gotslot[3]); 
            // Remove prefix from qName
            // %TBD% jjk This is assuming the elementName is the qName.
@@ -1905,18 +1399,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * @return the expanded-name id of the node.
          */
         public int getExpandedNameID(String namespace, String localName, int type) {
-<<<<<<< DTMDocumentImpl.java
-	   // Create expanded name
-	  // %TBD% jjk Expanded name is bitfield-encoded as
-	  // typeID[6]nsuriID[10]localID[16]. Switch to that form, and to
-	  // accessing the ns/local via their tables rather than confusing
-	  // nsnames and expandednames.
-	   String expandedName = namespace + ":" + localName;
-	   int expandedNameID = m_nsNames.stringToIndex(expandedName);
-
-	   return expandedNameID;
-	}
-=======
            // Create expanded name
           // %TBD% jjk Expanded name is bitfield-encoded as
           // typeID[6]nsuriID[10]localID[16]. Switch to that form, and to
@@ -1927,26 +1409,8 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 
            return expandedNameID;
         }
->>>>>>> 1.1.2.10
 
 
-
-<<<<<<< DTMDocumentImpl.java
-	/**
-	 * Given an expanded-name ID, return the local name part.
-	 *
-	 * @param ExpandedNameID an ID that represents an expanded-name.
-	 * @return String Local name of this node.
-	 */
-	public String getLocalNameFromExpandedNameID(int ExpandedNameID) {
-
-	   // Get expanded name
-	   String expandedName = m_localNames.indexToString(ExpandedNameID); 
-	   // Remove prefix from expanded name
-	   int colonpos = expandedName.indexOf(":");
-	   String localName = expandedName.substring(colonpos+1);
-
-=======
         /**
          * Given an expanded-name ID, return the local name part.
          *
@@ -1960,9 +1424,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
            // Remove prefix from expanded name
            int colonpos = expandedName.indexOf(":");
            String localName = expandedName.substring(colonpos+1);
-
->>>>>>> 1.1.2.10
-        return localName;
+	   return localName;
         }
 
 
