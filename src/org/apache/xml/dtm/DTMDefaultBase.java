@@ -1726,7 +1726,7 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @param axis One of Axes.ANCESTORORSELF, etc.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisTraverser, or null if the given axis isn't supported.
    */
   public DTMAxisTraverser getAxisTraverser(final int axis)
   {
@@ -1813,7 +1813,7 @@ public abstract class DTMDefaultBase implements DTM
    * @param axis One of Axes.ANCESTORORSELF, etc.
    * @param type An extended type ID.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisIterator, or null if the given axis isn't supported.
    */
   public DTMAxisIterator getTypedAxisIterator(int axis, int type)
   {
@@ -1885,7 +1885,7 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @param axis One of Axes.ANCESTORORSELF, etc.
    *
-   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   * @return A DTMAxisIterator, or null if the given axis isn't supported.
    */
   public DTMAxisIterator getAxisIterator(final int axis)
   {
@@ -3608,7 +3608,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -3640,7 +3640,7 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      *
      * @return the first node in the traversal.
      */
@@ -3656,7 +3656,7 @@ public abstract class DTMDefaultBase implements DTM
      * node does not match the extended type ID, this function will return
      * false.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
      * @return the first node in the traversal.
@@ -3677,7 +3677,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -3692,7 +3692,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -3724,7 +3724,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -3741,7 +3741,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -3786,7 +3786,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -3814,7 +3814,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -3851,7 +3851,7 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      *
      * @return the first node in the traversal.
      */
@@ -3867,7 +3867,7 @@ public abstract class DTMDefaultBase implements DTM
      * node does not match the extended type ID, this function will return
      * false.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
      * @return the first node in the traversal.
@@ -3888,7 +3888,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -3919,7 +3919,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -3952,7 +3952,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -3992,7 +3992,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4006,7 +4006,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4034,7 +4034,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4051,7 +4051,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4085,7 +4085,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4102,7 +4102,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4136,7 +4136,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4154,7 +4154,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4209,7 +4209,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4238,7 +4238,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4274,7 +4274,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return the next node in the iteration, or DTM.NULL.
@@ -4288,7 +4288,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
@@ -4318,7 +4318,7 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      *
      * @return the first node in the traversal.
      */
@@ -4334,7 +4334,7 @@ public abstract class DTMDefaultBase implements DTM
      * node does not match the extended type ID, this function will return
      * false.
      *
-     * @param context The context node if this traversal.
+     * @param context The context node of this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
      * @return the first node in the traversal.
@@ -4347,7 +4347,7 @@ public abstract class DTMDefaultBase implements DTM
     /**
      * Traverse to the next node after the current node.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      *
      * @return Always return NULL for this axis.
@@ -4361,7 +4361,7 @@ public abstract class DTMDefaultBase implements DTM
      * Traverse to the next node after the current node that is matched
      * by the extended type ID.
      *
-     * @param context The context node if this iteration.
+     * @param context The context node of this iteration.
      * @param current The current node of the iteration.
      * @param extendedTypeID The extended type ID that must match.
      *
