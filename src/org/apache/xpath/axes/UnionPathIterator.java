@@ -128,6 +128,20 @@ public class UnionPathIterator extends Expression
       }
     }
   }
+  
+  /** Control over whether it is OK for detach to reset the iterator. */
+  private boolean m_allowDetach = true;
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease)
+  {
+    m_allowDetach = allowRelease;
+  }
 
   /**
    *  Detaches the iterator from the set which it iterated over, releasing
@@ -139,22 +153,24 @@ public class UnionPathIterator extends Expression
   public void detach()
   {
 
-    this.m_context = DTM.NULL;
-    this.m_execContext = null;
-    this.m_context = DTM.NULL;
-
-    int n = m_iterators.length;
-
-    for (int i = 0; i < n; i++)
+    if(m_allowDetach)
     {
-      m_iterators[i].detach();
+      this.m_execContext = null;
+      this.m_context = DTM.NULL;
+  
+  //    int n = m_iterators.length;
+  //
+  //    for (int i = 0; i < n; i++)
+  //    {
+  //      m_iterators[i].detach();
+  //    }
+  
+      m_clones.freeInstance(this);
     }
-
-    m_pool.freeInstance(this);
   }
 
   /** Pool of UnionPathIterators.  (The need for this has to be re-evaluated.  -sb) */
-  transient ObjectPool m_pool = new ObjectPool(this.getClass());
+  protected IteratorPool m_clones = new IteratorPool(this);
 
   /**
    * Execute this iterator, meaning create a clone that can  
@@ -171,22 +187,13 @@ public class UnionPathIterator extends Expression
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
 
-    try
-    {
-      UnionPathIterator clone =
-        (UnionPathIterator) m_pool.getInstanceIfFree();
+    UnionPathIterator clone =
+      (UnionPathIterator) m_clones.getInstance();
 
-      if (null == clone)
-        clone = (UnionPathIterator) this.clone();
+    int current = xctxt.getCurrentNode();
+    clone.setRoot(current, xctxt);
 
-      int current = xctxt.getCurrentNode();
-      clone.setRoot(current, xctxt);
-
-      return new XNodeSet(clone);
-    }
-    catch (CloneNotSupportedException ncse){}
-
-    return null;
+    return new XNodeSet(clone);
   }
 
   /** If this iterator needs to cache nodes that are fetched, they

@@ -226,6 +226,14 @@ public interface DTMIterator
    * raise a runtime exception.
    */
   public void detach();
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease);
 
   /**
    * Get the current node in the iterator. Note that this differs from

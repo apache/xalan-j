@@ -214,22 +214,12 @@ public abstract class LocPathIterator extends PredicatedNodeTest
           throws javax.xml.transform.TransformerException
   {
 
-    try
-    {
+    LocPathIterator clone = (LocPathIterator)m_clones.getInstance();
 
-      // LocPathIterator clone = (LocPathIterator) m_pool.getInstanceIfFree();
-      // if (null == clone)
-      LocPathIterator clone = (LocPathIterator) this.clone();
+    int current = xctxt.getCurrentNode();
+    clone.setRoot(current, xctxt);
 
-      int current = xctxt.getCurrentNode();
-      clone.setRoot(current, xctxt);
-
-      return new XNodeSet(clone);
-    }
-    catch (CloneNotSupportedException ncse)
-    {
-      throw new javax.xml.transform.TransformerException(ncse);
-    }
+    return new XNodeSet(clone);
   }
   
   /**
@@ -622,6 +612,20 @@ public abstract class LocPathIterator extends PredicatedNodeTest
   {
     return true;
   }
+  
+  /** Control over whether it is OK for detach to reset the iterator. */
+  private boolean m_allowDetach = true;
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease)
+  {
+    m_allowDetach = allowRelease;
+  }
 
   /**
    *  Detaches the iterator from the set which it iterated over, releasing
@@ -632,12 +636,15 @@ public abstract class LocPathIterator extends PredicatedNodeTest
    */
   public void detach()
   {    
-    m_cachedNodes = null;
-    m_execContext = null;
-    m_prefixResolver = null;
-    m_cdtm = null;
-    
-    m_clones.freeInstance(this);
+    if(m_allowDetach)
+    {
+      m_cachedNodes = null;
+      m_execContext = null;
+      m_prefixResolver = null;
+      m_cdtm = null;
+      
+      m_clones.freeInstance(this);
+    }
   }
 
   /**

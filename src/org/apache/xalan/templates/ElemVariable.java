@@ -282,6 +282,8 @@ public class ElemVariable extends ElemTemplateElement
       if (null != m_selectPattern)
       { 
         var = m_selectPattern.execute(xctxt, sourceNode, this);
+        if(var.getType() == XObject.CLASS_NODESET)
+          ((org.apache.xpath.objects.XNodeSet)var).allowDetachToRelease(false);
         if(TransformerImpl.S_DEBUG)
           transformer.getTraceManager().fireSelectedEvent(sourceNode, this, 
                                         "select", m_selectPattern, var);

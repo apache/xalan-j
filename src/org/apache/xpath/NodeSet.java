@@ -413,6 +413,18 @@ public class NodeSet extends NodeVector
    * </p>
    */
   public void detach(){}
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease)
+  {
+    // no action for right now.
+  }
+
 
   /**
    * Tells if this NodeSet is "fresh", in other words, if
@@ -1015,7 +1027,7 @@ public class NodeSet extends NodeVector
 
     return super.elementAt(i);
   }
-
+  
   /**
    * Tell if the table contains the given node.
    *

@@ -124,8 +124,7 @@ public class FunctionPattern extends StepPattern
           throws javax.xml.transform.TransformerException
   {
 
-    XObject obj = m_functionExpr.execute(xctxt);
-    DTMIterator nl = obj.nodeset();
+    DTMIterator nl = m_functionExpr.asIterator(xctxt, context);
     XNumber score = SCORE_NONE;
 
     if (null != nl)
@@ -146,6 +145,7 @@ public class FunctionPattern extends StepPattern
 
       // nl.detach();
     }
+    nl.detach();
 
     return score;
   }
@@ -168,8 +168,7 @@ public class FunctionPattern extends StepPattern
           throws javax.xml.transform.TransformerException
   {
 
-    XObject obj = m_functionExpr.execute(xctxt);
-    DTMIterator nl = obj.nodeset();
+    DTMIterator nl = m_functionExpr.asIterator(xctxt, context);
     XNumber score = SCORE_NONE;
 
     if (null != nl)
@@ -188,7 +187,7 @@ public class FunctionPattern extends StepPattern
         }
       }
 
-      // nl.detach();
+      nl.detach();
     }
 
     return score;
@@ -212,8 +211,7 @@ public class FunctionPattern extends StepPattern
   {
 
     int context = xctxt.getCurrentNode();
-    XObject obj = m_functionExpr.execute(xctxt);
-    DTMIterator nl = obj.nodeset();
+    DTMIterator nl = m_functionExpr.asIterator(xctxt, context);
     XNumber score = SCORE_NONE;
 
     if (null != nl)
@@ -232,7 +230,7 @@ public class FunctionPattern extends StepPattern
         }
       }
 
-      // nl.detach();
+      nl.detach();
     }
 
     return score;

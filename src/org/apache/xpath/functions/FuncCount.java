@@ -89,7 +89,7 @@ public class FuncCount extends FunctionOneArg
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
 
-    DTMIterator nl = m_arg0.execute(xctxt).nodeset();
+    DTMIterator nl = m_arg0.asIterator(xctxt, xctxt.getCurrentNode());
 
     // We should probably make a function on the iterator for this, 
     // as a given implementation could optimize.
@@ -99,7 +99,7 @@ public class FuncCount extends FunctionOneArg
     {
       i++;
     }
-    // nl.detach();
+    nl.detach();
 
     return new XNumber((double) i);
   }

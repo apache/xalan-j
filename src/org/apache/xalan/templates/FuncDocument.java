@@ -467,4 +467,15 @@ public class FuncDocument extends Function2Args
     if ((argNum < 1) || (argNum > 2))
       throw new WrongNumberArgsException("1 or 2");
   }
+  
+  /**
+   * Tell if the expression is a nodeset expression.  In other words, tell 
+   * if you can execute {@link asNode() asNode} without an exception.
+   * @return true if the expression can be represented as a nodeset.
+   */
+  public boolean isNodesetExpr()
+  {
+    return true;
+  }
+
 }

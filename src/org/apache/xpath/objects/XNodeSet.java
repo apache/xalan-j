@@ -226,6 +226,29 @@ public class XNodeSet extends XObject
     XString xstring = (XString)xstr();
     xstring.appendToFsb(fsb);
   }
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease)
+  {
+    ((DTMIterator) m_obj).allowDetachToRelease(allowRelease);
+  }
+
+  /**
+   * Detaches the <code>DTMIterator</code> from the set which it iterated
+   * over, releasing any computational resources and placing the iterator
+   * in the INVALID state. After <code>detach</code> has been invoked,
+   * calls to <code>nextNode</code> or <code>previousNode</code> will
+   * raise a runtime exception.
+   */
+  public void detach()
+  {
+    ((DTMIterator) m_obj).detach();
+  }
 
 
   /**

@@ -88,7 +88,7 @@ public class FuncSum extends FunctionOneArg
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
 
-    DTMIterator nodes = m_arg0.execute(xctxt).nodeset();
+    DTMIterator nodes = m_arg0.asIterator(xctxt, xctxt.getCurrentNode());
     double sum = 0.0;
     int pos;
 
@@ -100,7 +100,7 @@ public class FuncSum extends FunctionOneArg
       if (null != s)
         sum += s.toDouble();
     }
-    // nodes.detach();
+    nodes.detach();
 
     return new XNumber(sum);
   }
