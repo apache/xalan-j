@@ -370,6 +370,16 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     return fParserCoroutineID;
   }
 
+  /** @return the CoroutineManager this CoroutineParser object is bound to.
+   * If you're using the do...() methods, applications should only
+   * need to talk to the CoroutineManager once, to obtain the
+   * application's Coroutine ID.
+   * */
+  public CoroutineManager getCoroutineManager()
+  {
+    return fCoroutineManager;
+  }
+
   /** <p>In the SAX delegation code, I've inlined the count-down in
    * the hope of encouraging compilers to deliver better
    * performance. However, if we subclass (eg to directly connect the

@@ -95,9 +95,9 @@ import org.apache.xml.utils.FastStringBuffer;
  * by breaking the attributes out of the SAX createEvent call and generating
  * create-attribute (and create-namespace-declaration) calls.</p>
  *
- * <p>Status: In progress. The hardest part is deciding exactly how
- * the initialization transactions work -- who tells who about which of
- * of their partners.</p>
+ * <p>Status: MOSTLY DEAD CODE -- Merged into DTM implementations; this
+ * class is being retained just for reference and can probably be discarded
+ * some time soon -- Check with Joe.</p>
  * */
 public class DTMBuilder
 implements ContentHandler, LexicalHandler
@@ -183,7 +183,7 @@ implements ContentHandler, LexicalHandler
     // %TBD% parser should be passed in so we can plug in the
     // Xalan version of other specific instances.
     co_parser=new CoroutineSAXParser(fCoroutineManager,fAppCoroutine,parser);
-    fParserCoroutine=co_parser.getParserCoroutine();
+    fParserCoroutine=co_parser.getParserCoroutineID();
     co_parser.setContentHandler(this);
     co_parser.setLexHandler(this); // Needed for comments, I think.
     

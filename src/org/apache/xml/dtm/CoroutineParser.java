@@ -86,9 +86,18 @@ public interface CoroutineParser extends Runnable {
 
     /** @return the coroutine ID number for this CoroutineParser object.
      * Note that this isn't useful unless you know which CoroutineManager
-     * you're talking to.
+     * you're talking to. Also note that the do...() methods encapsulate
+     * the common transactions with the CoroutineParser, so you shouldn't
+     * need this in most cases.
      * */
     public int getParserCoroutineID();
+
+    /** @return the CoroutineManager for this CoroutineParser object.
+     * If you're using the do...() methods, applications should only
+     * need to talk to the CoroutineManager once, to obtain the
+     * application's Coroutine ID.
+     * */
+    public CoroutineManager getCoroutineManager();
 
   /** Register a SAX-style content handler for us to output to */
   public void setContentHandler(ContentHandler handler);

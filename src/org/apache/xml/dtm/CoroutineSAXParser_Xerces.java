@@ -121,6 +121,16 @@ implements CoroutineParser, Runnable
         return fParserCoroutineID;
     }
 
+  /** @return the CoroutineManager this CoroutineParser object is bound to.
+   * If you're using the do...() methods, applications should only
+   * need to talk to the CoroutineManager once, to obtain the
+   * application's Coroutine ID.
+   * */
+  public CoroutineManager getCoroutineManager()
+  {
+    return fCoroutineManager;
+  }
+
   // Note name, needed to dodge the inherited Xerces setLexicalHandler
   // which isn't public.
   public void setLexHandler(org.xml.sax.ext.LexicalHandler handler)

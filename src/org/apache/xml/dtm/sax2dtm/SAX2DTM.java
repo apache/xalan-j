@@ -84,6 +84,32 @@ public class SAX2DTM extends DTMDefaultBase
   /** simple DEBUG flag, for dumping diagnostics info. */
   private static final boolean DEBUG = false;
 
+  /** If we're building the model incrementally on demand, we need to
+   * be able to tell the source when to send us more data.
+   *
+   * Note that if this has not been set, and you attempt to read ahead
+   * of the current build point, we'll probably throw a null-pointer
+   * exception. We could try to wait-and-retry instead, as a very poor
+   * fallback, but that has all the known problems with multithreading
+   * on multiprocessors and we Don't Want to Go There.
+   * 
+   * @see setCoroutineParser
+   */
+  private CoroutineParser m_coroutineParser=null;
+
+  /** If we're building the model incrementally on demand, we need to
+   * be able to tell the source who to return the data to.
+   *
+   * Note that if this has not been set, and you attempt to read ahead
+   * of the current build point, we'll probably throw a MethodNotFound
+   * exception. We could try to wait-and-retry instead, as a very poor
+   * fallback, but that has all the known problems with multithreading
+   * on multiprocessors and we Don't Want to Go There.
+   * 
+   * @see setCoroutineParser
+   */
+  private int m_appCoroutineID=-1;
+
   /**
    * The number of nodes, which is also used to determine the next
    *  node index.
@@ -205,6 +231,43 @@ public class SAX2DTM extends DTMDefaultBase
     m_parents.push(doc);
     m_previous = DTM.NULL;
   }
+
+  /** Bind a CoroutineParser to this DTM. If we discover we need nodes
+   * that have not yet been built, we will ask this object to send us more
+   * events, and it will manage interactions with its data sources.
+   *
+   * Note that we do not actually build the CoroutineParser, since we don't
+   * know what source it's reading from, what thread that source will run in,
+   * or when it will run.
+   *
+   * @param coroutineParser The parser that we want to recieve events from
+   * on demand.
+   */
+  public void setCoroutineParser(CoroutineParser coroutineParser)
+  {
+    // Establish coroutine link so we can request more data
+    //
+    // Note: It's possible that some versions of CoroutineParser may
+    // not actually use a CoroutineManager, and hence may not require
+    // that we obtain an Application Coroutine ID. (This relies on the
+    // coroutine transaction details having been encapsulated in the
+    // CoroutineParser.do...() methods.)
+    m_coroutineParser=coroutineParser;
+    CoroutineManager cm=coroutineParser.getCoroutineManager();
+    if(cm!=null)
+      m_appCoroutineID=cm.co_joinCoroutineSet(-1);
+
+    // Establish SAX-stream link so we can receive the requested data
+    coroutineParser.setContentHandler(this);
+    coroutineParser.setLexHandler(this);
+
+    // Are the following really needed? coroutineParser doesn't yet
+    // support them, and they're mostly no-ops here...
+    //coroutineParser.setErrorHandler(this);
+    //coroutineParser.setDTDHandler(this);
+    //coroutineParser.setDeclHandler(this);
+  }
+  
 
   /**
    * Directly call the
@@ -417,10 +480,32 @@ public class SAX2DTM extends DTMDefaultBase
 
     if (identity >= m_size)
     {
+      if(m_coroutineParser==null)
+	identity = DTM.NULL;
+      else while(identity >= m_size)
+	{
+	  Object gotMore=m_coroutineParser.doMore(true,m_appCoroutineID);
 
-      // %TODO% CoRoutine stuff.
-      // if (!nextNode())
-      identity = DTM.NULL;
+	  // gotMore may be a Boolean (TRUE if still parsing, FALSE if
+	  // EOF) or an exception if CoroutineParser malfunctioned
+	  // (code error rather than user error).
+	  //
+	  // %REVIEW% Currently the ErrorHandlers sketched herein are
+	  // no-ops, so I'm going to initially leave this also as a
+	  // no-op.
+	  if(!(gotMore instanceof Boolean))
+	    {
+	      // %TBD% 
+	    }
+
+	  if(gotMore!=Boolean.TRUE & (identity >= m_size))
+	    {
+	      // EOF reached without satisfying the request
+	      m_coroutineParser=null;	// Drop connection, stop trying
+	      // %TBD% deregister as its listener?
+	      identity = DTM.NULL;	// Record not-found.
+	    }
+	}
     }
 
     return identity;
