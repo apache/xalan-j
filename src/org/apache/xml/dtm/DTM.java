@@ -339,12 +339,12 @@ public interface DTM
    * Note that this is roughly equivalent to getNextDescendent() with
    * subtreeRootHandle set to the Document node (or maybe the root element).
    * <p>
-   * TODO: Joe would like to rename this to walkNextFollowing
+   * %REVIEW% Joe would like to rename this to walkNextFollowing
    * (or perhaps just walkFollowing?)
    * to distinguish it more strongly from getNextSibling.
    *
    * @param axisContextHandle the start of the axis that is being traversed.
-   * TODO: As far as Joe can tell, this parameter is unnecessary...?
+   * %REVIEW% As far as Joe can tell, this parameter is unnecessary...?
    * @param nodeHandle the node whose successor we're looking for.
    * @return handle of next node in the DTM tree
    * or DTM.NULL to indicate none exists.
@@ -356,12 +356,12 @@ public interface DTM
    * walk stops (returning DTM.NULL) when it would otherwise run off the
    * beginning of the document.
    * <p>
-   * TODO: Joe would like to rename this to walkNextPreceeding
+   * %REVIEW% Joe would like to rename this to walkNextPreceeding
    * (or perhaps just walkPreceeding?)
    * to distinguish it more strongly from getPreviousSibling.
    *
    * @param axisContextHandle the start of the axis that is being traversed.
-   * TODO: As far as Joe can tell, this parameter is unnecessary...?
+   * %REVIEW% As far as Joe can tell, this parameter is unnecessary...?
    * @param nodeHandle the node whose predecessor we're looking for.
    * @return handle of next node in the DTM tree
    * or DTM.NULL to indicate none exists.
@@ -377,12 +377,13 @@ public interface DTM
    */
   public int getParent(int nodeHandle);
 
-  /**
-   * Given a node handle, find the owning document node.
+  /** Given a node handle, find the owning document node. Note that
+   * the reason this can't just return 0 is that it needs to include the
+   * document number portion of the node handle.
    *
    * @param nodeHandle the id of the node.
    * @return int Node handle of document, which should always be valid.
-   */
+   * */
   public int getDocument();
   
   /**
@@ -432,7 +433,8 @@ public interface DTM
    * @param startAndLen  A two-integer array which, upon return, WILL
    * BE FILLED with values representing the chunk's start position
    * within the returned character buffer and the length of the chunk.
-   * @return The character array buffer within which the chunk occurs.
+   * @return The character array buffer within which the chunk occurs,
+   * setting startAndLen's contents as a side-effect.
    */
   public char[] getStringValueChunk(int nodeHandle, int chunkIndex, 
                                     int[] startAndLen);
@@ -497,8 +499,8 @@ public interface DTM
 
   /**
    * Given a node handle, return its DOM-style localname.
-   * (As defined in Namespaces, this is the portion of the name after any
-   * colon character)
+   * (As defined in Namespaces, this is the portion of the name after the 
+   * prefix, if present, or the whole node name if no prefix exists)
    *
    * @param nodeHandle the id of the node.
    * @return String Local name of this node.
@@ -545,6 +547,9 @@ public interface DTM
 
   /**
    * Given a node handle, return its DOM-style node type.
+   *
+   * <p>%REVIEW% Generally, returning short is false economy. Return int?</p>
+   *
    * @param nodeHandle The node id.
    * @return int Node type, as per the DOM's Node._NODE constants.
    */
@@ -560,6 +565,9 @@ public interface DTM
    */
   public short getLevel(int nodeHandle);
     
+  
+  // ============== Document query functions ============== 
+
   /**
    * Tests whether DTM DOM implementation implements a specific feature and 
    * that feature is supported by this node.
@@ -574,14 +582,18 @@ public interface DTM
   public boolean isSupported(String feature, 
                              String version);
   
-  // ============== Document query functions ============== 
-  
   /**
    * Return the base URI of the specified node. If it is not known
    * (because the document was parsed from a socket connection or from
    * standard input, for example), the value of this property is null.
    * If you need the document's base URI, you can retrieve the Document
    * node and then ask it this question.
+   *
+   * %REVIEW% Should this query any node, or only the Document?
+   * (The Document's base URI may not match that of other nodes,
+   * due to External Parsed Entities and <xml:base/>. Supporting that
+   * would require tagging nodes with their base URI, or reintroducing
+   * EntityReference boundary points.
    *
    * @param nodeHandle The node id, which can be any valid node handle.
    * @return the document base URI String object or null if unknown.
@@ -696,7 +708,7 @@ public interface DTM
    * this properly. Currently, we simply return the System Identifier if
    * present, and hope that it a usable URI or that our caller can
    * map it to one.
-   * TODO: Resolve Public Identifiers... or consider changing function name.
+   * %REVIEW% Resolve Public Identifiers... or consider changing function name.
    * <p>
    * If we find a relative URI 
    * reference, XML expects it to be resolved in terms of the base URI 
@@ -704,7 +716,7 @@ public interface DTM
    * entirely clear whether that should be done here; currently that's
    * pushed up to a higher level of our application. (Note that DOM Level 
    * 1 didn't store the document's base URI.)
-   * TODO: Consider resolving Relative URIs.
+   * %REVIEW% Consider resolving Relative URIs.
    * <p>
    * (The DOM's statement that "An XML processor may choose to
    * completely expand entities before the structure model is passed
@@ -724,9 +736,9 @@ public interface DTM
   
   /**
    * Return true if the xsl:strip-space or xsl:preserve-space was processed 
-   * at the construction level.
+   * during construction of the document contained in this DTM.
    */
-  boolean supportsPreStripping();
+  public boolean supportsPreStripping();
   
   /**
    * Figure out whether nodeHandle2 should be considered as being later
@@ -737,9 +749,9 @@ public interface DTM
    * There are some cases where ordering isn't defined, and neither are
    * the results of this function -- though we'll generally return true.
    * <p>
-   * TODO: Make sure this does the right thing with attribute nodes!!!
+   * %REVIEW% Make sure this does the right thing with attribute nodes!!!
    * <p>
-   * TODO: Consider renaming for clarity. Perhaps isDocumentOrder(a,b)?
+   * %REVIEW% Consider renaming for clarity. Perhaps isDocumentOrder(a,b)?
    *
    * @param firstNodeHandle DOM Node to perform position comparison on.
    * @param secondNodeHandle DOM Node to perform position comparison on.
@@ -769,7 +781,7 @@ public interface DTM
    * <p>
    * Note too that it always returns false for non-Text nodes.
    * <p>
-   * TODO: Joe wants to rename this isWhitespaceInElementContent() for clarity
+   * %REVIEW% Joe wants to rename this isWhitespaceInElementContent() for clarity
    *
    * @param nodeHandle the node ID.
    * @return <code>true</code> if the node definitely represents whitespace in
@@ -850,12 +862,14 @@ public interface DTM
    * Append a child to the end of the document. Please note that the node 
    * is always cloned if it is owned by another document.
    * <p>
-   * TODO: "End of the document" needs to be defined better. I believe the
+   * %REVIEW% "End of the document" needs to be defined better. I believe the
    * intent is equivalent to the DOM sequence
-   *	document.getRootElement().appendChild(document.importNode(newChild)))
+   *	currentInsertPoint.appendChild(document.importNode(newChild)))
+   * where the insert point is the last element that was appended (or
+   * the last one popped back to by an end-element operation),
    * but we need to nail that down more explicitly.
    * <p>
-   * TODO: ISSUE -- In DTM, I believe we must ALWAYS clone the node, since
+   * %REVIEW% ISSUE -- In DTM, I believe we must ALWAYS clone the node, since
    * the base DTM is immutable and nodes never exist in isolation.
    * 
    * @param newChild Must be a valid new node handle.
