@@ -1721,7 +1721,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         if (node != DTM.NULL) {
             _ch2toh.setTOH(handler);
             try {
-                dispatchCharactersEvents(node, _ch2toh, false);
+                dispatchCharactersEvents(node, _ch2toh);
             } catch (SAXException e) {
                 throw new TransletException(e);
             }

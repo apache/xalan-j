@@ -1779,6 +1779,17 @@ public class SAX2DTM2 extends SAX2DTM
   }
   
   /**
+   * Override DTMDefaultBase._exptype().
+   * This one is less efficient than _exptype2. It is only used during
+   * DOM building. _exptype2 is used in the case when the document
+   * is fully built.
+   */
+  public final int _exptype(int identity)
+  {
+    return m_exptype.elementAt(identity);    
+  }
+
+  /**
    * The optimized version of DTMDefaultBase._exptype().
    */
   public final int _exptype2(int identity)
@@ -2682,6 +2693,95 @@ public class SAX2DTM2 extends SAX2DTM
         dataIndex = m_data.elementAt(dataIndex + 1);
       }
       return m_valuesOrPrefixes.indexToString(dataIndex);
+    }
+  }
+
+  /**
+   * The optimized version of SAX2DTM.dispatchCharactersEvents(int, ContentHandler, boolean).
+   * This one does not have the third boolean parameter.
+   *
+   * Directly call the
+   * characters method on the passed ContentHandler for the
+   * string-value of the given node (see http://www.w3.org/TR/xpath#data-model
+   * for the definition of a node's string-value). Multiple calls to the
+   * ContentHandler's characters methods may well occur for a single call to
+   * this method.
+   *
+   * @param nodeHandle The node ID.
+   * @param ch A non-null reference to a ContentHandler.
+   * @param normalize true if the content should be normalized according to
+   * the rules for the XPath
+   * <a href="http://www.w3.org/TR/xpath#function-normalize-space">normalize-space</a>
+   * function.
+   *
+   * @throws SAXException
+   */
+  public final void dispatchCharactersEvents(int nodeHandle, ContentHandler ch)
+          throws SAXException
+  {
+
+    int identity = makeNodeIdentity(nodeHandle);
+    
+    if (identity == DTM.NULL)
+      return;
+    
+    int type = _type2(identity);
+
+    if (type == DTM.ELEMENT_NODE || type == DTM.DOCUMENT_NODE)
+    {
+      int firstChild = _firstch2(identity);
+      if (DTM.NULL != firstChild)
+      {
+	int offset = -1;
+	int length = 0;
+	int startNode = identity;
+
+	identity = firstChild;
+
+	do 
+	{
+	  type = _exptype2(identity);
+
+	  if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
+	  {
+	    int dataIndex = _dataOrQName(identity);
+
+	    if (-1 == offset)
+	    {
+              offset = m_data.elementAt(dataIndex);
+	    }
+
+	    length += m_data.elementAt(dataIndex + 1);
+	  }
+
+	  identity++;
+	} while (_parent2(identity) >= startNode);
+
+	if (length > 0)
+	{
+	  m_chars.sendSAXcharacters(ch, offset, length);
+	}
+      }
+    } 
+    else if (DTM.TEXT_NODE == type || DTM.CDATA_SECTION_NODE == type)
+    {
+      int dataIndex = _dataOrQName(identity);
+
+      m_chars.sendSAXcharacters(ch, m_data.elementAt(dataIndex), 
+                                m_data.elementAt(dataIndex + 1));
+    }
+    else
+    {
+      int dataIndex = _dataOrQName(identity);
+
+      if (dataIndex < 0)
+      {
+        dataIndex = -dataIndex;
+        dataIndex = m_data.elementAt(dataIndex + 1);
+      }
+      
+      String str = m_valuesOrPrefixes.indexToString(dataIndex);
+      ch.characters(str.toCharArray(), 0, str.length());
     }
   }
   
