@@ -121,12 +121,12 @@ public class FuncDocument extends Function2Args
    */
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
-
     int context = xctxt.getCurrentNode();
     DTM dtm = xctxt.getDTM(context);
     
     int docContext = dtm.getDocument();
     XObject arg = (XObject) this.getArg0().execute(xctxt);
+
     String base = "";
     Expression arg1Expr = this.getArg1();
 
@@ -256,11 +256,12 @@ public class FuncDocument extends Function2Args
 
     // System.out.println("base: "+base+", uri: "+uri);
     SourceTreeManager treeMgr = xctxt.getSourceTreeManager();
-    
+    Source source;
+   
     int newDoc;
     try
     {
-      Source source = treeMgr.resolveURI(base, uri, xctxt.getSAXLocator());
+      source = treeMgr.resolveURI(base, uri, xctxt.getSAXLocator());
       newDoc = treeMgr.getNode(source);
     }
     catch (IOException ioe)
@@ -278,7 +279,19 @@ public class FuncDocument extends Function2Args
 
     // If the uri length is zero, get the uri of the stylesheet.
     if (uri.length() == 0)
+    {
+      // Hmmm... this seems pretty bogus to me... -sb
       uri = xctxt.getNamespaceContext().getBaseIdentifier();
+      try
+      {
+        source = treeMgr.resolveURI(base, uri, xctxt.getSAXLocator());
+      }
+      catch (IOException ioe)
+      {
+        throw new TransformerException(ioe.getMessage(), 
+          (SourceLocator)xctxt.getSAXLocator(), ioe);
+      }
+    }
 
     String diagnosticsString = null;
 
@@ -286,7 +299,7 @@ public class FuncDocument extends Function2Args
     {
       if ((null != uri) && (uri.toString().length() > 0))
       {
-        newDoc = treeMgr.getSourceTree(base, uri, xctxt.getSAXLocator(), xctxt);
+        newDoc = treeMgr.getSourceTree(source, xctxt.getSAXLocator(), xctxt);
 
         // System.out.println("newDoc: "+((Document)newDoc).getDocumentElement().getNodeName());
       }
@@ -452,6 +465,6 @@ public class FuncDocument extends Function2Args
   public void checkNumberArgs(int argNum) throws WrongNumberArgsException
   {
     if ((argNum < 1) || (argNum > 2))
-      throw new WrongNumberArgsException("2");
+      throw new WrongNumberArgsException("1 or 2");
   }
 }
