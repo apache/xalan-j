@@ -214,10 +214,9 @@ public abstract class DTMDefaultBase implements DTM
    * @return the number of nodes that have been mapped.
    */
   protected abstract int getNumberOfNodes();
-  
+
   /** Stateless axis traversers, lazely built. */
   protected DTMAxisTraverser[] m_traversers;
-
 
   /**
    * Ensure that the size of the information arrays can hold another entry
@@ -1715,7 +1714,7 @@ public abstract class DTMDefaultBase implements DTM
     if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWhitespaceStack.setTop(shouldStrip);
   }
-  
+
   /**
    * This returns a stateless "traverser", that can navigate over an
    * XPath axis, though perhaps not in document order.
@@ -1726,8 +1725,10 @@ public abstract class DTMDefaultBase implements DTM
    */
   public DTMAxisTraverser getAxisTraverser(final int axis)
   {
+
     DTMAxisTraverser traverser;
-    if(null == m_traversers)
+
+    if (null == m_traversers)
     {
       m_traversers = new DTMAxisTraverser[Axis.names.length];
       traverser = null;
@@ -1735,64 +1736,68 @@ public abstract class DTMDefaultBase implements DTM
     else
     {
       traverser = m_traversers[axis];
-      if(traverser != null)
+
+      if (traverser != null)
         return traverser;
     }
-      
-    switch (axis) 
+
+    switch (axis)
     {
-      case Axis.ANCESTOR:
-        traverser = new AncestorTraverser();
-        break;
-      case Axis.ANCESTORORSELF:
-        traverser = new AncestorOrSelfTraverser();
-        break;
-      case Axis.ATTRIBUTE:
-        traverser = new AttributeTraverser();
-        break;
-      case Axis.CHILD:
-        traverser = new ChildTraverser();
-        break;
-      case Axis.DESCENDANT:
-        traverser = new DescendantTraverser();
-        break;
-      case Axis.DESCENDANTORSELF:
-        traverser = new DescendantTraverser();
-        break;
-      case Axis.FOLLOWING:
-        traverser = new FollowingTraverser();
-        break;
-      case Axis.FOLLOWINGSIBLING:
-        traverser = new FollowingSiblingTraverser();
-        break;
-      case Axis.NAMESPACE:
-        traverser = new NamespaceTraverser();
-        break;
-      case Axis.NAMESPACEDECLS:
-        traverser = new NamespaceDeclsTraverser();
-        break;
-      case Axis.PARENT:
-        traverser = new ParentTraverser();
-        break;
-      case Axis.PRECEDING:
-        traverser = new PrecedingTraverser();
-        break;
-      case Axis.PRECEDINGSIBLING:
-        traverser = new PrecedingSiblingTraverser();
-        break;
-      case Axis.SELF:
-        traverser = new SelfTraverser();
-        break;
-      case Axis.SUBTREE:
-        traverser = new SubtreeTraverser();
-        break;
-      default:
-        throw new DTMException("Unknown axis traversal type");
+    case Axis.ANCESTOR :
+      traverser = new AncestorTraverser();
+      break;
+    case Axis.ANCESTORORSELF :
+      traverser = new AncestorOrSelfTraverser();
+      break;
+    case Axis.ATTRIBUTE :
+      traverser = new AttributeTraverser();
+      break;
+    case Axis.CHILD :
+      traverser = new ChildTraverser();
+      break;
+    case Axis.DESCENDANT :
+      traverser = new DescendantTraverser();
+      break;
+    case Axis.DESCENDANTORSELF :
+      traverser = new DescendantTraverser();
+      break;
+    case Axis.FOLLOWING :
+      traverser = new FollowingTraverser();
+      break;
+    case Axis.FOLLOWINGSIBLING :
+      traverser = new FollowingSiblingTraverser();
+      break;
+    case Axis.NAMESPACE :
+      traverser = new NamespaceTraverser();
+      break;
+    case Axis.NAMESPACEDECLS :
+      traverser = new NamespaceDeclsTraverser();
+      break;
+    case Axis.PARENT :
+      traverser = new ParentTraverser();
+      break;
+    case Axis.PRECEDING :
+      traverser = new PrecedingTraverser();
+      break;
+    case Axis.PRECEDINGSIBLING :
+      traverser = new PrecedingSiblingTraverser();
+      break;
+    case Axis.SELF :
+      traverser = new SelfTraverser();
+      break;
+    case Axis.SUBTREE :
+      traverser = new SubtreeTraverser();
+      break;
+    default :
+      throw new DTMException("Unknown axis traversal type");
     }
-    if(null == traverser)
-      throw new DTMException("Axis traverser not supported: "+Axis.names[axis]);
-      
+
+    if (null == traverser)
+      throw new DTMException("Axis traverser not supported: "
+                             + Axis.names[axis]);
+
     m_traversers[axis] = traverser;
+
     return traverser;
   }
 
@@ -3630,11 +3635,13 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @return true if the context node should be processed for this axis.
+     * @param context The context node if this traversal.
+     *
+     * @return the first node in the traversal.
      */
-    public boolean processSelf()
+    public int first(int context)
     {
-      return true;
+      return context;
     }
 
     /**
@@ -3647,12 +3654,12 @@ public abstract class DTMDefaultBase implements DTM
      * @param context The context node if this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
-     * @return true if the context node should be processed for this axis, and
-     * the extendedTypeID matches that of the context.
+     * @return the first node in the traversal.
      */
-    public boolean processSelf(int context, int extendedTypeID)
+    public int first(int context, int extendedTypeID)
     {
-      return (m_exptype[context & m_mask] == extendedTypeID);
+      return (m_exptype[context & m_mask] == extendedTypeID)
+             ? context : next(context, context, extendedTypeID);
     }
   }
 
@@ -3719,6 +3726,7 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       // %OPT%
       return (context == current)
              ? getFirstChild(context) : getNextSibling(current);
@@ -3756,10 +3764,12 @@ public abstract class DTMDefaultBase implements DTM
    */
   private class DescendantTraverser extends DTMAxisTraverser
   {
-    
+
     /**
      * Tell if this node identity is a descendant.  Assumes that
      * the node info for the element has already been obtained.
+     *
+     * NEEDSDOC @param subtreeRootIdentity
      * @param identity The index number of the node in question.
      * @return true if the index is a descendant of _startNode.
      */
@@ -3778,11 +3788,12 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       int subtreeRootIdent = context & m_mask;
-      
-      for (current = (current & m_mask)+1;;current++)
+
+      for (current = (current & m_mask) + 1; ; current++)
       {
-        int type = _type(current); // may call nextNode()
+        int type = _type(current);  // may call nextNode()
 
         if (!isDescendant(subtreeRootIdent, current))
           return NULL;
@@ -3808,10 +3819,10 @@ public abstract class DTMDefaultBase implements DTM
     {
 
       int subtreeRootIdent = context & m_mask;
-      
-      for (current = (current & m_mask)+1;;current++)
+
+      for (current = (current & m_mask) + 1; ; current++)
       {
-        int exptype = _exptype(current); // may call nextNode()
+        int exptype = _exptype(current);  // may call nextNode()
 
         if (!isDescendant(subtreeRootIdent, current))
           return NULL;
@@ -3835,11 +3846,13 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @return true if the context node should be processed for this axis.
+     * @param context The context node if this traversal.
+     *
+     * @return the first node in the traversal.
      */
-    public boolean processSelf()
+    public int first(int context)
     {
-      return true;
+      return context;
     }
 
     /**
@@ -3852,21 +3865,21 @@ public abstract class DTMDefaultBase implements DTM
      * @param context The context node if this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
-     * @return true if the context node should be processed for this axis, and
-     * the extendedTypeID matches that of the context.
+     * @return the first node in the traversal.
      */
-    public boolean processSelf(int context, int extendedTypeID)
+    public int first(int context, int extendedTypeID)
     {
-      return (m_exptype[context & m_mask] == extendedTypeID);
+      return (m_exptype[context & m_mask] == extendedTypeID)
+             ? context : next(context, context, extendedTypeID);
     }
   }
-  
+
   /**
    * Implements traversal of the entire subtree, including the root node.
    */
   private class SubtreeTraverser extends DescendantOrSelfTraverser
   {
-    
+
     /**
      * Traverse to the next node after the current node.
      *
@@ -3877,11 +3890,12 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       int subtreeRootIdent = context & m_mask;
-      
-      for (current = (current & m_mask)+1;;current++)
+
+      for (current = (current & m_mask) + 1; ; current++)
       {
-        _exptype(current); // make sure it's here.
+        _exptype(current);  // make sure it's here.
 
         if (!isDescendant(subtreeRootIdent, current))
           return NULL;
@@ -3889,9 +3903,7 @@ public abstract class DTMDefaultBase implements DTM
         return (current | m_dtmIdent);  // make handle.
       }
     }
-
   }
-
 
   /**
    * Implements traversal of the following access, in document order.
@@ -3909,18 +3921,19 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       int subtreeRootIdent = context & m_mask;
-      
-      if(context == current)
+
+      if (context == current)
         current = getNextSibling(context) & m_mask;
       else
-        current = (current & m_mask)+1;       
-            
-      for (;;current++)
-      {
-        int type = _type(current); // may call nextNode()
+        current = (current & m_mask) + 1;
 
-        if(NULL == type)
+      for (; ; current++)
+      {
+        int type = _type(current);  // may call nextNode()
+
+        if (NULL == type)
           return NULL;
 
         if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
@@ -3944,17 +3957,17 @@ public abstract class DTMDefaultBase implements DTM
     {
 
       int subtreeRootIdent = context & m_mask;
-      
-      if(context == current)
+
+      if (context == current)
         current = getNextSibling(context) & m_mask;
       else
-        current = (current & m_mask)+1;       
-            
-      for (;;current++)
+        current = (current & m_mask) + 1;
+
+      for (; ; current++)
       {
-        int exptype = _exptype(current); // may call nextNode()
-        
-        if(NULL == exptype)
+        int exptype = _exptype(current);  // may call nextNode()
+
+        if (NULL == exptype)
           return NULL;
 
         if (exptype != extendedTypeID)
@@ -4023,8 +4036,9 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       return (context == current)
-             ? getFirstNamespaceNode(context, false) 
+             ? getFirstNamespaceNode(context, false)
              : getNextNamespaceNode(context, current, false);
     }
 
@@ -4042,7 +4056,7 @@ public abstract class DTMDefaultBase implements DTM
     {
 
       current = (context == current)
-                ? getFirstNamespaceNode(context, false) 
+                ? getFirstNamespaceNode(context, false)
                 : getNextNamespaceNode(context, current, false);
 
       do
@@ -4050,7 +4064,8 @@ public abstract class DTMDefaultBase implements DTM
         if (m_exptype[current] == extendedTypeID)
           return current;
       }
-      while (DTM.NULL != (current = getNextNamespaceNode(context, current, false)));
+      while (DTM.NULL
+             != (current = getNextNamespaceNode(context, current, false)));
 
       return NULL;
     }
@@ -4072,8 +4087,9 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       return (context == current)
-             ? getFirstNamespaceNode(context, true) 
+             ? getFirstNamespaceNode(context, true)
              : getNextNamespaceNode(context, current, true);
     }
 
@@ -4091,7 +4107,7 @@ public abstract class DTMDefaultBase implements DTM
     {
 
       current = (context == current)
-                ? getFirstNamespaceNode(context, true) 
+                ? getFirstNamespaceNode(context, true)
                 : getNextNamespaceNode(context, current, true);
 
       do
@@ -4099,7 +4115,8 @@ public abstract class DTMDefaultBase implements DTM
         if (m_exptype[current] == extendedTypeID)
           return current;
       }
-      while (DTM.NULL != (current = getNextNamespaceNode(context, current, true)));
+      while (DTM.NULL
+             != (current = getNextNamespaceNode(context, current, true)));
 
       return NULL;
     }
@@ -4110,6 +4127,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   private class ParentTraverser extends DTMAxisTraverser
   {
+
     /**
      * Traverse to the next node after the current node.
      *
@@ -4120,7 +4138,8 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
-      if(context == current)
+
+      if (context == current)
         return m_parent[current & m_mask] | m_dtmIdent;
       else
         return NULL;
@@ -4138,7 +4157,8 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current, int extendedTypeID)
     {
-      if(context != current)
+
+      if (context != current)
         return NULL;
 
       current = current & m_mask;
@@ -4158,24 +4178,26 @@ public abstract class DTMDefaultBase implements DTM
    */
   private class PrecedingTraverser extends DTMAxisTraverser
   {
+
     /**
      * Tell if the current identity is an ancestor of the context identity.
      * This is an expensive operation, made worse by the stateless traversal.
      * But the preceding axis is used fairly infrequently.
-     * 
+     *
      * @param contextIdent The context node of the axis traversal.
      * @param currentIdent The node in question.
      * @return true if the currentIdent node is an ancestor of contextIdent.
      */
     protected boolean isAncestor(int contextIdent, int currentIdent)
     {
-      for (contextIdent = m_parent[contextIdent]; 
-           DTM.NULL != contextIdent; 
-           contextIdent = m_parent[contextIdent]) 
+
+      for (contextIdent = m_parent[contextIdent]; DTM.NULL != contextIdent;
+              contextIdent = m_parent[contextIdent])
       {
-        if(contextIdent == currentIdent)
+        if (contextIdent == currentIdent)
           return true;
       }
+
       return false;
     }
 
@@ -4189,19 +4211,21 @@ public abstract class DTMDefaultBase implements DTM
      */
     public int next(int context, int current)
     {
+
       int subtreeRootIdent = context & m_mask;
-      
-      for (current = (current & m_mask)-1;current >= 0;current--)
+
+      for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
         int type = ExpandedNameTable.getType(exptype);
 
-        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type ||
-            isAncestor(subtreeRootIdent, current))
+        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type
+                || isAncestor(subtreeRootIdent, current))
           continue;
 
         return (current | m_dtmIdent);  // make handle.
       }
+
       return NULL;
     }
 
@@ -4219,18 +4243,19 @@ public abstract class DTMDefaultBase implements DTM
     {
 
       int subtreeRootIdent = context & m_mask;
-      
-      for (current = (current & m_mask)-1;current >= 0;current--)
+
+      for (current = (current & m_mask) - 1; current >= 0; current--)
       {
         int exptype = m_exptype[current];
         int type = ExpandedNameTable.getType(exptype);
 
-        if (exptype != extendedTypeID ||
-            isAncestor(subtreeRootIdent, current))
+        if (exptype != extendedTypeID
+                || isAncestor(subtreeRootIdent, current))
           continue;
 
         return (current | m_dtmIdent);  // make handle.
       }
+
       return NULL;
     }
   }
@@ -4240,7 +4265,6 @@ public abstract class DTMDefaultBase implements DTM
    */
   private class PrecedingSiblingTraverser extends DTMAxisTraverser
   {
-
 
     /**
      * Traverse to the next node after the current node.
@@ -4289,11 +4313,13 @@ public abstract class DTMDefaultBase implements DTM
      * returned or the iteration will go into an infinate loop.  To see if
      * the self node should be processed, use this function.
      *
-     * @return true if the context node should be processed for this axis.
+     * @param context The context node if this traversal.
+     *
+     * @return the first node in the traversal.
      */
-    public boolean processSelf()
+    public int first(int context)
     {
-      return true;
+      return context;
     }
 
     /**
@@ -4306,12 +4332,11 @@ public abstract class DTMDefaultBase implements DTM
      * @param context The context node if this traversal.
      * @param extendedTypeID The extended type ID that must match.
      *
-     * @return true if the context node should be processed for this axis, and
-     * the extendedTypeID matches that of the context.
+     * @return the first node in the traversal.
      */
-    public boolean processSelf(int context, int extendedTypeID)
+    public int first(int context, int extendedTypeID)
     {
-      return (m_exptype[context & m_mask] == extendedTypeID);
+      return (m_exptype[context & m_mask] == extendedTypeID) ? context : NULL;
     }
 
     /**

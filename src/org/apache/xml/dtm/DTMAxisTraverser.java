@@ -74,25 +74,23 @@ public abstract class DTMAxisTraverser
 
   /**
    * By the nature of the stateless traversal, the context node can not be
-   * returned or the iteration will go into an infinate loop.  To see if
-   * the self node should be processed, use this function.
+   * returned or the iteration will go into an infinate loop.  So to traverse 
+   * an axis, the first function must be used to get the first node.
    *
    * <p>This method needs to be overloaded only by those axis that process
    * the self node. <\p>
    *
-   * @return true if the context node should be processed for this axis.
+   * @return the first node in the traversal.
    */
-  public boolean processSelf()
+  public int first(int context)
   {
-    return false;
+    return next(context, context);
   }
 
   /**
    * By the nature of the stateless traversal, the context node can not be
-   * returned or the iteration will go into an infinate loop.  To see if
-   * the self node should be processed, use this function.  If the context
-   * node does not match the extended type ID, this function will return
-   * false.
+   * returned or the iteration will go into an infinate loop.  So to traverse 
+   * an axis, the first function must be used to get the first node.
    *
    * <p>This method needs to be overloaded only by those axis that process
    * the self node. <\p>
@@ -100,12 +98,11 @@ public abstract class DTMAxisTraverser
    * @param context The context node if this traversal.
    * @param extendedTypeID The extended type ID that must match.
    *
-   * @return true if the context node should be processed for this axis, and
-   * the extendedTypeID matches that of the context.
+   * @return the first node in the traversal.
    */
-  public boolean processSelf(int context, int extendedTypeID)
+  public int first(int context, int extendedTypeID)
   {
-    return false;
+    return next(context, context, extendedTypeID);
   }
 
   /**
