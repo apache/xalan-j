@@ -1758,8 +1758,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     {
       //final int type = getNodeType(node); //_type[node];
       int nodeID = makeNodeIdentity(node);
-      int exptype = _exptype2(nodeID);
-      int type = _exptype2Type(exptype);
+      int eType = _exptype2(nodeID);
+      int type = _exptype2Type(eType);
 
       switch(type)
       {
@@ -1800,8 +1800,34 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         if (type == DTM.ELEMENT_NODE) 
         {
           // Start element definition
-          final String name = copyElement(nodeID, exptype, handler);
+          final String name = copyElement(nodeID, eType, handler);
+          
+          // %OPT% Increase the element ID by 1 to iterate through all
+          // attribute and namespace nodes.
+          int current = nodeID;
+          while (true)
+          {
+            current++;
+            type = _type2(current);
+            
+            if (type == DTM.ATTRIBUTE_NODE)
+            {
+              final String uri = getNamespaceName(makeNodeHandle(current));
+              if (uri.length() != 0) {
+                final String prefix = getPrefix(makeNodeHandle(current));
+                handler.namespace(prefix, uri);
+              }
+              handler.attribute(getNodeName(makeNodeHandle(current)), getNodeValue(makeNodeHandle(current)));            
+            }
+            else if (type == DTM.NAMESPACE_NODE)
+            {
+              handler.namespace(getNodeNameX(makeNodeHandle(current)), getNodeValue(makeNodeHandle(current)));            
+            }
+            else
+              break;
+          }
           // Copy element attribute
+          /*
           for(int a=getFirstAttribute(node); a!=DTM.NULL; a=getNextAttribute(a))
             {
               final String uri = getNamespaceName(a);
@@ -1818,10 +1844,12 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
               handler.namespace(getNodeNameX(a),
                                 getNodeValue(a));
             }
+          */
           
           // Copy element children
-          for(int c=getFirstChild(node); c!=DTM.NULL; c=getNextSibling(c))
-            copy(c, handler);
+          for (int c = _firstch2(nodeID); c != DTM.NULL; c = _nextsib2(c))
+            copy(makeNodeHandle(c), handler);
+          
           // Close element definition
           handler.endElement(name);
         }
