@@ -55,7 +55,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 import java.util.Vector;
 import java.util.Hashtable;
 
@@ -77,49 +77,49 @@ import java.util.Hashtable;
  * <p>Status: In progress, under discussion.</p>
  * */
 public class CustomStringPool extends DTMStringPool {
-	//final Vector m_intToString;
-	//static final int HASHPRIME=101;
-	//int[] m_hashStart=new int[HASHPRIME];
-	final Hashtable m_stringToInt = new Hashtable();
-	public static final int NULL=-1;
+        //final Vector m_intToString;
+        //static final int HASHPRIME=101;
+        //int[] m_hashStart=new int[HASHPRIME];
+        final Hashtable m_stringToInt = new Hashtable();
+        public static final int NULL=-1;
 
-	public CustomStringPool()
-	{
-		super();
-		/*m_intToString=new Vector();
-		System.out.println("In constructor m_intToString is " + 
-											 ((null == m_intToString) ? "null" : "not null"));*/
-		//m_stringToInt=new Hashtable();
-		//removeAllElements();
-	}
+        public CustomStringPool()
+        {
+                super();
+                /*m_intToString=new Vector();
+                System.out.println("In constructor m_intToString is " + 
+                                                                                         ((null == m_intToString) ? "null" : "not null"));*/
+                //m_stringToInt=new Hashtable();
+                //removeAllElements();
+        }
 
-	public void removeAllElements()
-	{
-		m_intToString.removeAllElements();
-		if (m_stringToInt != null) 
-			m_stringToInt.clear();
-	}
+        public void removeAllElements()
+        {
+                m_intToString.removeAllElements();
+                if (m_stringToInt != null) 
+                        m_stringToInt.clear();
+        }
 
-	/** @return string whose value is uniquely identified by this integer index.
-	 * @throws java.lang.ArrayIndexOutOfBoundsException
-	 *  if index doesn't map to a string.
-	 * */
-	public String indexToString(int i)
-	throws java.lang.ArrayIndexOutOfBoundsException
-	{
-		return(String) m_intToString.elementAt(i);
-	}
+        /** @return string whose value is uniquely identified by this integer index.
+         * @throws java.lang.ArrayIndexOutOfBoundsException
+         *  if index doesn't map to a string.
+         * */
+        public String indexToString(int i)
+        throws java.lang.ArrayIndexOutOfBoundsException
+        {
+                return(String) m_intToString.elementAt(i);
+        }
 
-	/** @return integer index uniquely identifying the value of this string. */
-	public int stringToIndex(String s)
-	{
-		if (s==null) return NULL;
-		Integer iobj=(Integer)m_stringToInt.get(s);
-		if (iobj==null) {
-			m_intToString.addElement(s);
-			iobj=new Integer(m_intToString.size());
-			m_stringToInt.put(s,iobj);
-		}
-		return iobj.intValue();
-	}
+        /** @return integer index uniquely identifying the value of this string. */
+        public int stringToIndex(String s)
+        {
+                if (s==null) return NULL;
+                Integer iobj=(Integer)m_stringToInt.get(s);
+                if (iobj==null) {
+                        m_intToString.addElement(s);
+                        iobj=new Integer(m_intToString.size());
+                        m_stringToInt.put(s,iobj);
+                }
+                return iobj.intValue();
+        }
 }

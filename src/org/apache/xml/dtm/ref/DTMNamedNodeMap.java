@@ -54,8 +54,9 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
+import org.apache.xml.dtm.*;
 import org.w3c.dom.*;
 
 import java.util.Vector;

@@ -987,7 +987,7 @@ public class LocPathIterator extends PredicatedNodeTest
    *
    * @param n Must be a non-null reference to the node context.
    */
-  public final void setRoot(int n)
+  public void setRoot(int n)
   {
     m_context = n;
     m_cdtm = m_execContext.getDTM(n);

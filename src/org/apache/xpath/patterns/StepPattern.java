@@ -79,7 +79,7 @@ public class StepPattern extends NodeTest implements SubContextList
 
   /** NEEDSDOC Field m_axis */
   protected int m_axis;
-
+  
   /**
    * Construct a StepPattern that tests for namespaces and node names.
    *
@@ -200,6 +200,20 @@ public class StepPattern extends NodeTest implements SubContextList
     
     calcScore();
   }
+  
+  /**
+   * Get the reference to nodetest and predicate for
+   * parent or ancestor.
+   *
+   *
+   * @return The relative pattern expression.
+   */
+  public StepPattern getRelativePathPattern()
+  {
+
+    return m_relativePathPattern;
+  }
+
 
   /**
    * The list of predicate expressions for this pattern step.
@@ -272,11 +286,13 @@ public class StepPattern extends NodeTest implements SubContextList
   /**
    * Static calc of match score.
    */
-  protected void calcScore()
+  public void calcScore()
   {
 
     if ((getPredicateCount() > 0) || (null != m_relativePathPattern))
+    {
       m_score = SCORE_OTHER;
+    }
     else
       super.calcScore();
 
@@ -302,6 +318,18 @@ public class StepPattern extends NodeTest implements SubContextList
           throws javax.xml.transform.TransformerException
   {
 
+    if (m_whatToShow == NodeTest.SHOW_BYFUNCTION)
+    {
+      XObject score = NodeTest.SCORE_NONE;
+
+      if (null != m_relativePathPattern)
+      {
+        score = m_relativePathPattern.execute(xctxt);
+      }
+
+      return score;
+    }
+
     XObject score = super.execute(xctxt);
 
     if (score == NodeTest.SCORE_NONE)
@@ -314,7 +342,7 @@ public class StepPattern extends NodeTest implements SubContextList
     else
     {
       // System.out.println("PredicateRoot: "+xctxt.getPredicateRoot());
-      int current = xctxt.getCurrentNode();
+      // int current = xctxt.getCurrentNode();
       return score;
       // int parent = xctxt.getDTM(current).getParent(current);
       // return executePredicates(xctxt, this, score, current, current);
@@ -567,6 +595,57 @@ public class StepPattern extends NodeTest implements SubContextList
 
     return score;
   }
+  
+  public String toString()
+  {
+    StringBuffer buf = new StringBuffer();
+    for(StepPattern pat = this; pat != null; pat = pat.m_relativePathPattern)
+    {
+      if(pat != this)
+        buf.append("/");
+      buf.append(Axis.names[pat.m_axis]);
+      buf.append("::");
+      if(null != pat.m_namespace)
+      {
+        buf.append("{");
+        buf.append(pat.m_namespace);
+        buf.append("}");
+      }
+      else if(null != pat.m_name)
+      {
+        buf.append(pat.m_name);
+      }
+      else if(0x000005000 == pat.m_whatToShow)
+      {
+        buf.append("doc()");
+      }
+      else if(DTMFilter.SHOW_BYFUNCTION == pat.m_whatToShow)
+      {
+        buf.append("function()");
+      }
+      else if(DTMFilter.SHOW_ALL == pat.m_whatToShow)
+      {
+        buf.append("node()");
+      }
+      else if(DTMFilter.SHOW_TEXT == pat.m_whatToShow)
+      {
+        buf.append("text()");
+      }
+      else if(DTMFilter.SHOW_PROCESSING_INSTRUCTION == pat.m_whatToShow)
+      {
+        buf.append("processing-instruction()");
+      }
+      else if(DTMFilter.SHOW_COMMENT == pat.m_whatToShow)
+      {
+        buf.append("comment()");
+      }
+      else
+      {
+        buf.append("??");
+      }
+    }
+    return buf.toString();
+  }
 
   /** Set to true to send diagnostics about pattern matches to the consol. */
   private static final boolean DEBUG_MATCHES = false;
@@ -606,4 +685,25 @@ public class StepPattern extends NodeTest implements SubContextList
 
     // return XPath.MATCH_SCORE_NONE;
   }
+  
+  public void setAxis(int axis)
+  {
+    m_axis = axis;
+  }
+  
+  public int getAxis()
+  {
+    return m_axis;
+  }
+  
+  public void setPredicateAxis(int axisForPredicate)
+  {
+    m_axisForPredicate = axisForPredicate;
+  }
+  
+  public int getPredicateAxis()
+  {
+    return m_axisForPredicate;
+  }
+
 }

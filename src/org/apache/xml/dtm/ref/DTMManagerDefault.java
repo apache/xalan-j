@@ -54,7 +54,9 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
+
+import org.apache.xml.dtm.*;
 
 import java.util.Vector;
 
@@ -69,8 +71,8 @@ import javax.xml.transform.SourceLocator;
 // Apache XML Utilities
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xml.utils.SystemIDResolver;
-import org.apache.xml.dtm.dom2dtm.DOM2DTM;
-import org.apache.xml.dtm.sax2dtm.SAX2DTM;
+import org.apache.xml.dtm.ref.dom2dtm.DOM2DTM;
+import org.apache.xml.dtm.ref.sax2dtm.SAX2DTM;
 
 // W3C DOM
 import org.w3c.dom.Document;
@@ -99,6 +101,12 @@ public class DTMManagerDefault extends DTMManager
 
   /** NEEDSDOC Field m_dtms */
   protected Vector m_dtms = new Vector();
+  
+  /**
+   * The default table for exandedNameID lookups.
+   */
+  private static ExpandedNameTable m_expandedNameTable =
+    new ExpandedNameTable();
 
   /**
    * Constructor DTMManagerDefault
@@ -373,8 +381,8 @@ public class DTMManagerDefault extends DTMManager
   public int getDTMHandleFromNode(org.w3c.dom.Node node)
   {
 
-    if (node instanceof org.apache.xml.dtm.DTMNodeProxy)
-      return ((org.apache.xml.dtm.DTMNodeProxy) node).getDTMNodeNumber();
+    if (node instanceof org.apache.xml.dtm.ref.DTMNodeProxy)
+      return ((org.apache.xml.dtm.ref.DTMNodeProxy) node).getDTMNodeNumber();
     else
     {
       // Find the DOM2DTMs wrapped around this Document (if any)
@@ -392,14 +400,14 @@ public class DTMManagerDefault extends DTMManager
       // checking more DTMs... and getHandleFromNode is not a
       // cheap operation in most implementations.
       for(int i=m_dtms.size()-1;i>=0;--i)
-	{
-	  DTM thisDTM=(DTM)m_dtms.elementAt(i);
-	  if(thisDTM instanceof DOM2DTM)
-	    {
-	      int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
-	      if(handle!=DTM.NULL) return handle;
-	    }
-	}
+        {
+          DTM thisDTM=(DTM)m_dtms.elementAt(i);
+          if(thisDTM instanceof DOM2DTM)
+            {
+              int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
+              if(handle!=DTM.NULL) return handle;
+            }
+        }
       
       // Fallback: Not found in one we know how to search.
       // Current solution: Generate a new DOM2DTM with this node as root.
@@ -653,4 +661,17 @@ public class DTMManagerDefault extends DTMManager
     /** @todo: implement this org.apache.xml.dtm.DTMManager abstract method */
     return null;
   }
+  
+  /**
+   * return the expanded name table.
+   *
+   * NEEDSDOC @param dtm
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  public ExpandedNameTable getExpandedNameTable(DTM dtm)
+  {
+    return m_expandedNameTable;
+  }
+
 }

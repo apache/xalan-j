@@ -55,12 +55,11 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import java.io.IOException;
-import org.apache.xml.dtm.CoroutineManager;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.ContentHandler;
 

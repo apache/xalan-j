@@ -56,7 +56,7 @@
  */
 
 //package org.apache.xerces.parsers;
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;

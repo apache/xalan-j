@@ -54,7 +54,9 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
+
+import org.apache.xml.dtm.*;
 
 /**
  * This class serves as a default base for implementations of DTMAxisIterators.

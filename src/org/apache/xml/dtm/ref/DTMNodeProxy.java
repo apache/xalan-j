@@ -54,9 +54,10 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.w3c.dom.*;
+import org.apache.xml.dtm.*;
 
 /**
  * <meta name="usage" content="internal"/>

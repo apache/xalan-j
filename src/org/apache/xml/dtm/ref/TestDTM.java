@@ -1,7 +1,7 @@
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
-import org.apache.xml.dtm.DTMDocumentImpl;
-import org.apache.xml.dtm.TestDTMNodes;
+import org.apache.xml.dtm.ref.DTMDocumentImpl;
+import org.apache.xml.dtm.ref.TestDTMNodes;
 import org.xml.sax.helpers.AttributesImpl;
 
 /**

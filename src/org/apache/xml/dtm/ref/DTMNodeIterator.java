@@ -54,7 +54,8 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
+import org.apache.xml.dtm.*;
 import org.w3c.dom.Node;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.traversal.*;
@@ -182,7 +183,7 @@ public class DTMNodeIterator implements org.w3c.dom.traversal.NodeIterator
   public Node nextNode() throws DOMException
     {
       if(!valid)
-	throw new DTMDOMException(DOMException.INVALID_STATE_ERR);
+        throw new DTMDOMException(DOMException.INVALID_STATE_ERR);
       
       int handle=dtm_iter.nextNode();
       return dtm_iter.getDTM(handle).getNode(handle);
@@ -198,7 +199,7 @@ public class DTMNodeIterator implements org.w3c.dom.traversal.NodeIterator
   public Node previousNode() 
     {
       if(!valid)
-	throw new DTMDOMException(DOMException.INVALID_STATE_ERR);
+        throw new DTMDOMException(DOMException.INVALID_STATE_ERR);
       
       int handle=dtm_iter.previousNode();
       return dtm_iter.getDTM(handle).getNode(handle);

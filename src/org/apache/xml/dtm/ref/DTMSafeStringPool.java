@@ -55,7 +55,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 import org.apache.xml.utils.IntVector;
 import java.util.Vector;
 
@@ -113,35 +113,35 @@ extends DTMStringPool
 
     for(int pass=0;pass<=1;++pass)
       {
-	int i;
+        int i;
 
-	for(i=0;i<word.length;++i)
-	  {
-	    int j=pool.stringToIndex(word[i]);
-	    if(j!=i)
-	      System.out.println("\tMismatch populating pool: assigned "+
-				 j+" for create "+i);
-	  }
+        for(i=0;i<word.length;++i)
+          {
+            int j=pool.stringToIndex(word[i]);
+            if(j!=i)
+              System.out.println("\tMismatch populating pool: assigned "+
+                                 j+" for create "+i);
+          }
 
-	for(i=0;i<word.length;++i)
-	  {
-	    int j=pool.stringToIndex(word[i]);
-	    if(j!=i)
-	      System.out.println("\tMismatch in stringToIndex: returned "+
-				 j+" for lookup "+i);
-	  }
+        for(i=0;i<word.length;++i)
+          {
+            int j=pool.stringToIndex(word[i]);
+            if(j!=i)
+              System.out.println("\tMismatch in stringToIndex: returned "+
+                                 j+" for lookup "+i);
+          }
 
-	for(i=0;i<word.length;++i)
-	  {
-	    String w=pool.indexToString(i);
-	    if(!word[i].equals(w))
-	      System.out.println("\tMismatch in indexToString: returned"+
-				 w+" for lookup "+i);
-	  }
-	
-	pool.removeAllElements();
-	
-	System.out.println("\nPass "+pass+" complete\n");
+        for(i=0;i<word.length;++i)
+          {
+            String w=pool.indexToString(i);
+            if(!word[i].equals(w))
+              System.out.println("\tMismatch in indexToString: returned"+
+                                 w+" for lookup "+i);
+          }
+        
+        pool.removeAllElements();
+        
+        System.out.println("\nPass "+pass+" complete\n");
       } // end pass loop
   }
 } // DTMSafeStringPool

@@ -55,7 +55,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 import org.apache.xml.utils.IntVector;
 import java.util.Vector;
 

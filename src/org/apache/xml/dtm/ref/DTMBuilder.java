@@ -56,7 +56,7 @@
  */
 
 //package org.apache.xerces.parsers;
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -67,7 +67,7 @@ import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
 import org.xml.sax.ext.LexicalHandler;
 import java.io.IOException;
-import org.apache.xml.dtm.CoroutineManager;
+import org.apache.xml.dtm.ref.CoroutineManager;
 import org.apache.xml.utils.FastStringBuffer;
 
 
@@ -195,14 +195,14 @@ implements ContentHandler, LexicalHandler
     // has been completed and the parser coroutine yields.
     try
       {
-	fCoroutineManager.co_resume(source,fAppCoroutine,fParserCoroutine);
+        fCoroutineManager.co_resume(source,fAppCoroutine,fParserCoroutine);
       }
     catch(NoSuchMethodException e)
       {
-	// Shouldn't happen unless we've miscoded our coroutine logic
-	// "Shut down the garbage smashers on the detention level!"
-	e.printStackTrace(System.err);
-	fCoroutineManager.co_exit(fAppCoroutine);
+        // Shouldn't happen unless we've miscoded our coroutine logic
+        // "Shut down the garbage smashers on the detention level!"
+        e.printStackTrace(System.err);
+        fCoroutineManager.co_exit(fAppCoroutine);
       }
   }
   
@@ -216,9 +216,9 @@ implements ContentHandler, LexicalHandler
     int len=content.length();
     if(len!=contentStart)
       {
-	// The FastStringBuffer has been previously agreed upon
-	m_dtm.appendTextChild(contentStart,len-contentStart);
-	contentStart=len;
+        // The FastStringBuffer has been previously agreed upon
+        m_dtm.appendTextChild(contentStart,len-contentStart);
+        contentStart=len;
       }
   }
 
@@ -295,8 +295,8 @@ implements ContentHandler, LexicalHandler
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
     m_dtm.appendStartElement(namespaceNames.stringToIndex(namespaceURI),
-		     localNames.stringToIndex(localName),
-		     prefixes.stringToIndex(prefix)); /////// %TBD%
+                     localNames.stringToIndex(localName),
+                     prefixes.stringToIndex(prefix)); /////// %TBD%
 
     // %TBD% I'm assuming that DTM will require resequencing of
     // NS decls before other attrs, hence two passes are taken.
@@ -305,61 +305,61 @@ implements ContentHandler, LexicalHandler
     // %TBD% Countdown is more efficient if nobody cares about sequence.
     for(int i=nAtts-1;i>=0;--i)	
       {
-	qName=atts.getQName(i);
-	if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
-	  {
-	    prefix=null;
-	    colon=qName.indexOf(':');
-	    if(colon>0)
-	      {
-		prefix=qName.substring(0,colon);
-	      }
-	    else
-	      {
-		prefix=""; // Default prefix
-	      }
-	    
+        qName=atts.getQName(i);
+        if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
+          {
+            prefix=null;
+            colon=qName.indexOf(':');
+            if(colon>0)
+              {
+                prefix=qName.substring(0,colon);
+              }
+            else
+              {
+                prefix=""; // Default prefix
+              }
+            
 
-	    m_dtm.appendNSDeclaration(
-				    prefixes.stringToIndex(prefix),
-				    namespaceNames.stringToIndex(atts.getValue(i)),
-				    atts.getType(i).equalsIgnoreCase("ID"));
-	  }
+            m_dtm.appendNSDeclaration(
+                                    prefixes.stringToIndex(prefix),
+                                    namespaceNames.stringToIndex(atts.getValue(i)),
+                                    atts.getType(i).equalsIgnoreCase("ID"));
+          }
       }
     
     for(int i=nAtts-1;i>=0;--i)	
       {
-	qName=atts.getQName(i);
-	if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
-	  {
-	    // %TBD% I hate having to extract the prefix into a new
-	    // string when we may never use it. Consider pooling whole
-	    // qNames, which are already strings?
-	    prefix=null;
-	    colon=qName.indexOf(':');
-	    if(colon>0)
-	      {
-		prefix=qName.substring(0,colon);
-		localName=qName.substring(colon+1);
-	      }
-	    else
-	      {
-		prefix=""; // Default prefix
-		localName=qName;
-	      }
-	    
-	    
-	    content.append(atts.getValue(i)); // Single-string value
-	    int contentEnd=content.length();
-	    
-	    if(!("xmlns".equals(prefix) || "xmlns".equals(qName)))
-	      m_dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
-				  localNames.stringToIndex(localName),
-				  prefixes.stringToIndex(prefix),
-				  atts.getType(i).equalsIgnoreCase("ID"),
-				  contentStart, contentEnd-contentStart);
-	    contentStart=contentEnd;
-	  }
+        qName=atts.getQName(i);
+        if(qName.startsWith("xmlns:") || "xmlns".equals(qName))
+          {
+            // %TBD% I hate having to extract the prefix into a new
+            // string when we may never use it. Consider pooling whole
+            // qNames, which are already strings?
+            prefix=null;
+            colon=qName.indexOf(':');
+            if(colon>0)
+              {
+                prefix=qName.substring(0,colon);
+                localName=qName.substring(colon+1);
+              }
+            else
+              {
+                prefix=""; // Default prefix
+                localName=qName;
+              }
+            
+            
+            content.append(atts.getValue(i)); // Single-string value
+            int contentEnd=content.length();
+            
+            if(!("xmlns".equals(prefix) || "xmlns".equals(qName)))
+              m_dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
+                                  localNames.stringToIndex(localName),
+                                  prefixes.stringToIndex(prefix),
+                                  atts.getType(i).equalsIgnoreCase("ID"),
+                                  contentStart, contentEnd-contentStart);
+            contentStart=contentEnd;
+          }
       }
   }
   public void startPrefixMapping(java.lang.String prefix, java.lang.String uri) 
@@ -446,27 +446,27 @@ implements ContentHandler, LexicalHandler
       arg= getmore ? Boolean.TRUE : Boolean.FALSE;
     try
       {
-	arg = fCoroutineManager.co_resume(arg,fAppCoroutine,fParserCoroutine);
-	if (arg instanceof Boolean) {
-	  return ((Boolean)arg).booleanValue();
-	  }
+        arg = fCoroutineManager.co_resume(arg,fAppCoroutine,fParserCoroutine);
+        if (arg instanceof Boolean) {
+          return ((Boolean)arg).booleanValue();
+          }
 
-	else // Unexpected!
-	  {
-	    System.err.println(
-		  "Active CoroutineSAXParser: unexpected resume parameter, "
-		  +arg.getClass
-		  ()+" with value=\""+arg+'"');
-	    System.err.println("\tStopping parser rather than risk deadlock");
-	    throw new RuntimeException("Coroutine parameter error ("+arg+')');
-	  }
+        else // Unexpected!
+          {
+            System.err.println(
+                  "Active CoroutineSAXParser: unexpected resume parameter, "
+                  +arg.getClass
+                  ()+" with value=\""+arg+'"');
+            System.err.println("\tStopping parser rather than risk deadlock");
+            throw new RuntimeException("Coroutine parameter error ("+arg+')');
+          }
       }
     catch(java.lang.NoSuchMethodException e)
       {
-	// Shouldn't happen unless we've miscoded our coroutine logic
-	// "Shut down the garbage smashers on the detention level!"
-	e.printStackTrace(System.err);
-	fCoroutineManager.co_exit(fAppCoroutine);
+        // Shouldn't happen unless we've miscoded our coroutine logic
+        // "Shut down the garbage smashers on the detention level!"
+        e.printStackTrace(System.err);
+        fCoroutineManager.co_exit(fAppCoroutine);
       }
 
     // Only reached if NoSuchMethodException was thrown (no coroutine)

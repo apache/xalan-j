@@ -54,8 +54,9 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm.dom2dtm;
+package org.apache.xml.dtm.ref.dom2dtm;
 
+import org.apache.xml.dtm.ref.*;
 import org.apache.xml.dtm.*;
 import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
@@ -91,7 +92,7 @@ import org.apache.xml.utils.XMLStringFactory;
  * mutation. If you alter the DOM after wrapping DOM2DTM around it,
  * all bets are off.
  * */
-public class DOM2DTM extends DTMDefaultBase
+public class DOM2DTM extends DTMDefaultBaseIterators
 {
   /** The top of the subtree.
    * %REVIEW%: 'may not be the same as m_context if "//foo" pattern.'
@@ -277,7 +278,7 @@ public class DOM2DTM extends DTMDefaultBase
     String localName =  (type == Node.PROCESSING_INSTRUCTION_NODE) ? 
                          node.getNodeName() :
                          node.getLocalName();
-    ExpandedNameTable exnt = m_mgr.getExpandedNameTable(this);
+    ExpandedNameTable exnt = ((DTMManagerDefault)m_mgr).getExpandedNameTable(this);
 
     // %REVIEW% WARNING: This will not handle a Level 1 DOM node
     // successfully; the nodes returned by createElement and

@@ -93,15 +93,9 @@ import org.apache.xml.utils.XMLStringFactory;
 public abstract class DTMManager
 {
 
-  /** The default property name according to the JAXP spec. */
+  /** The default property name to load the manager. */
   private static final String defaultPropName =
     "org.apache.xml.dtm.DTMManager";
-
-  /**
-   * The default table for exandedNameID lookups.
-   */
-  private static ExpandedNameTable m_expandedNameTable =
-    new ExpandedNameTable();
 
   /**
    * Factory for creating XMLString objects.
@@ -179,7 +173,7 @@ public abstract class DTMManager
   {
 
     String classname = findFactory(defaultPropName,
-                                   "org.apache.xml.dtm.DTMManagerDefault");
+                                   "org.apache.xml.dtm.ref.DTMManagerDefault");
 
     if (classname == null)
     {
@@ -523,15 +517,4 @@ public abstract class DTMManager
     return IDENT_NODE_DEFAULT;
   }
 
-  /**
-   * return the expanded name table.
-   *
-   * NEEDSDOC @param dtm
-   *
-   * NEEDSDOC ($objectName$) @return
-   */
-  public ExpandedNameTable getExpandedNameTable(DTM dtm)
-  {
-    return m_expandedNameTable;
-  }
 }

@@ -92,7 +92,7 @@ public class FunctionPattern extends StepPattern
   /**
    * Static calc of match score.
    */
-  protected final void calcScore()
+  public final void calcScore()
   {
 
     m_score = SCORE_OTHER;

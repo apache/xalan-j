@@ -54,8 +54,9 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
+import org.apache.xml.dtm.*;
 import org.w3c.dom.*;
 
 import org.xml.sax.*;
@@ -167,8 +168,8 @@ public class DTMTreeWalker
 
           if ((DTM.NULL == pos) || (top == pos))
           {
-	    // %REVIEW% This condition isn't tested in traverse(pos,top)
-	    // -- bug?
+            // %REVIEW% This condition isn't tested in traverse(pos,top)
+            // -- bug?
             if (DTM.NULL != pos)
               endNode(pos);
 

@@ -1,4 +1,4 @@
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -8,8 +8,6 @@ import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
 import org.xml.sax.XMLReader;
 import java.io.IOException;
-import org.apache.xml.dtm.CoroutineManager;
-
 
 /** Primitive unit test for CoroutineSAXParser in filtering mode:
  * Attempt coroutine parsing of documents indicated by arguments (as
@@ -76,22 +74,22 @@ class CoroutineSAXFilterTest implements Runnable
     System.out.println("*** Parser start ***");
     try
       {
-	theSAXParser.parse(new InputSource(args[0]));
+        theSAXParser.parse(new InputSource(args[0]));
       }
     catch(java.io.IOException e)
       {
-	e.printStackTrace();
+        e.printStackTrace();
       }
     catch(org.xml.sax.SAXException e)
       {
-	e.printStackTrace();
+        e.printStackTrace();
 
-	// %REVIEW% We'll should probably expose these special types,
-	// if we might be testing them outside the filtering code...
+        // %REVIEW% We'll should probably expose these special types,
+        // if we might be testing them outside the filtering code...
 
-	Exception embedded=e.getException();
-	if(embedded!=null && embedded.getClass().getName().equals("org.apache.xml.dtm.CoroutineSAXParser$UserRequestedStopException"))
-	  System.out.println("... NORMAL response to doTerminate().");
+        Exception embedded=e.getException();
+        if(embedded!=null && embedded.getClass().getName().equals("org.apache.xml.dtm.CoroutineSAXParser$UserRequestedStopException"))
+          System.out.println("... NORMAL response to doTerminate().");
       }
     System.out.println("*** Parser end ***");
     filter.doTerminate(appCoroutineID);
@@ -110,22 +108,22 @@ class CoroutineSAXFilterTest implements Runnable
     boolean more=true;
 
     for(result = filter.doParse(null, appCoroutineID);
-	(result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-	result = filter.doMore(more, appCoroutineID))
+        (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+        result = filter.doMore(more, appCoroutineID))
       {
-	// Special test: Terminate parsing early.
-	if(TEST_EARLY_STOP)
-	  {
-	    System.out.println("\nSome parsing successful, trying to stop.\n");
-	    more=false;
-	  }
-	else
-	  System.out.println("\nSome parsing successful, trying more.\n");
+        // Special test: Terminate parsing early.
+        if(TEST_EARLY_STOP)
+          {
+            System.out.println("\nSome parsing successful, trying to stop.\n");
+            more=false;
+          }
+        else
+          System.out.println("\nSome parsing successful, trying more.\n");
       }
     
     if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
       {
-	System.out.println("\nfilter ended (EOF or on request).\n");
+        System.out.println("\nfilter ended (EOF or on request).\n");
       }
     else if (result == null) {
       System.out.println("\nUNEXPECTED: filter says shut down prematurely.\n");

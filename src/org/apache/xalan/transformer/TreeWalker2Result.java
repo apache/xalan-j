@@ -61,7 +61,7 @@ import org.apache.xml.dtm.DTM;
 
 import org.xml.sax.*;
 
-import org.apache.xml.dtm.DTMTreeWalker;
+import org.apache.xml.dtm.ref.DTMTreeWalker;
 import org.apache.xml.utils.MutableAttrListImpl;
 import org.apache.xalan.templates.ElemTemplateElement;
 import org.apache.xpath.DOMHelper;

@@ -316,9 +316,9 @@ public abstract class TransformerFactory {
      */
     private static boolean debug;
     static {
-	try {
-	    debug = System.getProperty("jaxp.debug") != null;
-	} catch( SecurityException ex ) {}
+        try {
+            debug = System.getProperty("jaxp.debug") != null;
+        } catch( SecurityException ex ) {}
     }
 
     /**
@@ -336,10 +336,10 @@ public abstract class TransformerFactory {
 
         // Use the system property first
         try {
-	    String systemProp = null;
-	    try {
-		systemProp = System.getProperty(factoryId);
-	    } catch( SecurityException se ) {}
+            String systemProp = null;
+            try {
+                systemProp = System.getProperty(factoryId);
+            } catch( SecurityException se ) {}
 
             if (systemProp != null) {
                 if (debug) {

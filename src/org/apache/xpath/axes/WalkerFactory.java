@@ -60,9 +60,12 @@ import org.apache.xpath.compiler.OpCodes;
 import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.patterns.StepPattern;
+import org.apache.xpath.patterns.FunctionPattern;
 import org.apache.xpath.Expression;
+import org.apache.xpath.objects.XNumber;
 
-import org.w3c.dom.traversal.NodeFilter;
+import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.Axis;
 
 /**
  * This class is both a factory for XPath location path expressions,
@@ -273,12 +276,24 @@ public class WalkerFactory
     }
     else
     {
-      if (DEBUG_ITERATOR_CREATION)
-        System.out.println("new iterator:  LocPathIterator: "
-                           + Integer.toBinaryString(analysis) + ", "
-                           + compiler.toString());
+      if(true)
+      {
+        if (DEBUG_ITERATOR_CREATION)
+          System.out.println("new iterator:  LocPathIterator: "
+                             + Integer.toBinaryString(analysis) + ", "
+                             + compiler.toString());
+  
+        return new LocPathIterator(compiler, opPos, analysis, true);
+      }
+      else
+      {        
+        if (DEBUG_ITERATOR_CREATION)
+          System.out.println("new iterator:  MatchPatternIterator: " 
+                            + Integer.toBinaryString(analysis) + ", "
+                             + compiler.toString());
 
-      return new LocPathIterator(compiler, opPos, analysis, true);
+        return new MatchPatternIterator(compiler, opPos, analysis);
+      }
     }
   }
 
@@ -410,23 +425,37 @@ public class WalkerFactory
   }
 
   /**
-   * NEEDSDOC Method loadSteps 
+   * Read a <a href="http://www.w3.org/TR/xpath#location-paths">LocationPath</a>
+   * as a generalized match pattern.  What this means is that the LocationPath
+   * is read backwards, as a test on a given node, to see if it matches the
+   * criteria of the selection, and ends up at the context node.  Essentially,
+   * this is a backwards query from a given node, to find the context node.
+   * <p>So, the selection "foo/daz[2]" is, in non-abreviated expanded syntax,
+   * "self::node()/following-sibling::foo/child::daz[position()=2]".
+   * Taking this as a match pattern for a probable node, it works out to
+   * "self::daz/parent::foo[child::daz[position()=2 and isPrevStepNode()]
+   * precedingSibling::node()[isContextNodeOfLocationPath()]", adding magic
+   * isPrevStepNode and isContextNodeOfLocationPath operations.  Predicates in
+   * the location path have to be executed by the following step,
+   * because they have to know the context of their execution.
    *
+   * @param mpi The MatchPatternIterator to which the steps will be attached.
+   * @param compiler The compiler that holds the syntax tree/op map to
+   * construct from.
+   * @param stepOpCodePos The current op code position within the opmap.
+   * @param stepIndex The top-level step index withing the iterator.
    *
-   * NEEDSDOC @param mpi
-   * NEEDSDOC @param compiler
-   * NEEDSDOC @param stepOpCodePos
-   * NEEDSDOC @param stepIndex
-   *
-   * NEEDSDOC (loadSteps) @return
+   * @return A StepPattern object, which may contain relative StepPatterns.
    *
    * @throws javax.xml.transform.TransformerException
    */
   static StepPattern loadSteps(
-          MatchPatternIterator mpi, Compiler compiler, int stepOpCodePos, int stepIndex)
+          MatchPatternIterator mpi, Compiler compiler, int stepOpCodePos, 
+                                                       int stepIndex)
             throws javax.xml.transform.TransformerException
   {
-
+    if (DEBUG_PATTERN_CREATION)
+      System.out.println("loadSteps for: "+compiler.getPatternString());
     int stepType;
     StepPattern step = null;
     StepPattern firstStep = null, prevStep = null;
@@ -435,10 +464,9 @@ public class WalkerFactory
 
     while (OpCodes.ENDOP != (stepType = ops[stepOpCodePos]))
     {
-      step = createDefaultStepPattern(compiler, stepOpCodePos, mpi, analysis);
+      step = createDefaultStepPattern(compiler, stepOpCodePos, mpi, analysis,
+                                      firstStep, prevStep);
 
-      //step.init(compiler, stepOpCodePos, stepType);
-      // walker.setAnalysis(analysis);
       if (null == firstStep)
       {
         firstStep = step;
@@ -456,35 +484,78 @@ public class WalkerFactory
       if (stepOpCodePos < 0)
         break;
     }
+    
+    int axis = Axis.SELF;
+    int paxis = Axis.SELF;
+    StepPattern tail = step;
+    for (StepPattern pat = step; null != pat; 
+         pat = pat.getRelativePathPattern()) 
+    {
+      int nextAxis = pat.getAxis();
+      int nextPaxis = pat.getPredicateAxis();
+      pat.setAxis(axis);
+      pat.setAxis(paxis);
+      axis = nextAxis;
+      paxis = nextPaxis;
+      tail = pat;
+    }
+    
+    if(axis < Axis.ALL)
+    {
+      StepPattern selfPattern = new StepPattern(DTMFilter.SHOW_ALL, 
+                                                axis, paxis);
+      // We need to keep the new nodetest from affecting the score...
+      XNumber score = tail.getStaticScore();
+      tail.setRelativePathPattern(selfPattern);
+      tail.setStaticScore(score);
+      selfPattern.setStaticScore(score);
+    }        
 
+    if (DEBUG_PATTERN_CREATION)
+    {
+      System.out.println("Done loading steps: "+step.toString());
+            
+      System.out.println("");
+    }
     return step;  // start from last pattern?? //firstStep;
   }
 
   /**
-   * NEEDSDOC Method createDefaultStepPattern
+   * Create a StepPattern that is contained within a LocationPath.
    *
    *
-   * NEEDSDOC @param compiler
-   * NEEDSDOC @param opPos
-   * NEEDSDOC @param mpi
-   * NEEDSDOC @param analysis
+   * @param compiler The compiler that holds the syntax tree/op map to
+   * construct from.
+   * @param stepOpCodePos The current op code position within the opmap.
+   * @param mpi The MatchPatternIterator to which the steps will be attached.
+   * @param analysis 32 bits of analysis, from which the type of AxesWalker
+   *                 may be influenced.
+   * @param tail The step that is the first step analyzed, but the last 
+   *                  step in the relative match linked list, i.e. the tail.
+   *                  May be null.
+   * @param head The step that is the current head of the relative 
+   *                 match step linked list.
+   *                 May be null.
    *
-   * NEEDSDOC (createDefaultStepPattern) @return
+   * @return the head of the list.
    *
    * @throws javax.xml.transform.TransformerException
    */
   private static StepPattern createDefaultStepPattern(
-          Compiler compiler, int opPos, MatchPatternIterator mpi, int analysis)
+          Compiler compiler, int opPos, MatchPatternIterator mpi, 
+          int analysis, StepPattern tail, StepPattern head)
             throws javax.xml.transform.TransformerException
   {
 
-    StepPattern ai = null;
     int stepType = compiler.getOp(opPos);
     boolean simpleInit = false;
     int totalNumberWalkers = (analysis & BITS_COUNT);
     boolean prevIsOneStepDown = true;
     int firstStepPos = compiler.getFirstChildPos(opPos);
+    
     int whatToShow = compiler.getWhatToShow(opPos);
+    StepPattern ai = null;
+    int axis, predicateAxis;
 
     switch (stepType)
     {
@@ -494,11 +565,6 @@ public class WalkerFactory
     case OpCodes.OP_GROUP :
       prevIsOneStepDown = false;
 
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  FilterExprWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      //ai = new FilterExprWalker(lpi);
       Expression expr;
 
       switch (stepType)
@@ -510,264 +576,98 @@ public class WalkerFactory
         expr = compiler.compile(opPos + 2);
       }
 
-      // ai = new FunctionPattern(expr);
+      axis = Axis.FILTEREDLIST;
+      predicateAxis = Axis.FILTEREDLIST;
+      ai = new FunctionPattern(expr, axis, predicateAxis);
       simpleInit = true;
       break;
     case OpCodes.FROM_ROOT :
-      whatToShow = NodeFilter.SHOW_DOCUMENT
-                   | NodeFilter.SHOW_DOCUMENT_FRAGMENT;
+      whatToShow = DTMFilter.SHOW_DOCUMENT
+                   | DTMFilter.SHOW_DOCUMENT_FRAGMENT;
 
-      if (0 == (analysis
-                & ~(BIT_ROOT | BIT_CHILD | BIT_ATTRIBUTE | BIT_NAMESPACE
-                    | BIT_PREDICATE | BITS_COUNT)))
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  RootWalkerMultiStep: " + analysis
-                             + ", " + compiler.toString());
-
-        // ai = //new StepPattern(NodeFilter.SHOW_DOCUMENT | NodeFilter.SHOW_DOCUMENT_FRAGMENT);
-        //    new RootStepPattern(whatToShow);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  RootWalker: " + analysis + ", "
-                             + compiler.toString());
-
-        // ai = //new StepPattern(NodeFilter.SHOW_DOCUMENT | NodeFilter.SHOW_DOCUMENT_FRAGMENT);
-        //    new RootStepPattern(whatToShow);
-      }
-      break;
-    case OpCodes.FROM_ANCESTORS :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AncestorWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      whatToShow = compiler.getWhatToShow(opPos);
-
-      // ai = new RelativeStepPattern(whatToShow, mpi);
-      break;
-    case OpCodes.FROM_ANCESTORS_OR_SELF :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AncestorOrSelfWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      whatToShow = compiler.getWhatToShow(opPos);
-
-      // ai = new AncestorOrSelfStepPattern(whatToShow, mpi);
+      axis = Axis.ROOT;
+      predicateAxis = Axis.ROOT;
+      ai = new StepPattern(DTMFilter.SHOW_DOCUMENT | 
+                                DTMFilter.SHOW_DOCUMENT_FRAGMENT,
+                                axis, predicateAxis);
       break;
     case OpCodes.FROM_ATTRIBUTES :
-      whatToShow = NodeFilter.SHOW_ATTRIBUTE;
-
-      if (1 == totalNumberWalkers)
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  AttributeWalkerOneStep: "
-                             + analysis + ", " + compiler.toString());
-
-        // TODO: We should be able to do this as long as this is 
-        // the last step.
-        //        ai = /*new StepPattern(NodeFilter.SHOW_ATTRIBUTE,
-        //                                compiler.getStepNS(opPos),
-        //                                compiler.getStepLocalName(opPos));*/
-        //            new AttributeStepPattern(whatToShow);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  AttributeWalker: " + analysis
-                             + ", " + compiler.toString());
-
-        //        ai = /*new StepPattern(NodeFilter.SHOW_ATTRIBUTE,
-        //                                compiler.getStepNS(opPos),
-        //                                compiler.getStepLocalName(opPos));*/
-        //            new AttributeStepPattern(whatToShow);
-      }
+      whatToShow = DTMFilter.SHOW_ATTRIBUTE;
+      axis = Axis.PARENT;
+      predicateAxis = Axis.ATTRIBUTE;
+      ai = new StepPattern(whatToShow, Axis.SELF, Axis.SELF);
       break;
     case OpCodes.FROM_NAMESPACE :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  NamespaceWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      //      ai = new NamespaceStepPattern(whatToShow);
+      whatToShow = DTMFilter.SHOW_NAMESPACE;
+      axis = Axis.PARENT;
+      predicateAxis = Axis.NAMESPACE;
+      ai = new StepPattern(whatToShow, axis, predicateAxis);
+      break;
+    case OpCodes.FROM_ANCESTORS :
+      axis = Axis.DESCENDANT;
+      predicateAxis = Axis.ANCESTOR;
       break;
     case OpCodes.FROM_CHILDREN :
-      if (1 == totalNumberWalkers)
-      {
-
-        // I don't think this will ever happen any more.  -sb
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  ChildWalkerOneStep: " + analysis
-                             + ", " + compiler.toString());
-
-        //        ai = new ChildStepPattern(whatToShow);
-      }
-      else
-      {
-        if (0 == (analysis
-                  & ~(BIT_ROOT | BIT_CHILD | BIT_ATTRIBUTE | BIT_NAMESPACE
-                      | BIT_PREDICATE | BITS_COUNT)))
-        {
-          if (DEBUG_WALKER_CREATION)
-            System.out.println("new walker:  ChildWalkerMultiStep: "
-                               + analysis + ", " + compiler.toString());
-
-          //          ai = new ChildStepPattern(whatToShow);
-        }
-        else
-        {
-          if (DEBUG_WALKER_CREATION)
-            System.out.println("new walker:  ChildWalker: " + analysis + ", "
-                               + compiler.toString());
-
-          //ai = new ChildWalker(lpi);
-          //int firstStepPos = compiler.getFirstChildPos(opPos);
-          //int whatToShow = compiler.getWhatToShow(firstStepPos);
-          //          ai = new ChildStepPattern(whatToShow);
-        }
-      }
+      axis = Axis.PARENT;
+      predicateAxis = Axis.CHILD;
       break;
-    case OpCodes.FROM_DESCENDANTS :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  DescendantWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      whatToShow = compiler.getWhatToShow(opPos);
-
-      //      ai = new DescendantStepPattern(whatToShow);
-      break;
-    case OpCodes.FROM_DESCENDANTS_OR_SELF :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  DescendantOrSelfWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      //      ai = new DescendantOrSelfStepPattern(whatToShow);
-      break;
-    case OpCodes.FROM_FOLLOWING :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  FollowingWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      //      ai = new FollowingStepPattern(whatToShow);
-      break;
-    case OpCodes.FROM_FOLLOWING_SIBLINGS :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  FollowingSiblingWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      //      ai = new FollowingSiblingStepPattern(whatToShow);
-      break;
-    case OpCodes.FROM_PRECEDING :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  PrecedingWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      whatToShow = compiler.getWhatToShow(opPos);
-
-      //      ai = new PrecedingStepPattern(whatToShow, mpi);
-      break;
-    case OpCodes.FROM_PRECEDING_SIBLINGS :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  PrecedingSiblingWalker: " + analysis
-                           + ", " + compiler.toString());
-
-      //      ai = new PrecedingSiblingStepPattern(whatToShow, mpi);
-      break;
-    case OpCodes.FROM_PARENT :
-      prevIsOneStepDown = false;
-
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  ParentWalker: " + analysis + ", "
-                           + compiler.toString());
-
-      //      ai = new ParentStepPattern(whatToShow);
+    case OpCodes.FROM_ANCESTORS_OR_SELF :
+      axis = Axis.DESCENDANTORSELF;
+      predicateAxis = Axis.ANCESTORORSELF;
       break;
     case OpCodes.FROM_SELF :
-      if (1 == totalNumberWalkers)
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  SelfWalkerOneStep: " + analysis
-                             + ", " + compiler.toString());
-
-        //        ai = new SelfStepPattern(whatToShow);
-      }
-      else
-      {
-        if (DEBUG_WALKER_CREATION)
-          System.out.println("new walker:  SelfWalker: " + analysis + ", "
-                             + compiler.toString());
-
-        //        ai = new SelfStepPattern(whatToShow);
-      }
+      axis = Axis.SELF;
+      predicateAxis = Axis.SELF;
       break;
-    case OpCodes.MATCH_ATTRIBUTE :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  AttributeWalker(MATCH_ATTRIBUTE): "
-                           + analysis + ", " + compiler.toString());
-
-      //      ai = new AttributeStepPattern(whatToShow);
+    case OpCodes.FROM_PARENT :
+      axis = Axis.CHILD;
+      predicateAxis = Axis.PARENT;
       break;
-    case OpCodes.MATCH_ANY_ANCESTOR :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println("new walker:  ChildWalker(MATCH_ANY_ANCESTOR): "
-                           + analysis + ", " + compiler.toString());
-
-      //      ai = new ChildStepPattern(whatToShow);
+    case OpCodes.FROM_PRECEDING_SIBLINGS :
+      axis = Axis.FOLLOWINGSIBLING;
+      predicateAxis = Axis.PRECEDINGSIBLING;
       break;
-    case OpCodes.MATCH_IMMEDIATE_ANCESTOR :
-      if (DEBUG_WALKER_CREATION)
-        System.out.println(
-          "new walker:  ChildWalker(MATCH_IMMEDIATE_ANCESTOR): " + analysis
-          + ", " + compiler.toString());
-
-      //      ai = new ChildStepPattern(whatToShow);
+    case OpCodes.FROM_PRECEDING :
+      axis = Axis.FOLLOWING;
+      predicateAxis = Axis.PRECEDING;
+      break;
+    case OpCodes.FROM_FOLLOWING_SIBLINGS :
+      axis = Axis.PRECEDINGSIBLING;
+      predicateAxis = Axis.FOLLOWINGSIBLING;
+      break;
+    case OpCodes.FROM_FOLLOWING :
+      axis = Axis.PRECEDING;
+      predicateAxis = Axis.FOLLOWING;
+      break;
+    case OpCodes.FROM_DESCENDANTS_OR_SELF :
+      axis = Axis.ANCESTORORSELF;
+      predicateAxis = Axis.DESCENDANTORSELF;
+      break;
+    case OpCodes.FROM_DESCENDANTS :
+      axis = Axis.ANCESTOR;
+      predicateAxis = Axis.DESCENDANT;
       break;
     default :
       throw new RuntimeException("Programmer's assertion: unknown opcode: "
                                  + stepType);
     }
-
-    if (simpleInit)
+    if(null == ai)
     {
-      ai.initNodeTest(NodeFilter.SHOW_ALL);
+      whatToShow = compiler.getWhatToShow(firstStepPos); // %REVIEW%
+      ai = new StepPattern(whatToShow, compiler.getStepNS(opPos),
+                                compiler.getStepLocalName(opPos),
+                                axis, predicateAxis);
     }
-    else
+   
+    if (false && DEBUG_PATTERN_CREATION)
     {
-
-      //int whatToShow = compiler.getWhatToShow(opPos);
-
-      /*
-      System.out.print("construct: ");
-      NodeTest.debugWhatToShow(whatToShow);
-      System.out.println("or stuff: "+(whatToShow & (NodeFilter.SHOW_ATTRIBUTE
-                             | NodeFilter.SHOW_ELEMENT
-                             | NodeFilter.SHOW_PROCESSING_INSTRUCTION)));
-      */
-      if ((0 == (whatToShow
-                 & (NodeFilter.SHOW_ATTRIBUTE | NodeFilter.SHOW_ELEMENT
-                    | NodeFilter.SHOW_PROCESSING_INSTRUCTION))) || (whatToShow == NodeFilter.SHOW_ALL))
-        ai.initNodeTest(whatToShow);
-      else
-      {
-        ai.initNodeTest(whatToShow, compiler.getStepNS(opPos),
-                        compiler.getStepLocalName(opPos));
-      }
+      System.out.print("new step: "+ ai + analysis);
+      System.out.print(", pattern: " + compiler.toString());
+      System.out.print(", axis: " + Axis.names[ai.getAxis()]);
+      System.out.print(", predAxis: " + Axis.names[ai.getAxis()]);
+      System.out.println(", what: ");
+      System.out.print("    ");
+      ai.debugWhatToShow(ai.getWhatToShow());
     }
 
     int argLen = compiler.getFirstPredicateOpPos(opPos);
@@ -1069,7 +969,7 @@ public class WalkerFactory
 
     if (simpleInit)
     {
-      ai.initNodeTest(NodeFilter.SHOW_ALL);
+      ai.initNodeTest(DTMFilter.SHOW_ALL);
     }
     else
     {
@@ -1078,13 +978,13 @@ public class WalkerFactory
       /*
       System.out.print("construct: ");
       NodeTest.debugWhatToShow(whatToShow);
-      System.out.println("or stuff: "+(whatToShow & (NodeFilter.SHOW_ATTRIBUTE
-                             | NodeFilter.SHOW_ELEMENT
-                             | NodeFilter.SHOW_PROCESSING_INSTRUCTION)));
+      System.out.println("or stuff: "+(whatToShow & (DTMFilter.SHOW_ATTRIBUTE
+                             | DTMFilter.SHOW_ELEMENT
+                             | DTMFilter.SHOW_PROCESSING_INSTRUCTION)));
       */
       if ((0 == (whatToShow
-                 & (NodeFilter.SHOW_ATTRIBUTE | NodeFilter.SHOW_ELEMENT
-                    | NodeFilter.SHOW_PROCESSING_INSTRUCTION))) || (whatToShow == NodeFilter.SHOW_ALL))
+                 & (DTMFilter.SHOW_ATTRIBUTE | DTMFilter.SHOW_ELEMENT
+                    | DTMFilter.SHOW_PROCESSING_INSTRUCTION))) || (whatToShow == DTMFilter.SHOW_ALL))
         ai.initNodeTest(whatToShow);
       else
       {
@@ -1095,6 +995,9 @@ public class WalkerFactory
 
     return ai;
   }
+
+  /** Set to true for diagnostics about walker creation */
+  static final boolean DEBUG_PATTERN_CREATION = true;
 
   /** Set to true for diagnostics about walker creation */
   static final boolean DEBUG_WALKER_CREATION = false;

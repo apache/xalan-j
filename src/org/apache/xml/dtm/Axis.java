@@ -155,7 +155,33 @@ public interface Axis
    * A non-xpath axis, traversing the subtree including the subtree
    *  root, descendants, attributes, and namespace node decls.
    */
-  public static final int SUBTREE = 14;
+  public static final int ALLFROMNODE = 14;
+  
+  // ===========================================
+  // All axis past this are absolute.
+  
+  /**
+   * A non-xpath axis, returns all nodes in the tree from and including the 
+   * root.
+   */
+  public static final int ALL = 15;
+
+  /**
+   * A non-xpath axis, returns all nodes that aren't namespaces or attributes, 
+   * from and including the root.
+   */
+  public static final int DESCENDANTSFROMROOT = 16;
+
+  /**
+   * A non-xpath axis, returns root only.
+   */
+  public static final int ROOT = 17;
+
+  /**
+   * A non-xpath axis, for functions.
+   */
+  public static final int FILTEREDLIST = 18;
+
 
   /** The names of the axes for diagnostic purposes. */
   public static final String[] names =
@@ -174,6 +200,10 @@ public interface Axis
     "preceding",  // 11
     "preceding-sibling",  // 12
     "self",  // 13
-    "subtree"  // 14
+    "all-from-node",  // 14
+    "all",  // 15
+    "descendants-from-root",  // 16
+    "root",  // 17
+    "filtered-list"  // 18
   };
 }

@@ -54,8 +54,10 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm.sax2dtm;
+package org.apache.xml.dtm.ref.sax2dtm;
 
+import org.apache.xml.dtm.ref.*;
+import org.apache.xml.dtm.*;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -77,7 +79,7 @@ import org.apache.xml.utils.XMLStringFactory;
  * This class implements a DTM that tends to be optimized more for speed than
  * for compactness, that is constructed via SAX2 ContentHandler events.
  */
-public class SAX2DTM extends DTMDefaultBase
+public class SAX2DTM extends DTMDefaultBaseIterators
         implements EntityResolver, DTDHandler, ContentHandler, ErrorHandler,
                    DeclHandler, LexicalHandler
 {
@@ -230,7 +232,7 @@ public class SAX2DTM extends DTMDefaultBase
     super(mgr, source, dtmIdentity, whiteSpaceFilter, xstringfactory);
 
     m_dataOrQName = new short[m_initialblocksize];
-    m_ent = mgr.getExpandedNameTable(this);
+    m_ent = ((DTMManagerDefault)mgr).getExpandedNameTable(this);
 
     if (null == m_ent)
       m_ent = new ExpandedNameTable();

@@ -55,7 +55,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -69,7 +69,7 @@ import org.xml.sax.Locator;
 import org.xml.sax.Attributes;
 import org.xml.sax.XMLReader;
 import java.io.IOException;
-import org.apache.xml.dtm.CoroutineManager;
+import org.apache.xml.dtm.ref.CoroutineManager;
 
 /** <p>CoroutineSAXParser runs a SAX2 parser in a coroutine to achieve
  * incremental parsing. Output from the parser will still be issued

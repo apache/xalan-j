@@ -54,13 +54,14 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xml.dtm;
+package org.apache.xml.dtm.ref;
 
+import org.apache.xml.dtm.*;
 import java.util.Hashtable;
 //import java.util.Stack;
 import java.util.Vector;
 
-import org.apache.xml.dtm.ChunkedIntArray;
+import org.apache.xml.dtm.ref.ChunkedIntArray;
 import org.apache.xml.utils.FastStringBuffer;
 
 import org.xml.sax.ContentHandler;

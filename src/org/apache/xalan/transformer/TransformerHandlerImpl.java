@@ -85,9 +85,10 @@ import org.apache.xpath.XPathContext;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMManager;
 
-import org.apache.xml.dtm.CoroutineManager;
-import org.apache.xml.dtm.CoroutineSAXParser;
-import org.apache.xml.dtm.sax2dtm.SAX2DTM;
+// Bad, bad, we should work towards having to have these referenced here.
+import org.apache.xml.dtm.ref.CoroutineManager;
+import org.apache.xml.dtm.ref.CoroutineSAXParser;
+import org.apache.xml.dtm.ref.sax2dtm.SAX2DTM;
 
 /**
  * A TransformerHandler

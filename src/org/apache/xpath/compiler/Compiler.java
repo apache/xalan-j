@@ -94,8 +94,6 @@ import org.apache.xml.dtm.Axis;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 
-// import org.w3c.dom.traversal.NodeFilter;
-
 /**
  * <meta name="usage" content="advanced"/>
  * An instance of this class compiles an XPath string expression into 
@@ -872,7 +870,7 @@ private static final boolean DEBUG = false;
     {
     case OpCodes.OP_FUNCTION :
       if(DEBUG)
-        System.out.println("MATCH_FUNCTION: "+m_currentPattern);
+        System.out.println("MATCH_FUNCTION: "+m_currentPattern); 
       addMagicSelf = false;
       argLen = m_opMap[opPos + OpMap.MAPINDEX_LENGTH];
       pattern = new FunctionPattern(compileFunction(opPos), Axis.PARENT, Axis.CHILD);
@@ -906,7 +904,7 @@ private static final boolean DEBUG = false;
       // bit-o-hackery, but this code is due for the morgue anyway...
       if(0x00000500 == what)
         addMagicSelf = false;
-      pattern = new RelativeStepPattern(getWhatToShow(startOpPos),
+      pattern = new StepPattern(getWhatToShow(startOpPos),
                                         getStepNS(startOpPos),
                                         getStepLocalName(startOpPos),
                                         Axis.ANCESTOR, Axis.CHILD);
@@ -939,12 +937,8 @@ private static final boolean DEBUG = false;
       // translate this to a select pattern from the node being tested, 
       // which is really how we're treating match patterns, it works out to 
       // self::foo/parent::node[child::foo[3]]", or close enough.
-      int axis;
-      int predicateAxis;
       if(addMagicSelf)
       {
-        axis = Axis.PARENT;
-        predicateAxis = Axis.CHILD;
         StepPattern selfPattern = new StepPattern(DTMFilter.SHOW_ALL, 
                                                   Axis.PARENT, Axis.CHILD);
         // We need to keep the new nodetest from affecting the score...
