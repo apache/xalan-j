@@ -57,24 +57,367 @@
 package org.apache.xml.dtm.dom2dtm;
 
 import org.apache.xml.dtm.*;
+import org.apache.xml.utils.IntVector;
+import org.apache.xml.utils.IntStack;
+
+import org.w3c.dom.*;
+
+import java.util.Vector;
 
 /**
- * Title:        Xalan2j
- * Description:
- * Copyright:    Copyright (c) 2000
- * Company:
- * @author
- * @version 1.0
+ * The <code>DOM2DTM</code> class serves up a DOM via a DTM API.
  */
-public class DOM2DTM
+public class DOM2DTM implements DTM
 {
 
   /**
-   * Constructor DOM2DTM
-   *
+   * The node objects.  The instance part of the handle indexes directly
+   * into this vector.  Each DTM node may actually be composed of several
+   * DOM nodes.
    */
-  public DOM2DTM()
+  protected Vector m_nodes = new Vector();
+
+  /**
+   * This is extra information about the node objects.  Each information
+   * block is composed of several array members.  The size of this will always
+   * be (m_nodes.size() * NODEINFOBLOCKSIZE).
+   */
+  protected IntVector m_info = new IntVector();
+
+  // Offsets into each set of integers in the <code>m_info</code> table.
+
+  /** %TBD% Doc */
+  static final int OFFSET_TYPE = 0;
+
+  /** %TBD% Doc */
+  static final int OFFSET_LEVEL = 1;
+
+  /** %TBD% Doc */
+  static final int OFFSET_FIRSTCHILD = 2;
+
+  /** %TBD% Doc */
+  static final int OFFSET_NEXTSIBLING = 3;
+
+  /** %TBD% Doc */
+  static final int OFFSET_PREVSIBLING = 4;
+
+  /** %TBD% Doc */
+  static final int OFFSET_PARENT = 5;
+
+  /**
+   * This represents the number of integers per node in the
+   * <code>m_info</code> member variable.
+   */
+  static final int NODEINFOBLOCKSIZE = 5;
+
+  /**
+   * The value to use when the information has not been built yet.
+   */
+  static final int NOTPROCESSED = DTM.NULL - 1;
+
+  /** NEEDSDOC Field NODEIDENTITYBITS          */
+  static final int NODEIDENTITYBITS = 0x000FFFFF;
+
+  /**
+   * The DTM manager who "owns" this DTM.
+   */
+  protected DTMManager m_mgr;
+
+  /** %TBD% Doc */
+  protected int m_dtmIdent;
+
+  /** %TBD% Doc */
+  protected int m_mask;
+
+  /**
+   * Construct a DOM2DTM object from a DOM node.
+   *
+   * NEEDSDOC @param mgr
+   * NEEDSDOC @param node
+   */
+  public DOM2DTM(DTMManager mgr, Node node)
   {
+
+    m_mgr = mgr;
+    m_root = node;
+    m_pos = null;
+    m_nodesAreProcessed = false;
+    m_dtmIdent = m_mgr.getDTMIdentity(this);
+    m_mask = m_mgr.getNodeIdentityMask();
+
+    addNode(node, 0, DTM.NULL, DTM.NULL);
+  }
+
+  /**
+   * Construct the node map from the node.
+   *
+   * NEEDSDOC @param node
+   * NEEDSDOC @param level
+   * NEEDSDOC @param parentIndex
+   * NEEDSDOC @param previousSibling
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  protected int addNode(Node node, int level, int parentIndex,
+                        int previousSibling)
+  {
+
+    int nodeIndex = m_nodes.size();
+
+    m_nodes.addElement(node);
+
+    int startInfo = nodeIndex * NODEINFOBLOCKSIZE;
+
+    m_info.addElements(NODEINFOBLOCKSIZE);
+    m_info.setElementAt(level, startInfo + OFFSET_LEVEL);
+    int type = node.getNodeType();
+    if(Node.ATTRIBUTE_NODE == type)
+    {
+      String name = node.getNodeName();
+      if(name.startsWith("xmlns:") || name.equals("xmlns"))
+      {
+        type = DTM.NAMESPACE_NODE;
+      }
+    }
+    m_info.setElementAt(type, startInfo + OFFSET_TYPE);
+    m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_FIRSTCHILD);
+    m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_NEXTSIBLING);
+    m_info.setElementAt(previousSibling, startInfo + OFFSET_PREVSIBLING);
+    m_info.setElementAt(parentIndex, startInfo + OFFSET_PARENT);
+
+    if (DTM.NULL != previousSibling)
+    {
+      m_info.setElementAt(nodeIndex,
+                          (previousSibling * NODEINFOBLOCKSIZE)
+                          + OFFSET_NEXTSIBLING);
+    }
+
+    return nodeIndex;
+  }
+
+  /** The top of the subtree, may not be the same as m_context if "//foo" pattern. */
+  transient private Node m_root;
+
+  /** The current position in the tree. */
+  transient private Node m_pos;
+
+  /** true if all the nodes have been processed. */
+  transient private boolean m_nodesAreProcessed;
+
+  /**
+   * %TBD% Needs doc... how to explain?
+   * [0] index of parent.
+   * [1] index of previous sibling.
+   */
+  transient private IntStack m_levelInfo = new IntStack();
+
+  /**
+   * %TBD% Doc
+   */
+  transient private NamedNodeMap m_attrs;
+
+  /**
+   * %TBD% Doc
+   */
+  transient private int m_attrsPos;
+
+  /** NEEDSDOC Field LEVELINFO_PARENT          */
+  static final int LEVELINFO_PARENT = 1;
+
+  /** NEEDSDOC Field LEVELINFO_PREVSIB          */
+  static final int LEVELINFO_PREVSIB = 0;
+
+  /** NEEDSDOC Field LEVELINFO_NPERLEVEL          */
+  static final int LEVELINFO_NPERLEVEL = 2;
+
+  /**
+   * This method iterates to the next node that will be added to the table.
+   * Each call to this method adds a new node to the table, unless the end
+   * is reached, in which case it returns null.
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  protected Node nextNode()
+  {
+
+    if (m_nodesAreProcessed)
+      return null;
+
+    Node top = m_root;  // tells us when to stop.
+    Node pos = (null == m_pos) ? m_root : m_pos;
+
+    // non-recursive depth-first traversal.
+    // while (null != pos)
+    {
+
+      // %TBD% Process attributes!
+      Node nextNode;
+      int type = pos.getNodeType();
+
+      if (Node.ELEMENT_NODE == type)
+      {
+        m_attrs = pos.getAttributes();
+        m_attrsPos = 0;
+
+        if (null != m_attrs)
+        {
+          if (m_attrsPos < m_attrs.getLength())
+            nextNode = m_attrs.item(m_attrsPos);
+          else
+            nextNode = null;
+        }
+        else
+          nextNode = null;
+      }
+      else if (Node.ATTRIBUTE_NODE == type)
+      {
+        m_attrsPos++;
+
+        if (m_attrsPos < m_attrs.getLength())
+          nextNode = m_attrs.item(m_attrsPos);
+        else
+        {
+          nextNode = null;
+
+          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
+        }
+      }
+      else
+        nextNode = null;
+
+      if (null == nextNode)
+        nextNode = pos.getFirstChild();
+
+      if (null != nextNode)
+      {
+        int currentIndexHandle = m_nodes.size();
+
+        m_levelInfo.push(currentIndexHandle);
+        m_levelInfo.push(DTM.NULL);
+      }
+
+      while (null == nextNode)
+      {
+        if (top.equals(pos))
+          break;
+
+        nextNode = pos.getNextSibling();
+
+        if (null == nextNode)
+        {
+          pos = pos.getParentNode();
+
+          if ((null == pos) || (top.equals(pos)))
+          {
+            nextNode = null;
+
+            break;
+          }
+
+          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
+        }
+      }
+
+      pos = nextNode;
+
+      if (null != pos)
+      {
+        int level = m_levelInfo.size() / 2;
+
+        addNode(pos, level, m_levelInfo.peek(LEVELINFO_PARENT),
+                m_levelInfo.peek(LEVELINFO_PREVSIB));
+
+        m_pos = pos;
+
+        int currentIndexHandle = m_nodes.size();
+        int sz = m_levelInfo.size();
+
+        m_levelInfo.setElementAt(currentIndexHandle,
+                                 sz - (1 + LEVELINFO_PREVSIB));
+
+        return pos;
+      }
+    }
+
+    m_nodesAreProcessed = true;
+
+    return null;
+  }
+
+  /**
+   * Get a Node from a handle.
+   *
+   * NEEDSDOC @param nodeHandle
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  protected Node getNode(int nodeHandle)
+  {
+
+    int identity = nodeHandle & m_mask;
+
+    return (Node) m_nodes.elementAt(identity);
+  }
+
+  /**
+   * Get a Node from an identity index.
+   *
+   * NEEDSDOC @param nodeIdentity
+   *
+   * NEEDSDOC ($objectName$) @return
+   */
+  protected Node lookupNode(int nodeIdentity)
+  {
+    return (Node) m_nodes.elementAt(nodeIdentity);
+  }
+
+  /**
+   * Get the next node identity value in the list, and call the iterator
+   * if it hasn't been added yet.
+   *
+   * @param identity The node identity (index).
+   * @return identity+1, or DTM.NULL.
+   */
+  protected int getNextNodeIdentity(int identity)
+  {
+
+    identity += 1;
+
+    if (identity >= m_nodes.size())
+    {
+      Node node = nextNode();
+
+      if (null == node)
+        identity = DTM.NULL;
+    }
+
+    return identity;
+  }
+
+  /**
+   * Get a node handle that is relative to the given node.
+   *
+   * @param identity The node identity.
+   * @param offsetValue One of OFFSET_XXX values.
+   * @return The relative node handle.
+   */
+  protected int getNodeInfo(int identity, int offsetValue)
+  {
+
+    int base = (identity * NODEINFOBLOCKSIZE);
+    int info = m_info.elementAt(base + offsetValue);
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (info == NOTPROCESSED)
+    {
+      Node node = nextNode();
+
+      info = m_info.elementAt(base + offsetValue);
+    }
+
+    return info;
   }
 
   // ========= DTM Implementation Control Functions. ==============
@@ -84,9 +427,7 @@ public class DOM2DTM
    *
    * @param blockSizeSuggestion Suggested size of the parse blocks, in bytes.
    */
-  public void setParseBlockSize(int blockSizeSuggestion)
-  {
-  }
+  public void setParseBlockSize(int blockSizeSuggestion){}
 
   /**
    * Set an implementation dependent feature.
@@ -96,9 +437,7 @@ public class DOM2DTM
    * @param featureId A feature URL.
    * @param state true if this feature should be on, false otherwise.
    */
-  public void setFeature(String featureId, boolean state)
-  {
-  }
+  public void setFeature(String featureId, boolean state){}
 
   // ========= Document Navigation Functions =========
 
@@ -116,8 +455,11 @@ public class DOM2DTM
    */
   public boolean hasChildNodes(int nodeHandle)
   {
-    // %TBD%
-    return false;
+
+    // %REVIEW% This may not be OK if there is an entity child?
+    Node node = getNode(nodeHandle);
+
+    return node.hasChildNodes();
   }
 
   /**
@@ -130,8 +472,11 @@ public class DOM2DTM
    */
   public int getFirstChild(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int identity = nodeHandle & m_mask;
+    int firstChild = getNodeInfo(identity, OFFSET_FIRSTCHILD);
+
+    return nodeHandle | m_dtmIdent;
   }
 
   /**
@@ -145,22 +490,25 @@ public class DOM2DTM
    */
   public int getLastChild(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int identity = nodeHandle & m_mask;
+    int child = getNodeInfo(identity, OFFSET_FIRSTCHILD);
+    int lastChild = DTM.NULL;
+
+    while (child != DTM.NULL)
+    {
+      lastChild = child;
+      child = getNodeInfo(identity, OFFSET_NEXTSIBLING);
+    }
+
+    return lastChild | m_dtmIdent;
   }
 
   /**
-   * Retrieves an attribute node by name.
-   * <br>To retrieve an attribute node by qualified name and namespace URI,
-   * use the <code>getAttributeNodeNS</code> method.
+   * Retrieves an attribute node by by qualified name and namespace URI.
    *
-   * <p> %REVIEW% The API described here actually _is_
-   * <code>getAttributeNodeNS</code>, since it takes a
-   * namespaceURI. Fix the function name, or fix the parameters?</p>
-   *
-   *
-   * NEEDSDOC @param namespaceURI
-   * @param name The namespace URI of the attribute to
+   * @param nodeHandle int Handle of the node.
+   * @param namespaceURI The namespace URI of the attribute to
    *   retrieve, or null.
    * @param name The local name of the attribute to
    *   retrieve.
@@ -168,10 +516,48 @@ public class DOM2DTM
    *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such
    *   attribute.
    */
-  public int getAttributeNode(String namespaceURI, String name)
+  public int getAttributeNode(int nodeHandle, String namespaceURI,
+                              String name)
   {
-    // %TBD%
-    return 0;
+
+    // %OPT% This is probably slower than it needs to be.
+    if (null == namespaceURI)
+      namespaceURI = "";
+
+    int type = getNodeType(nodeHandle);
+
+    if (DTM.ELEMENT_NODE == type)
+    {
+
+      // Assume that attributes immediately follow the element.
+      int identity = nodeHandle & m_mask;
+
+      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      {
+        Node node = lookupNode(identity);
+
+        // Assume this can not be null.
+        type = node.getNodeType();
+        if (type == DTM.ATTRIBUTE_NODE)
+        {
+          String nodeuri = node.getNamespaceURI();
+
+          if (null == nodeuri)
+            nodeuri = "";
+
+          String nodelocalname = node.getLocalName();
+
+          if (nodeuri.equals(namespaceURI) && name.equals(nodelocalname))
+            return identity | m_dtmIdent;
+        }
+        else if(DTM.NAMESPACE_NODE != type)
+        {
+          break;  // should be no more attribute nodes.
+        }
+      }
+    }
+
+    return DTM.NULL;
   }
 
   /**
@@ -182,8 +568,31 @@ public class DOM2DTM
    */
   public int getFirstAttribute(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int type = getNodeType(nodeHandle);
+
+    while (DTM.ELEMENT_NODE == type)
+    {
+     // Assume that attributes and namespaces immediately follow the element.
+      int identity = nodeHandle & m_mask;
+
+      if(DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      {
+        Node node = lookupNode(identity);
+
+        // Assume this can not be null.
+        type = node.getNodeType();
+        if (node.getNodeType() == DTM.ATTRIBUTE_NODE)
+        {
+          return identity | m_dtmIdent;
+        }
+        else if(DTM.NAMESPACE_NODE != type)
+        {
+          break;
+        }
+      }
+    }
+    return DTM.NULL;
   }
 
   /**
@@ -201,6 +610,7 @@ public class DOM2DTM
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
+
     // %TBD%
     return 0;
   }
@@ -215,6 +625,7 @@ public class DOM2DTM
    */
   public int getNextSibling(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -230,6 +641,7 @@ public class DOM2DTM
    */
   public int getPreviousSibling(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -245,8 +657,32 @@ public class DOM2DTM
    */
   public int getNextAttribute(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int type = getNodeType(nodeHandle);
+
+    if (DTM.ATTRIBUTE_NODE == type)
+    {
+     // Assume that attributes and namespace nodes immediately follow the element.
+      int identity = nodeHandle & m_mask;
+
+      while(DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      {
+        Node node = lookupNode(identity);
+
+        // Assume this can not be null.
+        type = node.getNodeType();
+        if (type == DTM.ATTRIBUTE_NODE)
+        {
+          return identity | m_dtmIdent;
+        }
+        else if(type != DTM.NAMESPACE_NODE)
+        {
+          break;
+        }
+        
+      }
+    }
+    return DTM.NULL;
   }
 
   /**
@@ -258,6 +694,7 @@ public class DOM2DTM
    */
   public int getNextNamespaceNode(int namespaceHandle, boolean inScope)
   {
+
     // %TBD%
     return 0;
   }
@@ -276,6 +713,7 @@ public class DOM2DTM
    */
   public int getNextDescendant(int subtreeRootHandle, int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -290,6 +728,7 @@ public class DOM2DTM
    */
   public int getNextFollowing(int axisContextHandle, int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -304,6 +743,7 @@ public class DOM2DTM
    */
   public int getNextPreceding(int axisContextHandle, int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -317,18 +757,20 @@ public class DOM2DTM
    */
   public int getParent(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
 
   /**
    *  Given a node handle, find the owning document node.
-   * 
+   *
    *  @param nodeHandle the id of the node.
    *  @return int Node handle of document, which should always be valid.
    */
   public int getDocument()
   {
+
     // %TBD%
     return 0;
   }
@@ -348,6 +790,7 @@ public class DOM2DTM
    */
   public int getOwnerDocument(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -363,6 +806,7 @@ public class DOM2DTM
    */
   public String getStringValue(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -381,6 +825,7 @@ public class DOM2DTM
    */
   public int getStringValueChunkCount(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -401,6 +846,7 @@ public class DOM2DTM
   public char[] getStringValueChunk(int nodeHandle, int chunkIndex,
                                     int[] startAndLen)
   {
+
     // %TBD%
     return null;
   }
@@ -414,6 +860,7 @@ public class DOM2DTM
    */
   public int getExpandedNameID(int nodeHandle)
   {
+
     // %TBD%
     return 0;
   }
@@ -433,6 +880,7 @@ public class DOM2DTM
    */
   public int getExpandedNameID(String namespace, String localName)
   {
+
     // %TBD%
     return 0;
   }
@@ -445,6 +893,7 @@ public class DOM2DTM
    */
   public String getLocalNameFromExpandedNameID(int ExpandedNameID)
   {
+
     // %TBD%
     return null;
   }
@@ -458,6 +907,7 @@ public class DOM2DTM
    */
   public String getNamespaceFromExpandedNameID(int ExpandedNameID)
   {
+
     // %TBD%
     return null;
   }
@@ -472,6 +922,7 @@ public class DOM2DTM
    */
   public String getNodeName(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -486,6 +937,7 @@ public class DOM2DTM
    */
   public String getNodeNameX(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -500,6 +952,7 @@ public class DOM2DTM
    */
   public String getLocalName(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -517,6 +970,7 @@ public class DOM2DTM
    */
   public String getPrefix(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -532,6 +986,7 @@ public class DOM2DTM
    */
   public String getNamespaceURI(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -547,6 +1002,7 @@ public class DOM2DTM
    */
   public String getNodeValue(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -561,8 +1017,11 @@ public class DOM2DTM
    */
   public short getNodeType(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int identity = nodeHandle & m_mask;
+    short type = (short)getNodeInfo(identity, OFFSET_TYPE);
+
+    return type;
   }
 
   /**
@@ -575,8 +1034,10 @@ public class DOM2DTM
    */
   public short getLevel(int nodeHandle)
   {
-    // %TBD%
-    return 0;
+
+    int identity = nodeHandle & m_mask;
+
+    return (short) getNodeInfo(identity, OFFSET_LEVEL);
   }
 
   // ============== Document query functions ============== 
@@ -596,6 +1057,7 @@ public class DOM2DTM
    */
   public boolean isSupported(String feature, String version)
   {
+
     // %TBD%
     return false;
   }
@@ -610,6 +1072,7 @@ public class DOM2DTM
    */
   public String getDocumentBaseURI(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -623,6 +1086,7 @@ public class DOM2DTM
    */
   public String getDocumentSystemIdentifier(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -636,6 +1100,7 @@ public class DOM2DTM
    */
   public String getDocumentEncoding(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -652,6 +1117,7 @@ public class DOM2DTM
    */
   public String getDocumentStandalone(int nodeHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -670,6 +1136,7 @@ public class DOM2DTM
    */
   public String getDocumentVersion(int documentHandle)
   {
+
     // %TBD%
     return null;
   }
@@ -686,6 +1153,7 @@ public class DOM2DTM
    */
   public boolean getDocumentAllDeclarationsProcessed()
   {
+
     // %TBD%
     return false;
   }
@@ -700,6 +1168,7 @@ public class DOM2DTM
    */
   public String getDocumentTypeDeclarationSystemIdentifier()
   {
+
     // %TBD%
     return null;
   }
@@ -716,6 +1185,7 @@ public class DOM2DTM
    */
   public int getDocumentTypeDeclarationPublicIdentifier()
   {
+
     // %TBD%
     return 0;
   }
@@ -739,6 +1209,7 @@ public class DOM2DTM
    */
   public int getElementById(String elementId)
   {
+
     // %TBD%
     return 0;
   }
@@ -779,6 +1250,7 @@ public class DOM2DTM
    */
   public String getUnparsedEntityURI(String name)
   {
+
     // %TBD%
     return null;
   }
@@ -794,8 +1266,9 @@ public class DOM2DTM
    *
    * NEEDSDOC ($objectName$) @return
    */
-  boolean supportsPreStripping()
+  public boolean supportsPreStripping()
   {
+
     // %TBD%
     return false;
   }
@@ -823,6 +1296,7 @@ public class DOM2DTM
    */
   public boolean isNodeAfter(int nodeHandle1, int nodeHandle2)
   {
+
     // %TBD%
     return false;
   }
@@ -845,6 +1319,7 @@ public class DOM2DTM
    */
   public boolean isCharacterElementContentWhitespace(int nodeHandle)
   {
+
     // %TBD%
     return false;
   }
@@ -865,6 +1340,7 @@ public class DOM2DTM
    */
   public boolean isDocumentAllDeclarationsProcessed(int documentHandle)
   {
+
     // %TBD%
     return false;
   }
@@ -882,6 +1358,7 @@ public class DOM2DTM
    */
   public boolean isAttributeSpecified(int attributeHandle)
   {
+
     // %TBD%
     return false;
   }
@@ -903,9 +1380,7 @@ public class DOM2DTM
    */
   public void dispatchCharactersEvents(
           int nodeHandle, org.xml.sax.ContentHandler ch)
-            throws org.xml.sax.SAXException
-  {
-  }
+            throws org.xml.sax.SAXException{}
 
   /**
    * Directly create SAX parser events from a subtree.
@@ -916,9 +1391,7 @@ public class DOM2DTM
    * @throws org.xml.sax.SAXException
    */
   public void dispatchToEvents(int nodeHandle, org.xml.sax.ContentHandler ch)
-          throws org.xml.sax.SAXException
-  {
-  }
+          throws org.xml.sax.SAXException{}
 
   // ==== Construction methods (may not be supported by some implementations!) =====
 
@@ -934,9 +1407,7 @@ public class DOM2DTM
    * @param cloneDepth if the clone argument is true, specifies that the
    *                   clone should include all it's children.
    */
-  public void appendChild(int newChild, boolean clone, boolean cloneDepth)
-  {
-  }
+  public void appendChild(int newChild, boolean clone, boolean cloneDepth){}
 
   /**
    * Append a text node child that will be constructed from a string,
@@ -947,7 +1418,5 @@ public class DOM2DTM
    *
    * @param str Non-null reverence to a string.
    */
-  public void appendTextChild(String str)
-  {
-  }
+  public void appendTextChild(String str){}
 }
