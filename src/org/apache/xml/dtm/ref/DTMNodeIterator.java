@@ -186,6 +186,8 @@ public class DTMNodeIterator implements org.w3c.dom.traversal.NodeIterator
         throw new DTMDOMException(DOMException.INVALID_STATE_ERR);
       
       int handle=dtm_iter.nextNode();
+      if (handle==-1)
+	return null;
       return dtm_iter.getDTM(handle).getNode(handle);
     }
   
