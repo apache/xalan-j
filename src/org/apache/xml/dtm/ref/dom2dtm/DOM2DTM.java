@@ -506,7 +506,7 @@ public class DOM2DTM extends DTMDefaultBaseIterators
                                
       if((null != m_wsfilter) && (Node.ELEMENT_NODE == pos.getNodeType()))
       {
-        short wsv = m_wsfilter.getShouldStripSpace(newIndexHandle);
+        short wsv = m_wsfilter.getShouldStripSpace(newIndexHandle|m_dtmIdent);
         boolean shouldStrip = (DTMWSFilter.INHERIT == wsv) ? 
                   getShouldStripWhitespace() : (DTMWSFilter.STRIP == wsv);
         pushShouldStripWhitespace(shouldStrip);
