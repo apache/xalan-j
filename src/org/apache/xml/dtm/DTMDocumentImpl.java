@@ -127,6 +127,32 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 
         private final boolean DEBUG = false;
 
+  /** If we're building the model incrementally on demand, we need to
+   * be able to tell the source when to send us more data.
+   *
+   * Note that if this has not been set, and you attempt to read ahead
+   * of the current build point, we'll probably throw a null-pointer
+   * exception. We could try to wait-and-retry instead, as a very poor
+   * fallback, but that has all the known problems with multithreading
+   * on multiprocessors and we Don't Want to Go There.
+   * 
+   * @see setCoroutineParser
+   */
+  private CoroutineParser m_coroutineParser=null;
+
+  /** If we're building the model incrementally on demand, we need to
+   * be able to tell the source who to return the data to.
+   *
+   * Note that if this has not been set, and you attempt to read ahead
+   * of the current build point, we'll probably throw a MethodNotFound
+   * exception. We could try to wait-and-retry instead, as a very poor
+   * fallback, but that has all the known problems with multithreading
+   * on multiprocessors and we Don't Want to Go There.
+   * 
+   * @see setCoroutineParser
+   */
+  private int m_appCoroutineID=-1;
+
         // ========= DTM data structure declarations. ==============
 
         // nodes array: integer array blocks to hold the first level reference of the nodes,
@@ -176,6 +202,42 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 initDocument(documentNumber);	 // clear nodes and document handle
         }
 
+  /** Bind a CoroutineParser to this DTM. If we discover we need nodes
+   * that have not yet been built, we will ask this object to send us more
+   * events, and it will manage interactions with its data sources.
+   *
+   * Note that we do not actually build the CoroutineParser, since we don't
+   * know what source it's reading from, what thread that source will run in,
+   * or when it will run.
+   *
+   * @param coroutineParser The parser that we want to recieve events from
+   * on demand.
+   */
+  public void setCoroutineParser(CoroutineParser coroutineParser)
+  {
+    // Establish coroutine link so we can request more data
+    //
+    // Note: It's possible that some versions of CoroutineParser may
+    // not actually use a CoroutineManager, and hence may not require
+    // that we obtain an Application Coroutine ID. (This relies on the
+    // coroutine transaction details having been encapsulated in the
+    // CoroutineParser.do...() methods.)
+    m_coroutineParser=coroutineParser;
+    CoroutineManager cm=coroutineParser.getCoroutineManager();
+    if(cm!=null)
+      m_appCoroutineID=cm.co_joinCoroutineSet(-1);
+
+    // Establish SAX-stream link so we can receive the requested data
+    coroutineParser.setContentHandler(this);
+    coroutineParser.setLexHandler(this);
+
+    // Are the following really needed? coroutineParser doesn't yet
+    // support them, and they're mostly no-ops here...
+    //coroutineParser.setErrorHandler(this);
+    //coroutineParser.setDTDHandler(this);
+    //coroutineParser.setDeclHandler(this);
+  }
+  
         /**
          * Wrapper for ChunkedIntArray.append, to automatically update the
          * previous sibling's "next" reference (if necessary) and periodically
@@ -204,13 +266,6 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         }
 
         // ========= DTM Implementation Control Functions. ==============
-
-        /**
-         * Set a suggested parse block size for the parser.
-         *
-         * @param blockSizeSuggestion Suggested size of the parse blocks, in bytes.
-         */
-        public void setParseBlockSize(int blockSizeSuggestion) {};
 
         /**
          * Set an implementation dependent feature.
@@ -301,6 +356,32 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                  return m_char;
          }
 
+  /** getContentHandler returns "our SAX builder" -- the thing that
+   * someone else should send SAX events to in order to extend this
+   * DTM model.
+   *
+   * @return null if this model doesn't respond to SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   * */
+  public org.xml.sax.ContentHandler getContentHandler()
+  {
+    if (m_coroutineParser instanceof CoroutineSAXParser)
+      return (ContentHandler) m_coroutineParser;
+    else
+      return this;
+  }
+  
+  /** @return true iff we're building this model incrementally (eg
+   * we're partnered with a CoroutineParser) and thus require that the
+   * transformation and the parse run simultaneously. Guidance to the
+   * DTMManager.
+   * */
+  public boolean needsTwoThreads()
+  {
+    return null!=m_coroutineParser;
+  }
 
   //================================================================
   // ========= SAX2 ContentHandler methods =========

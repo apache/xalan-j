@@ -1088,6 +1088,40 @@ public class DOM2DTM extends DTMDefaultBase
     return false;
   }
 
+  /** Bind a CoroutineParser to this DTM. NOT RELEVANT for DOM2DTM, since
+   * we're wrapped around an existing DOM.
+   *
+   * @param coroutineParser The parser that we want to recieve events from
+   * on demand.
+   */
+  public void setCoroutineParser(CoroutineParser coroutineParser)
+  {
+  }
+  
+  /** getContentHandler returns "our SAX builder" -- the thing that
+   * someone else should send SAX events to in order to extend this
+   * DTM model.
+   *
+   * @return null if this model doesn't respond to SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   * */
+  public org.xml.sax.ContentHandler getContentHandler()
+  {
+      return null;
+  }
+
+  /** @return true iff we're building this model incrementally (eg
+   * we're partnered with a CoroutineParser) and thus require that the
+   * transformation and the parse run simultaneously. Guidance to the
+   * DTMManager.
+   * */
+  public boolean needsTwoThreads()
+  {
+    return false;
+  }
+
   // ========== Direct SAX Dispatch, for optimization purposes ========
 
   /**

@@ -157,12 +157,8 @@ public interface DTM
   
   // ========= DTM Implementation Control Functions. ==============
 
-  /**
-   * Set a suggested parse block size for the parser.
-   *
-   * @param blockSizeSuggestion Suggested size of the parse blocks, in bytes.
-   */
-  public void setParseBlockSize(int blockSizeSuggestion);
+  // %TBD% RETIRED -- do via setFeature if needed. Remove from impls.
+  // public void setParseBlockSize(int blockSizeSuggestion);
 
   /**
    * Set an implementation dependent feature.
@@ -823,15 +819,36 @@ public interface DTM
    *
    * @throws org.xml.sax.SAXException
    */
-
   public void dispatchToEvents(
     int nodeHandle, org.xml.sax.ContentHandler ch)
       throws org.xml.sax.SAXException;
       
   // ==== Construction methods (may not be supported by some implementations!) =====
       // %REVIEW% What response occurs if not supported?
-      // Should it be a separate interface to make that distinction explicit?
-      // I suspect we need element and attribute factories, maybe others.
+
+      /** getContentHandler returns "our SAX builder" -- the thing that
+       * someone else should send SAX events to in order to extend this
+       * DTM model.
+       *
+       * @return null if this model doesn't respond to SAX events,
+       * "this" if the DTM object has a built-in SAX ContentHandler,
+       * the CoroutineParser if we're bound to one and should receive
+       * the SAX stream via it for incremental build purposes...
+       * */
+      public org.xml.sax.ContentHandler getContentHandler();
+
+      /** @return true iff we're building this model incrementally (eg
+       * we're partnered with a CoroutineParser) and thus require that the
+       * transformation and the parse run simultaneously. Guidance to the
+       * DTMManager.
+       * */
+      public boolean needsTwoThreads();
+
+      // %REVIEW% Do these appends make any sense, should we support a
+      // wider set of methods (like the "append" methods in the
+      // current DTMDocumentImpl draft), or should we just support SAX
+      // listener interfaces?  Should it be a separate interface to
+      // make that distinction explicit?
   
   /** Append a child to "the end of the document". Please note that
    * the node is always cloned in a base DTM, since our basic behavior
@@ -858,6 +875,7 @@ public interface DTM
    * @param str Non-null reference to a string.
    */
   public void appendTextChild(String str);
+
 }
 
 

@@ -338,13 +338,6 @@ public abstract class DTMDefaultBase implements DTM
   // ========= DTM Implementation Control Functions. ==============
 
   /**
-   * Set a suggested parse block size for the parser.
-   *
-   * @param blockSizeSuggestion Suggested size of the parse blocks, in bytes.
-   */
-  public void setParseBlockSize(int blockSizeSuggestion){}
-
-  /**
    * Set an implementation dependent feature.
    * <p>
    * %REVIEW% Do we really expect to set features on DTMs?

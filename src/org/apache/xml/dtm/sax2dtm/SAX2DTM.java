@@ -84,6 +84,7 @@ public class SAX2DTM extends DTMDefaultBase
   /** simple DEBUG flag, for dumping diagnostics info. */
   private static final boolean DEBUG = false;
 
+
   /** If we're building the model incrementally on demand, we need to
    * be able to tell the source when to send us more data.
    *
@@ -268,6 +269,34 @@ public class SAX2DTM extends DTMDefaultBase
     //coroutineParser.setDeclHandler(this);
   }
   
+  /** getContentHandler returns "our SAX builder" -- the thing that
+   * someone else should send SAX events to in order to extend this
+   * DTM model.
+   *
+   * %REVIEW% Should this return null if constrution already done/begun?
+   *
+   * @return null if this model doesn't respond to SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   * */
+  public org.xml.sax.ContentHandler getContentHandler()
+  {
+    if (m_coroutineParser instanceof CoroutineSAXParser)
+      return (ContentHandler) m_coroutineParser;
+    else
+      return this;
+  }
+
+  /** @return true iff we're building this model incrementally (eg
+   * we're partnered with a CoroutineParser) and thus require that the
+   * transformation and the parse run simultaneously. Guidance to the
+   * DTMManager.
+   * */
+  public boolean needsTwoThreads()
+  {
+    return null!=m_coroutineParser;
+  }
 
   /**
    * Directly call the
