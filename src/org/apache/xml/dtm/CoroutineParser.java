@@ -82,7 +82,7 @@ import org.xml.sax.ContentHandler;
  *
  * <p>Status: In progress</p>
  * */
-public interface CoroutineParser extends Runnable {
+public interface CoroutineParser {
 
     /** @return the coroutine ID number for this CoroutineParser object.
      * Note that this isn't useful unless you know which CoroutineManager
@@ -110,33 +110,10 @@ public interface CoroutineParser extends Runnable {
    */
   public void setLexHandler(org.xml.sax.ext.LexicalHandler handler);
 
-
-    /**
-     * This coroutine (thread) can be resumed with the following arguments:
-     *
-     *      null            terminate this coroutine.
-     *                      exits with:
-     *                          co_exit_to(null, ...)
-     *                      expects next:
-     *                          nothing, we have terminated the thread.
-     *
-     *      InputSource     setup to read from this source.
-     *                      resumes with:
-     *                          co_resume(Boolean.TRUE, ...) on success.
-     *                          co_resume(Boolean.FALSE, ...) on failure. (not sure why?)
-     *                          co_resume(Exception, ...) on error. (what I expect for failure)
-     *
-     *      Boolean.TRUE    indication to continue parsing the current document.
-     *                      resumes with:
-     *                          co_resume(Boolean.TRUE, ...) on success with more to parse.
-     *                          co_resume(Boolean.FALSE, ...) on success when finished.
-     *                          co_resume(Exception, ...) on error.
-     *
-     *      Boolean.FALSE   indication to discontinue parsing and reset.
-     *                      resumes with:
-     *                          co_resume(Boolean.FALSE, ...) always.
-     */
-    public void run();
+  /* The run() method is required in CoroutineParsers that run as
+   * threads (of course)... but it isn't part of our API, and
+   * shouldn't be declared here.
+   * */
 
   //================================================================
   /** doParse() is a simple API which tells the coroutine parser
