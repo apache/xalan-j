@@ -84,7 +84,6 @@ import org.apache.xml.utils.XMLStringFactory;
  */
 public abstract class DTMDefaultBase implements DTM
 {
-
   /**
    * The number of nodes, which is also used to determine the next
    *  node index.
@@ -110,7 +109,14 @@ public abstract class DTMDefaultBase implements DTM
   protected int[] m_parent;
   
   /** Experemental.  -sb */
-  protected boolean m_haveSeenNamespace = false;
+//  protected boolean m_haveSeenNamespace = false;
+  
+  /** Vector of IntVectors of NS decl sets  -jjk */
+  protected Vector m_namespaceDeclSets = null;
+  
+  /** IntVector  of elements at which corresponding
+   * namespaceDeclSets were defined -jjk */
+  protected IntVector m_namespaceDeclSetElements = null;
 
   /**
    * These hold indexes to elements based on namespace and local name.
@@ -912,7 +918,6 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getNextSibling(int nodeHandle)
   {
-
     return _nextsib(nodeHandle & m_mask) | m_dtmIdent;
   }
 
@@ -968,106 +973,171 @@ public abstract class DTMDefaultBase implements DTM
     return DTM.NULL;
   }
 
-  /** Lazily created namespace lists. */
-  private Vector m_namespaceLists = null;  // on demand
-
-  /**
-   * Get a full list of namespace handles for the given element.  In other words
-   * get all the namespace nodes in context for the given element.
+  /** Build table of namespace declaration
+   * locations during DTM construction. Table is a Vector of
+   * IntVectors containing the namespace node HANDLES declared at
+   * that ID, plus an IntVector of the element node INDEXES at which
+   * these declarations appeared.
    *
+   * NOTE: Since this occurs during model build, nodes will be encountered
+   * in doucment order and thus the table will be ordered by element,
+   * permitting binary-search as a possible retrieval optimization.
    *
-   * @param baseHandle The base element handle.
-   *
-   * @return A list of namespace handles for this element.
-   */
-  protected NodeVector getNamespaceList(int baseHandle)
+   * %REVIEW% Directly managed arrays rather than vectors?
+   * %REVIEW% Handles or IDs? Given usage, I think handles.
+   * */
+  protected void declareNamespaceInContext(int elementNodeIndex,int namespaceNodeIndex)
   {
+    IntVector nsList=null;
+    if(m_namespaceDeclSets==null)
+      {
 
-    if (null == m_namespaceLists)
-      m_namespaceLists = new Vector();
+        // First
+        m_namespaceDeclSetElements=new IntVector();
+        m_namespaceDeclSetElements.addElement(elementNodeIndex);
+        m_namespaceDeclSets=new Vector();
+        nsList=new IntVector();
+        m_namespaceDeclSets.addElement(nsList);
+      }
     else
-    {
-      int n = m_namespaceLists.size();
-
-      for (int i = (n - 1); i >= 0; i--)
       {
-        NodeVector ivec = (NodeVector) m_namespaceLists.elementAt(i);
+        // Most recent?
+        // %OPT% Is there a lastElement() method? Should there be?
+        int last=m_namespaceDeclSetElements.size()-1;
 
-        if (ivec.elementAt(0) == baseHandle)
-          return ivec;
+        if(elementNodeIndex==
+           m_namespaceDeclSetElements.elementAt(last))
+          {
+            nsList=(IntVector)m_namespaceDeclSets.elementAt(last);
+
+          }
       }
-    }
+    if(nsList==null)
+      {
+        m_namespaceDeclSetElements.addElement(elementNodeIndex);
+        nsList=new IntVector();
+        m_namespaceDeclSets.addElement(nsList);
+                
+        IntVector inherited= findNamespaceContext(_parent(elementNodeIndex));
 
-    NodeVector ivec = buildNamespaceList(baseHandle);
+        if(inherited!=null)
+          {
+            // %OPT% Count-down might be faster, but debuggability may
+            // be better this way, and if we ever decide we want to
+            // keep this ordered by expanded-type...
+            int isize=inherited.size();
+            for(int i=0;i<isize;++i)
+              {
+                nsList.addElement(inherited.elementAt(i));
+              }
+          }
+      }
 
-    m_namespaceLists.addElement(ivec);
+    // Handle overwriting inherited.
+    // %OPT% Keep sorted? (By expanded-name rather than by doc order...)
+    // Downside: Would require insertElementAt if not found,
+    // which has recopying costs. But these are generally short lists...
+    int newEType=getExpandedTypeID(namespaceNodeIndex);
 
-    return ivec;
+    for(int i=nsList.size()-1;i>=0;--i)
+      {
+        if(newEType==getExpandedTypeID(nsList.elementAt(i)))
+          {
+            nsList.setElementAt(namespaceNodeIndex,i);
+            return;
+          }
+      }
+    nsList.addElement(namespaceNodeIndex | m_dtmIdent);
+  }
+    
+  /** Retrieve list of namespace declaration locations
+     * active at this node. List is an IntVector whose
+     * entries are the namespace node HANDLES declared at that ID.
+     *
+     * %REVIEW% Directly managed arrays rather than vectors?
+     * %REVIEW% Handles or IDs? Given usage, I think handles.
+     * */
+  protected IntVector findNamespaceContext(int elementNodeIndex)
+  {
+    if (null!=m_namespaceDeclSetElements)
+      {
+        // %OPT% Is binary-search really saving us a lot versus linear?
+        // (... It may be, in large docs with many NS decls.)
+        int wouldBeAt=findInSortedIntVector(m_namespaceDeclSetElements,
+                                            elementNodeIndex);
+        if(wouldBeAt>=0) // Found it
+          return (IntVector) m_namespaceDeclSets.elementAt(wouldBeAt);
+        if(wouldBeAt == -1) // -1-wouldbeat == 0
+          return null; // Not after anything; definitely not found
+
+        // Not found, but we know where it should have been.
+        // Search back until we find an ancestor or run out.
+        wouldBeAt=-1-wouldBeAt;
+
+        // Decrement wouldBeAt to find last possible ancestor
+        int candidate=m_namespaceDeclSetElements.elementAt(-- wouldBeAt);
+        int ancestor=_parent(elementNodeIndex);
+        while(wouldBeAt>=0 && ancestor>0)
+          {
+            candidate=m_namespaceDeclSetElements.elementAt(wouldBeAt); 
+
+            if(candidate==ancestor) // Found ancestor in list
+                return (IntVector)m_namespaceDeclSets.elementAt(wouldBeAt);
+            else if(candidate<ancestor) // Too deep in tree
+                ancestor=_parent(ancestor);
+            else // Too late in list
+              --wouldBeAt;
+          }
+      }
+
+    return null; // No namespaces known at this node
   }
 
   /**
-   * Build a list of all namespace nodes in context for this element.
-   *
-   *
-   * @param baseHandle The base element handle.
-   *
-   * @return a NodeVector that contains a list of all namespace nodes in
-   * context for this element.
-   */
-  private NodeVector buildNamespaceList(int baseHandle)
+     * Subroutine: Locate the specified node within
+     * m_namespaceDeclSetElements, or the last element which
+     * preceeds it in document order
+     *
+     * %REVIEW% Inlne this into findNamespaceContext? Create SortedIntVector type?
+     *
+     * @param elementNodeIndex Index of a node to look up.
+     *
+     * @return If positive or zero, the index of the found item.
+     * If negative, index of the point at which it would have appeared,
+     * encoded as -1-index and hence reconvertable by subtracting
+     * it from -1. (Encoding because I don't want to recompare the strings
+     * but don't want to burn bytes on a datatype to hold a flagged value.)
+     */
+  protected int findInSortedIntVector(IntVector vector, int lookfor)
   {
+    // Binary search
+    int i = 0;
+    if(vector != null) {
+      int first = 0;
+      int last  = vector.size() - 1;
 
-    NodeVector ivec = new NodeVector(7);
-
-    ivec.addElement(-1);  // for base handle.
-
-    int nodeHandle = baseHandle;
-    int type = getNodeType(baseHandle);
-    int namespaceHandle = DTM.NULL;
-
-    if (DTM.ELEMENT_NODE == type)
-    {
-
-      // We have to return in document order, so we actually want to find the 
-      // first namespace decl of the last element that has a namespace decl.
-      // Assume that attributes and namespaces immediately follow the element.
-      int identity = nodeHandle & m_mask;
-
-      while (DTM.NULL != identity)
-      {
-        identity = getNextNodeIdentity(identity);
-        type = (DTM.NULL == identity) ? -1 : getNodeType(identity);
-
-        if (type == DTM.NAMESPACE_NODE)
-        {
-          namespaceHandle = identity | m_dtmIdent;
-
-          ivec.insertInOrder(namespaceHandle);
+      while (first <= last) {
+        i = (first + last) / 2;
+        int test = lookfor-vector.elementAt(i);
+        if(test == 0) {
+          return i; // Name found
         }
-        else if (DTM.ATTRIBUTE_NODE != type)
-        {
-          if (identity > 0)
-          {
-            nodeHandle = getParent(nodeHandle);
-
-            if (nodeHandle == DTM.NULL)
-              break;
-
-            identity = nodeHandle & m_mask;
-
-            if (identity == 0)
-              break;
-          }
-          else
-            break;
+        else if (test < 0) {
+          last = i - 1; // looked too late
         }
+        else {
+          first = i + 1; // looked ot early
+        }
+      }
+            
+      if (first > i) {
+        i = first; // Clean up at loop end
       }
     }
 
-    ivec.setElementAt(baseHandle, 0);
-
-    return ivec;
+    return -1 - i; // not-found has to be encoded.
   }
+
 
   /**
    * Given a node handle, get the index of the node's first child.
@@ -1084,46 +1154,33 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
-    if(!m_haveSeenNamespace)
-      return NULL;
+	if(inScope)
+	  {	    
+	    IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
+	    if(nsContext==null || nsContext.size()<1)
+	      return NULL;
 
-    int type = getNodeType(nodeHandle);
-
-    if (DTM.ELEMENT_NODE == type)
-    {
-      if (inScope)
-      {
-        NodeVector namespaces = getNamespaceList(nodeHandle);
-        int n = namespaces.size();
-
-        if (n > 1)
-          return namespaces.elementAt(1);
-      }
-      else
-      {
-
-        // Assume that attributes and namespaces immediately follow the element.
-        int identity = nodeHandle & m_mask;
-
-        while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
-        {
-
-          // Assume this can not be null.
-          type = getNodeType(identity);
-
-          if (type == DTM.NAMESPACE_NODE)
-          {
-            return identity | m_dtmIdent;
-          }
-          else if (DTM.ATTRIBUTE_NODE != type)
-          {
-            break;
-          }
-        }
-      }
-    }
-
-    return DTM.NULL;
+	    return nsContext.elementAt(0);
+	  }
+	else
+	  {
+	    // Assume that attributes and namespaces immediately
+	    // follow the element.
+	    //
+	    // %OPT% Would things be faster if all NS nodes were built
+	    // before all Attr nodes? Some costs at build time for 2nd
+	    // pass...
+	    int identity = nodeHandle & m_mask;
+	    while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+	      {
+		int type = getNodeType(identity);
+		if (type == DTM.NAMESPACE_NODE)
+		    return identity | m_dtmIdent;
+		else if (DTM.ATTRIBUTE_NODE != type)
+		    break;
+	      }
+	    return NULL;
+	  }
   }
 
   /**
@@ -1141,48 +1198,41 @@ public abstract class DTMDefaultBase implements DTM
   public int getNextNamespaceNode(int baseHandle, int nodeHandle,
                                   boolean inScope)
   {
+	if(inScope)
+	  {
+	    //Since we've been given the base, try direct lookup
+	    //(could look from nodeHandle but this is at least one
+	    //comparison/get-parent faster)
+	    //IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
 
-    int type = getNodeType(nodeHandle);
+		IntVector nsContext=findNamespaceContext(baseHandle & m_mask);
 
-    if (DTM.NAMESPACE_NODE == type)
-    {
-      if (inScope)
-      {
-        NodeVector namespaces = getNamespaceList(baseHandle);
-        int n = namespaces.size();
+	    if(nsContext==null)
+	      return NULL;
+	    int i=1 + nsContext.indexOf(nodeHandle);
+	    if(i<=0 || i==nsContext.size())
+	      return NULL;
 
-        for (int i = 1; i < n; i++)  // start from 1 on purpose 
-        {
-          if (nodeHandle == namespaces.elementAt(i))
-          {
-            if (i + 1 < n)
-              return namespaces.elementAt(i + 1);
-          }
-        }
-      }
-      else
-      {
-
-        // Assume that attributes and namespace nodes immediately follow the element.
-        int identity = nodeHandle & m_mask;
-
-        while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
-        {
-          type = getNodeType(identity);
-
-          if (type == DTM.NAMESPACE_NODE)
-          {
-            return identity | m_dtmIdent;
-          }
-          else if (type != DTM.ATTRIBUTE_NODE)
-          {
-            break;
-          }
-        }
-      }
-    }
-
-    return DTM.NULL;
+	    return nsContext.elementAt(i);
+	  }
+	else
+	  {
+	    // Assume that attributes and namespace nodes immediately follow the element.
+	    int identity = nodeHandle & m_mask;
+	    while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+	      {
+		int type = getNodeType(identity);
+		if (type == DTM.NAMESPACE_NODE)
+		  {
+		    return identity | m_dtmIdent;
+		  }
+		else if (type != DTM.ATTRIBUTE_NODE)
+		  {
+		    break;
+		  }
+	      }
+	  }
+     return DTM.NULL;
   }
 
   /**
