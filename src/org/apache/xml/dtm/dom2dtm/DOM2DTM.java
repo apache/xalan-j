@@ -59,10 +59,16 @@ package org.apache.xml.dtm.dom2dtm;
 import org.apache.xml.dtm.*;
 import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
+import org.apache.xml.utils.StringBufferPool;
+import org.apache.xml.utils.FastStringBuffer;
+import org.apache.xml.utils.TreeWalker;
 
 import org.w3c.dom.*;
 
 import java.util.Vector;
+
+import javax.xml.transform.dom.DOMSource;
+import org.xml.sax.ContentHandler;
 
 /**
  * The <code>DOM2DTM</code> class serves up a DOM via a DTM API.
@@ -87,35 +93,38 @@ public class DOM2DTM implements DTM
   // Offsets into each set of integers in the <code>m_info</code> table.
 
   /** %TBD% Doc */
-  static final int OFFSET_TYPE = 0;
+  static final int OFFSET_EXPANDEDNAMEID = 0;
 
   /** %TBD% Doc */
-  static final int OFFSET_LEVEL = 1;
+  static final int OFFSET_TYPE = 1;
 
   /** %TBD% Doc */
-  static final int OFFSET_FIRSTCHILD = 2;
+  static final int OFFSET_LEVEL = 2;
 
   /** %TBD% Doc */
-  static final int OFFSET_NEXTSIBLING = 3;
+  static final int OFFSET_FIRSTCHILD = 3;
 
   /** %TBD% Doc */
-  static final int OFFSET_PREVSIBLING = 4;
+  static final int OFFSET_NEXTSIBLING = 4;
 
   /** %TBD% Doc */
-  static final int OFFSET_PARENT = 5;
+  static final int OFFSET_PREVSIBLING = 5;
+
+  /** %TBD% Doc */
+  static final int OFFSET_PARENT = 6;
 
   /**
    * This represents the number of integers per node in the
    * <code>m_info</code> member variable.
    */
-  static final int NODEINFOBLOCKSIZE = 5;
+  static final int NODEINFOBLOCKSIZE = 7;
 
   /**
    * The value to use when the information has not been built yet.
    */
   static final int NOTPROCESSED = DTM.NULL - 1;
 
-  /** NEEDSDOC Field NODEIDENTITYBITS          */
+  /** NEEDSDOC Field NODEIDENTITYBITS */
   static final int NODEIDENTITYBITS = 0x000FFFFF;
 
   /**
@@ -129,23 +138,28 @@ public class DOM2DTM implements DTM
   /** %TBD% Doc */
   protected int m_mask;
 
+  /** %TBD% Doc */
+  protected String m_documentBaseURI;
+
   /**
    * Construct a DOM2DTM object from a DOM node.
    *
    * NEEDSDOC @param mgr
    * NEEDSDOC @param node
+   * NEEDSDOC @param domSource
    */
-  public DOM2DTM(DTMManager mgr, Node node)
+  public DOM2DTM(DTMManager mgr, DOMSource domSource, int dtmIdentity)
   {
 
     m_mgr = mgr;
-    m_root = node;
+    m_root = domSource.getNode();
+    m_documentBaseURI = domSource.getSystemId();
     m_pos = null;
     m_nodesAreProcessed = false;
-    m_dtmIdent = m_mgr.getDTMIdentity(this);
-    m_mask = m_mgr.getNodeIdentityMask();
+    m_dtmIdent = dtmIdentity;
+    m_mask = mgr.getNodeIdentityMask();
 
-    addNode(node, 0, DTM.NULL, DTM.NULL);
+    addNode(m_root, 0, DTM.NULL, DTM.NULL);
   }
 
   /**
@@ -170,20 +184,39 @@ public class DOM2DTM implements DTM
 
     m_info.addElements(NODEINFOBLOCKSIZE);
     m_info.setElementAt(level, startInfo + OFFSET_LEVEL);
+
     int type = node.getNodeType();
-    if(Node.ATTRIBUTE_NODE == type)
+
+    if (Node.ATTRIBUTE_NODE == type)
     {
       String name = node.getNodeName();
-      if(name.startsWith("xmlns:") || name.equals("xmlns"))
+
+      if (name.startsWith("xmlns:") || name.equals("xmlns"))
       {
         type = DTM.NAMESPACE_NODE;
       }
     }
+
     m_info.setElementAt(type, startInfo + OFFSET_TYPE);
     m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_FIRSTCHILD);
     m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_NEXTSIBLING);
     m_info.setElementAt(previousSibling, startInfo + OFFSET_PREVSIBLING);
     m_info.setElementAt(parentIndex, startInfo + OFFSET_PARENT);
+    
+    if(DTM.NULL != parentIndex && type != DTM.ATTRIBUTE_NODE && type != DTM.NAMESPACE_NODE)
+    {
+      int startParentInfo = parentIndex * NODEINFOBLOCKSIZE;
+      if(NOTPROCESSED == m_info.elementAt(startParentInfo + OFFSET_FIRSTCHILD))
+      {
+        m_info.setElementAt(nodeIndex, startParentInfo + OFFSET_FIRSTCHILD);
+      }
+    }
+    
+    String nsURI = node.getNamespaceURI();
+    String localName = node.getLocalName();
+    int expandedNameID 
+        = m_mgr.getExpandedNameTable(this).getExpandedNameID(nsURI, localName);
+    m_info.setElementAt(expandedNameID, startInfo + OFFSET_EXPANDEDNAMEID);    
 
     if (DTM.NULL != previousSibling)
     {
@@ -221,14 +254,17 @@ public class DOM2DTM implements DTM
    */
   transient private int m_attrsPos;
 
-  /** NEEDSDOC Field LEVELINFO_PARENT          */
+  /** NEEDSDOC Field LEVELINFO_PARENT */
   static final int LEVELINFO_PARENT = 1;
 
-  /** NEEDSDOC Field LEVELINFO_PREVSIB          */
+  /** NEEDSDOC Field LEVELINFO_PREVSIB */
   static final int LEVELINFO_PREVSIB = 0;
 
-  /** NEEDSDOC Field LEVELINFO_NPERLEVEL          */
+  /** NEEDSDOC Field LEVELINFO_NPERLEVEL */
   static final int LEVELINFO_NPERLEVEL = 2;
+  
+  /** Samed element for attribute iteration */
+  private Node m_elementForAttrs;
 
   /**
    * This method iterates to the next node that will be added to the table.
@@ -254,6 +290,9 @@ public class DOM2DTM implements DTM
       Node nextNode;
       int type = pos.getNodeType();
 
+      int currentIndexHandle = m_nodes.size()-1;
+      int posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+      
       if (Node.ELEMENT_NODE == type)
       {
         m_attrs = pos.getAttributes();
@@ -262,42 +301,48 @@ public class DOM2DTM implements DTM
         if (null != m_attrs)
         {
           if (m_attrsPos < m_attrs.getLength())
+          {
+            m_elementForAttrs = pos;
             nextNode = m_attrs.item(m_attrsPos);
+          }
           else
-            nextNode = null;
+            nextNode = pos.getFirstChild();
         }
         else
-          nextNode = null;
+          nextNode = pos.getFirstChild();
       }
       else if (Node.ATTRIBUTE_NODE == type)
       {
+        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
         m_attrsPos++;
 
         if (m_attrsPos < m_attrs.getLength())
           nextNode = m_attrs.item(m_attrsPos);
         else
         {
-          nextNode = null;
+          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+          pos = m_elementForAttrs;
+          nextNode = pos.getFirstChild();
 
           m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
         }
       }
       else
-        nextNode = null;
-
-      if (null == nextNode)
-        nextNode = pos.getFirstChild();
+        nextNode = pos.getFirstChild();        
 
       if (null != nextNode)
       {
-        int currentIndexHandle = m_nodes.size();
-
-        m_levelInfo.push(currentIndexHandle);
-        m_levelInfo.push(DTM.NULL);
+        m_levelInfo.push(currentIndexHandle); // parent
+        m_levelInfo.push(DTM.NULL); // previous sibling
       }
 
       while (null == nextNode)
       {
+        if(m_info.elementAt(posInfo + OFFSET_FIRSTCHILD) == NOTPROCESSED)
+        {
+          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
+        }
+        
         if (top.equals(pos))
           break;
 
@@ -305,6 +350,7 @@ public class DOM2DTM implements DTM
 
         if (null == nextNode)
         {
+          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
           pos = pos.getParentNode();
 
           if ((null == pos) || (top.equals(pos)))
@@ -322,17 +368,17 @@ public class DOM2DTM implements DTM
 
       if (null != pos)
       {
-        int level = m_levelInfo.size() / 2;
+        int level = m_levelInfo.size() / LEVELINFO_NPERLEVEL;
 
-        addNode(pos, level, m_levelInfo.peek(LEVELINFO_PARENT),
-                m_levelInfo.peek(LEVELINFO_PREVSIB));
+        int newIndexHandle = 
+              addNode(pos, level, m_levelInfo.peek(LEVELINFO_PARENT),
+                  m_levelInfo.peek(LEVELINFO_PREVSIB));
 
         m_pos = pos;
 
-        int currentIndexHandle = m_nodes.size();
         int sz = m_levelInfo.size();
 
-        m_levelInfo.setElementAt(currentIndexHandle,
+        m_levelInfo.setElementAt(newIndexHandle,
                                  sz - (1 + LEVELINFO_PREVSIB));
 
         return pos;
@@ -392,6 +438,31 @@ public class DOM2DTM implements DTM
     }
 
     return identity;
+  }
+
+  /**
+   * Get the handle from a Node.
+   * <p>%OPT% This will be pretty slow.</p>
+   *
+   * @param node A node, which may be null.
+   *
+   * @return The node handle or <code>DTM.NULL</code>.
+   */
+  protected int getHandleFromNode(Node node)
+  {
+
+    if (null != node)
+    {
+      int len = m_nodes.size();
+
+      for (int i = 0; i < len; i++)
+      {
+        if (m_nodes == node)
+          return i | m_dtmIdent;
+      }
+    }
+
+    return DTM.NULL;
   }
 
   /**
@@ -476,7 +547,7 @@ public class DOM2DTM implements DTM
     int identity = nodeHandle & m_mask;
     int firstChild = getNodeInfo(identity, OFFSET_FIRSTCHILD);
 
-    return nodeHandle | m_dtmIdent;
+    return firstChild | m_dtmIdent;
   }
 
   /**
@@ -538,6 +609,7 @@ public class DOM2DTM implements DTM
 
         // Assume this can not be null.
         type = node.getNodeType();
+
         if (type == DTM.ATTRIBUTE_NODE)
         {
           String nodeuri = node.getNamespaceURI();
@@ -550,7 +622,7 @@ public class DOM2DTM implements DTM
           if (nodeuri.equals(namespaceURI) && name.equals(nodelocalname))
             return identity | m_dtmIdent;
         }
-        else if(DTM.NAMESPACE_NODE != type)
+        else if (DTM.NAMESPACE_NODE != type)
         {
           break;  // should be no more attribute nodes.
         }
@@ -573,25 +645,28 @@ public class DOM2DTM implements DTM
 
     while (DTM.ELEMENT_NODE == type)
     {
-     // Assume that attributes and namespaces immediately follow the element.
+
+      // Assume that attributes and namespaces immediately follow the element.
       int identity = nodeHandle & m_mask;
 
-      if(DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      if (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
         Node node = lookupNode(identity);
 
         // Assume this can not be null.
         type = node.getNodeType();
+
         if (node.getNodeType() == DTM.ATTRIBUTE_NODE)
         {
           return identity | m_dtmIdent;
         }
-        else if(DTM.NAMESPACE_NODE != type)
+        else if (DTM.NAMESPACE_NODE != type)
         {
           break;
         }
       }
     }
+
     return DTM.NULL;
   }
 
@@ -611,8 +686,33 @@ public class DOM2DTM implements DTM
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
 
-    // %TBD%
-    return 0;
+    int type = getNodeType(nodeHandle);
+
+    while (DTM.ELEMENT_NODE == type)
+    {
+
+      // Assume that attributes and namespaces immediately follow the element.
+      int identity = nodeHandle & m_mask;
+
+      if (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      {
+        Node node = lookupNode(identity);
+
+        // Assume this can not be null.
+        type = node.getNodeType();
+
+        if (node.getNodeType() == DTM.NAMESPACE_NODE)
+        {
+          return identity | m_dtmIdent;
+        }
+        else if (DTM.ATTRIBUTE_NODE != type)
+        {
+          break;
+        }
+      }
+    }
+
+    return DTM.NULL;
   }
 
   /**
@@ -626,8 +726,10 @@ public class DOM2DTM implements DTM
   public int getNextSibling(int nodeHandle)
   {
 
-    // %TBD%
-    return 0;
+    int identity = nodeHandle & m_mask;
+    int nextSibling = getNodeInfo(identity, OFFSET_NEXTSIBLING);
+
+    return nextSibling | m_dtmIdent;
   }
 
   /**
@@ -642,8 +744,10 @@ public class DOM2DTM implements DTM
   public int getPreviousSibling(int nodeHandle)
   {
 
-    // %TBD%
-    return 0;
+    int identity = nodeHandle & m_mask;
+    int firstChild = getNodeInfo(identity, OFFSET_PREVSIBLING);
+
+    return nodeHandle | m_dtmIdent;
   }
 
   /**
@@ -662,26 +766,28 @@ public class DOM2DTM implements DTM
 
     if (DTM.ATTRIBUTE_NODE == type)
     {
-     // Assume that attributes and namespace nodes immediately follow the element.
+
+      // Assume that attributes and namespace nodes immediately follow the element.
       int identity = nodeHandle & m_mask;
 
-      while(DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
       {
         Node node = lookupNode(identity);
 
         // Assume this can not be null.
         type = node.getNodeType();
+
         if (type == DTM.ATTRIBUTE_NODE)
         {
           return identity | m_dtmIdent;
         }
-        else if(type != DTM.NAMESPACE_NODE)
+        else if (type != DTM.NAMESPACE_NODE)
         {
           break;
         }
-        
       }
     }
+
     return DTM.NULL;
   }
 
@@ -689,14 +795,41 @@ public class DOM2DTM implements DTM
    * Given a namespace handle, advance to the next namespace.
    *
    * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
+   *
+   * NEEDSDOC @param nodeHandle
    * NEEDSDOC @param inScope
    * @return handle of next namespace, or DTM.NULL to indicate none exists.
    */
-  public int getNextNamespaceNode(int namespaceHandle, boolean inScope)
+  public int getNextNamespaceNode(int nodeHandle, boolean inScope)
   {
 
-    // %TBD%
-    return 0;
+    int type = getNodeType(nodeHandle);
+
+    if (DTM.NAMESPACE_NODE == type)
+    {
+
+      // Assume that attributes and namespace nodes immediately follow the element.
+      int identity = nodeHandle & m_mask;
+
+      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      {
+        Node node = lookupNode(identity);
+
+        // Assume this can not be null.
+        type = node.getNodeType();
+
+        if (type == DTM.NAMESPACE_NODE)
+        {
+          return identity | m_dtmIdent;
+        }
+        else if (type != DTM.ATTRIBUTE_NODE)
+        {
+          break;
+        }
+      }
+    }
+
+    return DTM.NULL;
   }
 
   /**
@@ -758,8 +891,10 @@ public class DOM2DTM implements DTM
   public int getParent(int nodeHandle)
   {
 
-    // %TBD%
-    return 0;
+    int identity = nodeHandle & m_mask;
+    int firstChild = getNodeInfo(identity, OFFSET_PARENT);
+
+    return nodeHandle | m_dtmIdent;
   }
 
   /**
@@ -770,9 +905,7 @@ public class DOM2DTM implements DTM
    */
   public int getDocument()
   {
-
-    // %TBD%
-    return 0;
+    return 0 | m_dtmIdent;
   }
 
   /**
@@ -791,8 +924,14 @@ public class DOM2DTM implements DTM
   public int getOwnerDocument(int nodeHandle)
   {
 
-    // %TBD%
-    return 0;
+    int type = getNodeType(nodeHandle);
+
+    if (DTM.DOCUMENT_NODE == type)
+    {
+      return DTM.NULL;
+    }
+
+    return getDocument();
   }
 
   /**
@@ -807,9 +946,79 @@ public class DOM2DTM implements DTM
   public String getStringValue(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    int type = getNodeType(nodeHandle);
+    Node node = getNode(nodeHandle);
+    if(DTM.ELEMENT_NODE == type || DTM.DOCUMENT_NODE == type)
+    {
+      FastStringBuffer buf = StringBufferPool.get();
+      String s;
+  
+      try
+      {
+        getNodeData(node, buf);
+  
+        s = (buf.length() > 0) ? buf.toString() : "";
+      }
+      finally
+      {
+        StringBufferPool.free(buf);
+      }
+  
+      return s;
+
+    }
+    return node.getNodeValue();
   }
+  
+  /**
+   * Retrieve the text content of a DOM subtree, appending it into a
+   * user-supplied FastStringBuffer object. Note that attributes are
+   * not considered part of the content of an element.
+   * <p>
+   * There are open questions regarding whitespace stripping. 
+   * Currently we make no special effort in that regard, since the standard
+   * DOM doesn't yet provide DTD-based information to distinguish
+   * whitespace-in-element-context from genuine #PCDATA. Note that we
+   * should probably also consider xml:space if/when we address this.
+   * DOM Level 3 may solve the problem for us.
+   *
+   * @param node Node whose subtree is to be walked, gathering the
+   * contents of all Text or CDATASection nodes.
+   * @param buf FastStringBuffer into which the contents of the text
+   * nodes are to be concatenated.
+   */
+  protected static void getNodeData(Node node, FastStringBuffer buf)
+  {
+
+    switch (node.getNodeType())
+    {
+    case Node.DOCUMENT_FRAGMENT_NODE :
+    case Node.DOCUMENT_NODE :
+    case Node.ELEMENT_NODE :
+    {
+      for (Node child = node.getFirstChild(); null != child;
+              child = child.getNextSibling())
+      {
+        getNodeData(child, buf);
+      }
+    }
+    break;
+    case Node.TEXT_NODE :
+    case Node.CDATA_SECTION_NODE :
+      buf.append(node.getNodeValue());
+      break;
+    case Node.ATTRIBUTE_NODE :
+      buf.append(node.getNodeValue());
+      break;
+    case Node.PROCESSING_INSTRUCTION_NODE :
+      // warning(XPATHErrorResources.WG_PARSING_AND_PREPARING);        
+      break;
+    default :
+      // ignore
+      break;
+    }
+  }
+
 
   /**
    * Get number of character array chunks in
@@ -827,6 +1036,7 @@ public class DOM2DTM implements DTM
   {
 
     // %TBD%
+    error("getStringValueChunkCount not yet supported!");
     return 0;
   }
 
@@ -848,6 +1058,7 @@ public class DOM2DTM implements DTM
   {
 
     // %TBD%
+    error("getStringValueChunk not yet supported!");
     return null;
   }
 
@@ -861,8 +1072,9 @@ public class DOM2DTM implements DTM
   public int getExpandedNameID(int nodeHandle)
   {
 
-    // %TBD%
-    return 0;
+    int identity = nodeHandle & m_mask;
+    int expandedNameID = getNodeInfo(identity, OFFSET_EXPANDEDNAMEID);
+    return expandedNameID;
   }
 
   /**
@@ -881,8 +1093,9 @@ public class DOM2DTM implements DTM
   public int getExpandedNameID(String namespace, String localName)
   {
 
-    // %TBD%
-    return 0;
+    ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
+
+    return ent.getExpandedNameID(namespace, localName);
   }
 
   /**
@@ -893,9 +1106,9 @@ public class DOM2DTM implements DTM
    */
   public String getLocalNameFromExpandedNameID(int ExpandedNameID)
   {
+    ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    // %TBD%
-    return null;
+    return ent.getLocalNameFromExpandedNameID(ExpandedNameID);
   }
 
   /**
@@ -907,9 +1120,9 @@ public class DOM2DTM implements DTM
    */
   public String getNamespaceFromExpandedNameID(int ExpandedNameID)
   {
+    ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    // %TBD%
-    return null;
+    return ent.getNamespaceFromExpandedNameID(ExpandedNameID);
   }
 
   /**
@@ -919,12 +1132,15 @@ public class DOM2DTM implements DTM
    * @param nodeHandle the id of the node.
    * @return String Name of this node, which may be an empty string.
    * %REVIEW% Document when empty string is possible...
+   * %REVIEW-COMMENT% It should never be empty, should it?
    */
   public String getNodeName(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    Node node = getNode(nodeHandle);
+
+    // Assume non-null.
+    return node.getNodeName();
   }
 
   /**
@@ -933,19 +1149,39 @@ public class DOM2DTM implements DTM
    * name.
    *
    * @param nodeHandle the id of the node.
-   * @return String Name of this node.
+   * @return String Name of this node, which may be an empty string.
    */
   public String getNodeNameX(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    String name;
+    short type = getNodeType(nodeHandle);
+
+    switch (type)
+    {
+    case DTM.ATTRIBUTE_NODE :
+    case DTM.ELEMENT_NODE :
+    case DTM.ENTITY_REFERENCE_NODE :
+    case DTM.NAMESPACE_NODE :
+    case DTM.PROCESSING_INSTRUCTION_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      name = node.getNodeName();
+    }
+    break;
+    default :
+      name = "";
+    }
+
+    return name;
   }
 
   /**
-   * Given a node handle, return its DOM-style localname.
+   * Given a node handle, return its XPath-style localname.
    * (As defined in Namespaces, this is the portion of the name after any
-   * colon character)
+   * colon character).
    *
    * @param nodeHandle the id of the node.
    * @return String Local name of this node.
@@ -953,8 +1189,36 @@ public class DOM2DTM implements DTM
   public String getLocalName(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    String name;
+    short type = getNodeType(nodeHandle);
+
+    switch (type)
+    {
+    case DTM.ATTRIBUTE_NODE :
+    case DTM.ELEMENT_NODE :
+    case DTM.ENTITY_REFERENCE_NODE :
+    case DTM.NAMESPACE_NODE :
+    case DTM.PROCESSING_INSTRUCTION_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      name = node.getLocalName();
+
+      if (null == name)
+      {
+        String qname = node.getNodeName();
+        int index = qname.indexOf(':');
+
+        name = (index < 0) ? qname : qname.substring(index + 1);
+      }
+    }
+    break;
+    default :
+      name = "";
+    }
+
+    return name;
   }
 
   /**
@@ -963,6 +1227,7 @@ public class DOM2DTM implements DTM
    * Given a node handle, return the prefix used to map to the namespace.
    *
    * <p> %REVIEW% Are you sure you want "" for no prefix?  </p>
+   * <p> %REVIEW-COMMENT% I think so... not totally sure. -sb  </p>
    *
    * @param nodeHandle the id of the node.
    * @return String prefix of this node's name, or "" if no explicit
@@ -971,14 +1236,47 @@ public class DOM2DTM implements DTM
   public String getPrefix(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    String prefix;
+    short type = getNodeType(nodeHandle);
+
+    switch (type)
+    {
+    case DTM.NAMESPACE_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      String qname = node.getNodeName();
+      int index = qname.indexOf(':');
+
+      prefix = (index < 0) ? "" : qname.substring(index + 1);
+    }
+    break;
+    case DTM.ATTRIBUTE_NODE :
+    case DTM.ELEMENT_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      String qname = node.getNodeName();
+      int index = qname.indexOf(':');
+
+      prefix = (index < 0) ? "" : qname.substring(0, index);
+    }
+    break;
+    default :
+      prefix = "";
+    }
+
+    return prefix;
   }
 
   /**
    * Given a node handle, return its DOM-style namespace URI
    * (As defined in Namespaces, this is the declared URI which this node's
    * prefix -- or default in lieu thereof -- was mapped to.)
+   *
+   * <p>%REVIEW% Null or ""? -sb</p>
    *
    * @param nodeHandle the id of the node.
    * @return String URI value of this node's namespace, or null if no
@@ -987,8 +1285,30 @@ public class DOM2DTM implements DTM
   public String getNamespaceURI(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    String nsuri;
+    short type = getNodeType(nodeHandle);
+
+    switch (type)
+    {
+    case DTM.ATTRIBUTE_NODE :
+    case DTM.ELEMENT_NODE :
+    case DTM.ENTITY_REFERENCE_NODE :
+    case DTM.NAMESPACE_NODE :
+    case DTM.PROCESSING_INSTRUCTION_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      nsuri = node.getNamespaceURI();
+
+      // %TBD% Handle DOM1?
+    }
+    break;
+    default :
+      nsuri = null;
+    }
+
+    return nsuri;
   }
 
   /**
@@ -1003,8 +1323,9 @@ public class DOM2DTM implements DTM
   public String getNodeValue(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    Node node = getNode(nodeHandle);
+
+    return node.getNodeValue();
   }
 
   /**
@@ -1019,7 +1340,7 @@ public class DOM2DTM implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    short type = (short)getNodeInfo(identity, OFFSET_TYPE);
+    short type = (short) getNodeInfo(identity, OFFSET_TYPE);
 
     return type;
   }
@@ -1073,8 +1394,8 @@ public class DOM2DTM implements DTM
   public String getDocumentBaseURI(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    // %REVIEW%  OK? -sb
+    return m_documentBaseURI;
   }
 
   /**
@@ -1087,8 +1408,8 @@ public class DOM2DTM implements DTM
   public String getDocumentSystemIdentifier(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    // %REVIEW%  OK? -sb
+    return m_documentBaseURI;
   }
 
   /**
@@ -1101,8 +1422,8 @@ public class DOM2DTM implements DTM
   public String getDocumentEncoding(int nodeHandle)
   {
 
-    // %TBD%
-    return null;
+    // %REVIEW%  OK??  -sb
+    return "UTF-8";
   }
 
   /**
@@ -1117,8 +1438,6 @@ public class DOM2DTM implements DTM
    */
   public String getDocumentStandalone(int nodeHandle)
   {
-
-    // %TBD%
     return null;
   }
 
@@ -1132,12 +1451,10 @@ public class DOM2DTM implements DTM
    *
    * NEEDSDOC @param documentHandle
    *
-   * @return the document version String object
+   * @return the document version String object.
    */
   public String getDocumentVersion(int documentHandle)
   {
-
-    // %TBD%
     return null;
   }
 
@@ -1154,8 +1471,8 @@ public class DOM2DTM implements DTM
   public boolean getDocumentAllDeclarationsProcessed()
   {
 
-    // %TBD%
-    return false;
+    // %REVIEW% OK?
+    return true;
   }
 
   /**
@@ -1169,7 +1486,23 @@ public class DOM2DTM implements DTM
   public String getDocumentTypeDeclarationSystemIdentifier()
   {
 
-    // %TBD%
+    Document doc;
+
+    if (m_root.getNodeType() == Node.DOCUMENT_NODE)
+      doc = (Document) m_root;
+    else
+      doc = m_root.getOwnerDocument();
+
+    if (null != doc)
+    {
+      DocumentType dtd = doc.getDoctype();
+
+      if (null != dtd)
+      {
+        return dtd.getSystemId();
+      }
+    }
+
     return null;
   }
 
@@ -1183,11 +1516,27 @@ public class DOM2DTM implements DTM
    *
    * @return the public identifier String object, or null if there is none.
    */
-  public int getDocumentTypeDeclarationPublicIdentifier()
+  public String getDocumentTypeDeclarationPublicIdentifier()
   {
 
-    // %TBD%
-    return 0;
+    Document doc;
+
+    if (m_root.getNodeType() == Node.DOCUMENT_NODE)
+      doc = (Document) m_root;
+    else
+      doc = m_root.getOwnerDocument();
+
+    if (null != doc)
+    {
+      DocumentType dtd = doc.getDoctype();
+
+      if (null != dtd)
+      {
+        return dtd.getPublicId();
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -1210,8 +1559,11 @@ public class DOM2DTM implements DTM
   public int getElementById(String elementId)
   {
 
-    // %TBD%
-    return 0;
+    Document doc = (m_root.getNodeType() == Node.DOCUMENT_NODE) 
+        ? (Document) m_root : m_root.getOwnerDocument();
+
+    return (null != doc)
+      ? getHandleFromNode(doc.getElementById(elementId)) : DTM.NULL;
   }
 
   /**
@@ -1251,8 +1603,52 @@ public class DOM2DTM implements DTM
   public String getUnparsedEntityURI(String name)
   {
 
-    // %TBD%
-    return null;
+    String url = "";
+    Document doc = (m_root.getNodeType() == Node.DOCUMENT_NODE) 
+        ? (Document) m_root : m_root.getOwnerDocument();
+
+    if (null != doc)
+    {
+      DocumentType doctype = doc.getDoctype();
+  
+      if (null != doctype)
+      {
+        NamedNodeMap entities = doctype.getEntities();
+        if(null == entities)
+          return url;
+        Entity entity = (Entity) entities.getNamedItem(name);
+        if(null == entity)
+          return url;
+        
+        String notationName = entity.getNotationName();
+  
+        if (null != notationName)  // then it's unparsed
+        {
+          // The draft says: "The XSLT processor may use the public 
+          // identifier to generate a URI for the entity instead of the URI 
+          // specified in the system identifier. If the XSLT processor does 
+          // not use the public identifier to generate the URI, it must use 
+          // the system identifier; if the system identifier is a relative 
+          // URI, it must be resolved into an absolute URI using the URI of 
+          // the resource containing the entity declaration as the base 
+          // URI [RFC2396]."
+          // So I'm falling a bit short here.
+          url = entity.getSystemId();
+  
+          if (null == url)
+          {
+            url = entity.getPublicId();
+          }
+          else
+          {
+            // This should be resolved to an absolute URL, but that's hard 
+            // to do from here.
+          }        
+        }
+      }
+    }
+
+    return url;
   }
 
   // ============== Boolean methods ================
@@ -1297,8 +1693,10 @@ public class DOM2DTM implements DTM
   public boolean isNodeAfter(int nodeHandle1, int nodeHandle2)
   {
 
-    // %TBD%
-    return false;
+      int index1 = nodeHandle1 & m_mask;
+      int index2 = nodeHandle2 & m_mask;
+
+      return index1 <= index2;
   }
 
   /**
@@ -1341,8 +1739,7 @@ public class DOM2DTM implements DTM
   public boolean isDocumentAllDeclarationsProcessed(int documentHandle)
   {
 
-    // %TBD%
-    return false;
+    return true;
   }
 
   /**
@@ -1358,8 +1755,13 @@ public class DOM2DTM implements DTM
    */
   public boolean isAttributeSpecified(int attributeHandle)
   {
+    int type = getNodeType(attributeHandle);
 
-    // %TBD%
+    if (DTM.ATTRIBUTE_NODE == type)
+    {
+      Attr attr = (Attr)getNode(attributeHandle);
+      return attr.getSpecified();
+    }
     return false;
   }
 
@@ -1380,8 +1782,64 @@ public class DOM2DTM implements DTM
    */
   public void dispatchCharactersEvents(
           int nodeHandle, org.xml.sax.ContentHandler ch)
-            throws org.xml.sax.SAXException{}
+            throws org.xml.sax.SAXException
+  {
+    int type = getNodeType(nodeHandle);
+    Node node = getNode(nodeHandle);
+    dispatchNodeData(node, ch);
+  }
+  
+  /**
+   * Retrieve the text content of a DOM subtree, appending it into a
+   * user-supplied FastStringBuffer object. Note that attributes are
+   * not considered part of the content of an element.
+   * <p>
+   * There are open questions regarding whitespace stripping. 
+   * Currently we make no special effort in that regard, since the standard
+   * DOM doesn't yet provide DTD-based information to distinguish
+   * whitespace-in-element-context from genuine #PCDATA. Note that we
+   * should probably also consider xml:space if/when we address this.
+   * DOM Level 3 may solve the problem for us.
+   *
+   * @param node Node whose subtree is to be walked, gathering the
+   * contents of all Text or CDATASection nodes.
+   * @param buf FastStringBuffer into which the contents of the text
+   * nodes are to be concatenated.
+   */
+  protected static void dispatchNodeData(Node node, org.xml.sax.ContentHandler ch)
+            throws org.xml.sax.SAXException
+  {
 
+    switch (node.getNodeType())
+    {
+    case Node.DOCUMENT_FRAGMENT_NODE :
+    case Node.DOCUMENT_NODE :
+    case Node.ELEMENT_NODE :
+    {
+      for (Node child = node.getFirstChild(); null != child;
+              child = child.getNextSibling())
+      {
+        dispatchNodeData(child, ch);
+      }
+    }
+    break;
+    case Node.TEXT_NODE :
+    case Node.CDATA_SECTION_NODE :
+    case Node.ATTRIBUTE_NODE :
+      String str = node.getNodeValue();
+      ch.characters(str.toCharArray(), 0, str.length());
+      break;
+    case Node.PROCESSING_INSTRUCTION_NODE :
+      // warning(XPATHErrorResources.WG_PARSING_AND_PREPARING);        
+      break;
+    default :
+      // ignore
+      break;
+    }
+  }
+  
+  TreeWalker m_walker = new TreeWalker(null);
+  
   /**
    * Directly create SAX parser events from a subtree.
    *
@@ -1391,7 +1849,27 @@ public class DOM2DTM implements DTM
    * @throws org.xml.sax.SAXException
    */
   public void dispatchToEvents(int nodeHandle, org.xml.sax.ContentHandler ch)
-          throws org.xml.sax.SAXException{}
+          throws org.xml.sax.SAXException
+  {
+    TreeWalker treeWalker = m_walker;
+    ContentHandler prevCH = treeWalker.getContentHandler();
+    
+    if(null != prevCH)
+    {
+      treeWalker = new TreeWalker(null);
+    }
+    treeWalker.setContentHandler(ch);
+    
+    try
+    {
+      Node node = getNode(nodeHandle);
+      treeWalker.traverse(node);
+    }
+    finally
+    {
+      treeWalker.setContentHandler(null);
+    }
+  }
 
   // ==== Construction methods (may not be supported by some implementations!) =====
 
@@ -1419,4 +1897,12 @@ public class DOM2DTM implements DTM
    * @param str Non-null reverence to a string.
    */
   public void appendTextChild(String str){}
+  
+  /**
+   * Simple error for asserts and the like.
+   */
+  protected void error(String msg)
+  {
+    throw new DTMException(msg);
+  }
 }
