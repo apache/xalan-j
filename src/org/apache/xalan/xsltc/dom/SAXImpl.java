@@ -2015,60 +2015,6 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     }
     */
     
-    public String getTreeString() {
-	StringBuffer buf = new StringBuffer();
-	buf = getElementString(buf, getDocument());
-	return buf.toString();
-    }
-
-    /**
-     * Helper to getTreeString() above
-     */
-     private StringBuffer getElementString(StringBuffer buffer, int element) {
-	String name = null;
-
-	if (isElement(element)) {
-	    if ((name = getNodeName(element)) != null) {
-		buffer.append('<');
-		buffer.append(name);
-		if (getFirstChild(element) == DTM.NULL) {
-		    buffer.append("/>");
-		    return buffer;
-		}
-		buffer.append('>');
-	    }
-	}
-
-	for (int child = getFirstChild(element);
-	     child != DTM.NULL;
-	     child = getNextSibling(child)) {
-	    switch (getNodeType(child)) {
-	    case DTM.COMMENT_NODE:
-		buffer.append("<!--");
-		buffer.append(buffer.append(getStringValueX(child)));
-		buffer.append("-->");
-		break;
-	    case DTM.TEXT_NODE:
-		buffer.append(buffer.append(getStringValueX(child)));
-		break;
-	    case DTM.PROCESSING_INSTRUCTION_NODE:
-		buffer.append("<?");
-		buffer.append(buffer.append(getStringValueX(child)));
-		buffer.append("?>");
-		break;
-	    default:
-		getElementString(buffer, child);
-	    }
-	}
-
-	if (isElement(element) && name != null) {
-	    buffer.append("</");
-	    buffer.append(name);
-	    buffer.append(">");
-	}
-	return buffer;
-    }
-
     /**
      * Returns a node' defined language for a node (if any)
      */

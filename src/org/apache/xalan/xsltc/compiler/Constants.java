@@ -179,6 +179,10 @@ public interface Constants extends InstructionConstants {
 	= "org/apache/xalan/xsltc/TransletOutputHandler";
     public static final String OUTPUT_HANDLER_SIG
 	= "Lorg/apache/xalan/xsltc/TransletOutputHandler;";
+    public static final String OUTPUT_BASE
+        = "org/apache/xalan/xsltc/runtime/output/OutputBase";
+    public static final String STREAM_XML_OUTPUT
+        = "org/apache/xalan/xsltc/runtime/output/StreamXMLOutput";
     public static final String FILTER_INTERFACE   
 	= "org.apache.xalan.xsltc.dom.Filter";
     public static final String FILTER_INTERFACE_SIG   
@@ -284,6 +288,10 @@ public interface Constants extends InstructionConstants {
 	= "java.lang.Boolean";
     public static final String STRING_BUFFER_CLASS
 	= "java.lang.StringBuffer";
+    public static final String STRING_WRITER
+        = "java.io.StringWriter";
+    public static final String WRITER_SIG
+        = "Ljava/io/Writer;";
 
     public static final String TRANSLET_OUTPUT_BASE       
 	= "org.apache.xalan.xsltc.TransletOutputBase";

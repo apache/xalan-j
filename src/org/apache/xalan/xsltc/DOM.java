@@ -84,7 +84,6 @@ public interface DOM {
     /** returns singleton iterator containg the document root */
     public DTMAxisIterator getIterator();
     public String getStringValue();
-    public String getTreeString(); // this one includes PIs and comments...
 	
     public DTMAxisIterator getChildren(final int node);
     public DTMAxisIterator getTypedChildren(final int type);

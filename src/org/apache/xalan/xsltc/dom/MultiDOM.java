@@ -360,10 +360,6 @@ public final class MultiDOM implements DOM {
     public String getStringValue() {
         return _adapters[0].getStringValue();
     }
-
-    public String getTreeString() {
-        return _adapters[0].getTreeString();
-    }
     
     public DTMAxisIterator getChildren(final int node) {
         return _adapters[getDTMId(node)].getChildren(node);

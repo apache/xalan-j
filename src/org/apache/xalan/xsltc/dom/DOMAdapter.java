@@ -255,12 +255,7 @@ public final class DOMAdapter implements DOM {
       */
       return iterator;
     }
-    
-
-    public String getTreeString() {
-	return _dom.getTreeString();
-    }
-    
+        
     public int getMultiDOMMask() {
 	return _multiDOMMask;
     }
