@@ -199,10 +199,31 @@ public class CoroutineManager
     return (coroutineID>=m_unreasonableId || activeIDs.get(coroutineID));
   }
 
-  /** In 
-  Object co_call(method,Object data)
+  /** In the standard coroutine architecture, coroutines are
+   * identified by their method names and are launched and run up to
+   * their first yield by simply resuming them; its's presumed that
+   * this recognizes the not-already-running case and does the right
+   * thing. We need a way to achieve that same threadsafe run-up...
+   * start the coroutine with a wait or some such.
+   *
+   * %TBD% whether this makes any sense...
+   * */
+  Object co_entry_pause(int thisCoroutine)
   {
-    // %TBD%
+    while(m_nextCoroutine != thisCoroutine)
+      {
+	try 
+	  {
+	    wait();
+	  }
+	catch(java.lang.InterruptedException e)
+	  {
+	    // %TBD% -- Declare? Encapsulate? Ignore? Or
+	    // dance deasil and widdershins about the instruction cache?
+	  }
+      }
+    
+    return m_yeild;
   }
 
   /** Transfer control to another coroutine which has already been started and
@@ -212,12 +233,12 @@ public class CoroutineManager
    * %TBD% What should we do if toCoroutine isn't registered? Exception?
    *
    * @param arg_object A value to be passed to the other coroutine.
-   * @param fromCoroutine Integer identifier for this coroutine. This is the
+   * @param thisCoroutine Integer identifier for this coroutine. This is the
    * ID we watch for to see if we're the ones being resumed.
    * @param toCoroutine. Integer identifier for the coroutine we wish to
    * invoke. 
    * */
-  public synchronized Object co_resume(Object arg_object,int fromCoroutine,int toCoroutine)
+  public synchronized Object co_resume(Object arg_object,int thisCoroutine,int toCoroutine)
   {
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
@@ -225,7 +246,7 @@ public class CoroutineManager
     m_nextCoroutine=toCoroutine;
 
     notify();
-    while(m_nextCoroutine != fromCoroutine)
+    while(m_nextCoroutine != thisCoroutine)
       {
 	try 
 	  {
@@ -250,9 +271,9 @@ public class CoroutineManager
    * What does yield get set to? Or does this cause _all_ coroutines
    * in this set to exit -- that actually sounds more useful.
    */
-  public synchronized void co_exit(int fromCoroutine)
+  public synchronized void co_exit(int thisCoroutine)
   {
-    activeIDs.clear(fromCoroutine);
+    activeIDs.clear(thisCoroutine);
     m_nextCoroutine=-1; // %REVIEW% Someone said Exit!    
     notify();
   }
@@ -262,14 +283,14 @@ public class CoroutineManager
    *
    * %TBD% What should we do if toCoroutine isn't registered? Exception?
    */
-  public synchronized void co_exit_to(Object arg_object,int fromCoroutine,int toCoroutine)
+  public synchronized void co_exit_to(Object arg_object,int thisCoroutine,int toCoroutine)
   {
     // We expect these values to be overwritten during the notify()/wait()
     // periods, as other coroutines in this set get their opportunity to run.
     m_yeild=arg_object;
     m_nextCoroutine=toCoroutine;
 
-    activeIDs.clear(fromCoroutine);
+    activeIDs.clear(thisCoroutine);
 
     notify();
   }
