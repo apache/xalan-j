@@ -1024,7 +1024,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
 
     int current = this.getCurrentNode();
 
-    // %TBD%
+    // %NODETESTFILTER%
 //    if (current.isSupported(FEATURE_NODETESTFILTER, "1.0"))
 //      ((NodeTestFilter) current).setNodeTest(this);
 
@@ -1368,13 +1368,21 @@ public abstract class AxesWalker extends PredicatedNodeTest
    */
   private DTM m_dtm;
   
-  // %TBD% Doc 
+  /**
+   * Set the DTM for this walker.
+   * 
+   * @param dtm Non-null reference to a DTM.
+   */
   public void setDefaultDTM(DTM dtm)
   {
     m_dtm = dtm;
   }
   
-  // %TBD% Doc 
+  /**
+   * Get the DTM for this walker.
+   * 
+   * @return Non-null reference to a DTM.
+   */
   public DTM getDTM(int node)
   {
     //

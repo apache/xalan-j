@@ -152,9 +152,11 @@ public class FuncDocument extends Function2Args
         DTM baseDTM = xctxt.getDTM(baseNode);
         base = baseDTM.getDocumentBaseURI();
 
+        // %REVIEW% This doesn't seem to be a problem with the conformance
+        // suite, but maybe it's just not doing a good test?
 //        int baseDoc = baseDTM.getDocument();
 //
-//        if (baseDoc == DTM.NULL /* || baseDoc instanceof Stylesheet  %TBD% What to do?? */)
+//        if (baseDoc == DTM.NULL /* || baseDoc instanceof Stylesheet  -->What to do?? */)
 //        {
 //
 //          // base = ((Stylesheet)baseDoc).getBaseIdentifier();

@@ -259,7 +259,7 @@ public class FilterExprWalker extends AxesWalker
       {
         int current = this.getCurrentNode();
 
-        // %TBD%
+        // %NODETESTFILTER%
 //        if (current instanceof NodeTestFilter)
 //          ((NodeTestFilter) current).setNodeTest(this);
 

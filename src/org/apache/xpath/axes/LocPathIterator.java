@@ -217,7 +217,7 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   public void setEnvironment(Object environment)
   {
-    // %TBD% ?
+    // no-op for now.
   }
   
   /**
@@ -531,7 +531,7 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   private void resetToCachedList()
   {
-    // %TBD% ? This doesn't seem to work so well...
+    // %REVIEW% ? This doesn't seem to work so well...
     int pos = this.getCurrentPos();
 
     if ((null == m_cachedNodes) || (pos != 0))

@@ -138,10 +138,8 @@ public class FuncExtFunction extends Function
     }
 
     ExtensionsTable etable = xctxt.getExtensionsTable();
-    // %TBD% Not sure why this won't compile
-    Object val = null;
-//    Object val = etable.extFunction(m_namespace, m_extensionName, argVec,
-//                                    m_methodKey, xctxt);
+    Object val = etable.extFunction(m_namespace, m_extensionName, argVec,
+                                    m_methodKey, xctxt.getExpressionContext());
 
     if (null != val)
     {
@@ -179,10 +177,11 @@ public class FuncExtFunction extends Function
 //      {
 //        result = new XNodeSet((NodeIterator) val);
 //      }
-//      else if (val instanceof Node)
-//      {
-//        result = new XNodeSet((Node) val);
-//      }
+      else if (val instanceof org.w3c.dom.Node)
+      {
+        result = new XNodeSet(xctxt.getDTMHandleFromNode((org.w3c.dom.Node)val), 
+                              xctxt.getDTMManager());
+      }
       else
       {
         result = new XObject(val);

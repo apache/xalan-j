@@ -177,6 +177,20 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
   
   /**
+   * Given a W3C DOM node, try and return a DTM handle.
+   * Note: calling this may be non-optimal.
+   * 
+   * @param node Non-null reference to a DOM node.
+   * 
+   * @return a valid DTM handle.
+   */
+  public int getDTMHandleFromNode(org.w3c.dom.Node node)
+  {
+    return m_dtmManager.getDTMHandleFromNode(node);
+  }
+
+  
+  /**
    * %TBD% Doc
    */
   public int getDTMIdentity(DTM dtm)
@@ -863,6 +877,82 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     {
       return null;  // error reporting?
     }
+  }
+  
+  XPathExpressionContext expresionContext = new XPathExpressionContext();
+  
+  /**
+   * The the expression context for extensions for this context.
+   * 
+   * @return An object that implements the ExpressionContext.
+   */
+  public ExpressionContext getExpressionContext()
+  {
+    return expresionContext;
+  }
+  
+  class XPathExpressionContext implements ExpressionContext
+  {
+    
+    /**
+     * Get the current context node.
+     * @return The current context node.
+     */
+    public org.w3c.dom.Node getContextNode()
+    {
+      int context = m_currentNodes.peepOrNull();
+      
+      return getDTM(context).getNode(context);
+    }
+  
+    /**
+     * Get the current context node list.
+     * @return An iterator for the current context list, as
+     * defined in XSLT.
+     */
+    public org.w3c.dom.traversal.NodeIterator getContextNodes()
+    {
+      // %TBD%
+      return null;
+    }
+  
+    /**
+     * Get the value of a node as a number.
+     * @param n Node to be converted to a number.  May be null.
+     * @return value of n as a number.
+     */
+    public double toNumber(org.w3c.dom.Node n)
+    {
+      // %REVIEW% You can't get much uglier than this...
+      int nodeHandle = getDTMHandleFromNode(n);
+      DTM dtm = getDTM(nodeHandle);
+      String strVal = dtm.getStringValue(nodeHandle);
+      XObject xobj = new org.apache.xpath.objects.XString(strVal);
+      try
+      {
+        return xobj.num();
+      }
+      catch(TransformerException te)
+      {
+        throw new org.apache.xml.utils.WrappedRuntimeException(te);
+      }
+    }
+  
+    /**
+     * Get the value of a node as a string.
+     * @param n Node to be converted to a string.  May be null.
+     * @return value of n as a string, or an empty string if n is null.
+     */
+    public String toString(org.w3c.dom.Node n)
+    {
+      // %REVIEW% You can't get much uglier than this...
+      int nodeHandle = getDTMHandleFromNode(n);
+      DTM dtm = getDTM(nodeHandle);
+      String strVal = dtm.getStringValue(nodeHandle);
+      return strVal;
+    }
+
+    
   }
 
 }

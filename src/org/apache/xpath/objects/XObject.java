@@ -146,19 +146,25 @@ public class XObject extends Expression implements Serializable
     {
       result = new XNumber(((Double) val).doubleValue());
     }
-      // %TBD%
-//    else if (val instanceof DocumentFragment)
-//    {
-//      result = new XRTreeFrag((DocumentFragment) val);
-//    }
-//    else if (val instanceof Node)
-//    {
-//      result = new XNodeSet((Node) val);
-//    }
-//    else if (val instanceof NodeIterator)
-//    {
-//      result = new XNodeSet((NodeIterator) val);
-//    }
+    else if (val instanceof org.w3c.dom.DocumentFragment)
+    {
+      // result = new XRTreeFrag((DocumentFragment) val);
+      // %REVIEW%
+      result = new XObject(val);
+    }
+    else if (val instanceof org.w3c.dom.traversal.NodeIterator)
+    {
+      // result = new XNodeSet((NodeIterator) val);
+      // %REVIEW%
+      result = new XObject(val);
+    }
+    else if (val instanceof org.w3c.dom.Node)
+    {
+      // result = new XNodeSet(xctxt.getDTMHandleFromNode((org.w3c.dom.Node)val), 
+      //                      xctxt.getDTMManager());
+      // %REVIEW%
+      result = new XObject(val);
+    }
     else
     {
       result = new XObject(val);

@@ -106,7 +106,7 @@ import org.xml.sax.helpers.NamespaceSupport;
  *
  * @see Stylesheet
  */
-public class ElemTemplateElement /* %DTBD% extends UnImplNode */
+public class ElemTemplateElement extends UnImplNode
         implements PrefixResolver, Serializable, SourceLocator, 
                    WhitespaceStrippingElementMatcher
 {

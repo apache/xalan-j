@@ -81,6 +81,8 @@ import org.apache.xalan.transformer.TransformerImpl;
 
 import javax.xml.transform.TransformerException;
 
+import org.apache.xml.dtm.DTM;
+
 /**
  * <meta name="usage" content="advanced"/>
  * Implement an extension element.
@@ -386,7 +388,7 @@ public class ElemExtensionCall extends ElemLiteralResult
    * @throws TransformerException
    */
   public String getAttribute(
-          String rawName, int sourceNode /* %DTBD% Node varient? */, TransformerImpl transformer)
+          String rawName, org.w3c.dom.Node sourceNode, TransformerImpl transformer)
             throws TransformerException
   {
 
@@ -396,9 +398,12 @@ public class ElemExtensionCall extends ElemLiteralResult
     {
       XPathContext xctxt = transformer.getXPathContext();
 
-      return avt.evaluate(xctxt, sourceNode, this);
+      return avt.evaluate(xctxt, 
+            xctxt.getDTMHandleFromNode(sourceNode), 
+            this);
     }
 
     return null;
   }
+  
 }

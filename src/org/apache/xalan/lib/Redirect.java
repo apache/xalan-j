@@ -75,6 +75,8 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.Result;
 import javax.xml.transform.TransformerException;
 
+import org.w3c.dom.*;
+
 /**
  * Implements three extension elements to allow an XSLT transformation to
  * redirect its output to multiple output files.
@@ -154,273 +156,272 @@ public class Redirect
    */
   protected Hashtable m_outputStreams = new Hashtable ();
 
-  // %TBD%
-//  /**
-//   * Open the given file and put it in the XML, HTML, or Text formatter listener's table.
-//   */
-//  public void open(XSLProcessorContext context, ElemExtensionCall elem)
-//    throws java.net.MalformedURLException,
-//           java.io.FileNotFoundException,
-//           java.io.IOException,
-//           javax.xml.transform.TransformerException
-//  {
-//    String fileName = getFilename(context, elem);
-//    Object flistener = m_formatterListeners.get(fileName);
-//    if(null == flistener)
-//    {
-//      String mkdirsExpr 
-//        = elem.getAttribute ("mkdirs", context.getContextNode(), 
-//                                                  context.getTransformer());
-//      boolean mkdirs = (mkdirsExpr != null)
-//                       ? (mkdirsExpr.equals("true") || mkdirsExpr.equals("yes")) : true;
-//          // ContentHandler fl = 
-//          makeFormatterListener(context, elem, fileName, true, mkdirs);
-//          // fl.startDocument();
-//    }
-//  }
-//  
-//  /**
-//   * Write the evalutation of the element children to the given file. Then close the file
-//   * unless it was opened with the open extension element and is in the formatter listener's table.
-//   */
-//  public void write(XSLProcessorContext context, ElemExtensionCall elem)
-//    throws java.net.MalformedURLException,
-//           java.io.FileNotFoundException,
-//           java.io.IOException,
-//           javax.xml.transform.TransformerException
-//  {
-//    String fileName = getFilename(context, elem);
-//    Object flObject = m_formatterListeners.get(fileName);
-//    ContentHandler formatter;
-//    boolean inTable = false;
-//    if(null == flObject)
-//    {
-//      String mkdirsExpr 
-//        = ((ElemExtensionCall)elem).getAttribute ("mkdirs", 
-//                                                  context.getContextNode(), 
-//                                                  context.getTransformer());
-//      boolean mkdirs = (mkdirsExpr != null)
-//                       ? (mkdirsExpr.equals("true") || mkdirsExpr.equals("yes")) : true;
-//      formatter = makeFormatterListener(context, elem, fileName, true, mkdirs);
-//    }
-//    else
-//    {
-//      inTable = true;
-//      formatter = (ContentHandler)flObject;
-//    }
-//    
-//    TransformerImpl transf = context.getTransformer();
-//    
-//    transf.executeChildTemplates(elem,
-//                                 context.getContextNode(),
-//                                 context.getMode(), formatter);
-//    
-//    if(!inTable)
-//    {
-//      OutputStream ostream = (OutputStream)m_outputStreams.get(fileName);
-//      if(null != ostream)
-//      {
-//        try
-//        {
-//          formatter.endDocument();
-//        }
-//        catch(org.xml.sax.SAXException se)
-//        {
-//          throw new TransformerException(se);
-//        }
-//        ostream.close();
-//        m_outputStreams.remove(fileName);
-//        m_formatterListeners.remove(fileName);
-//      }
-//    }
-//  }
-//
-//
-//  /**
-//   * Close the given file and remove it from the formatter listener's table.
-//   */
-//  public void close(XSLProcessorContext context, ElemExtensionCall elem)
-//    throws java.net.MalformedURLException,
-//    java.io.FileNotFoundException,
-//    java.io.IOException,
-//    javax.xml.transform.TransformerException
-//  {
-//    String fileName = getFilename(context, elem);
-//    Object formatterObj = m_formatterListeners.get(fileName);
-//    if(null != formatterObj)
-//    {
-//      ContentHandler fl = (ContentHandler)formatterObj;
-//      try
-//      {
-//        fl.endDocument();
-//      }
-//      catch(org.xml.sax.SAXException se)
-//      {
-//        throw new TransformerException(se);
-//      }
-//      OutputStream ostream = (OutputStream)m_outputStreams.get(fileName);
-//      if(null != ostream)
-//      {
-//        ostream.close();
-//        m_outputStreams.remove(fileName);
-//      }
-//      m_formatterListeners.remove(fileName);
-//    }
-//  }
-//
-//  /**
-//   * Get the filename from the 'select' or the 'file' attribute.
-//   */
-//  private String getFilename(XSLProcessorContext context, ElemExtensionCall elem)
-//    throws java.net.MalformedURLException,
-//    java.io.FileNotFoundException,
-//    java.io.IOException,
-//    javax.xml.transform.TransformerException
-//  {
-//    String fileName;
-//    String fileNameExpr 
-//      = ((ElemExtensionCall)elem).getAttribute ("select", 
-//                                                context.getContextNode(), 
-//                                                context.getTransformer());
-//    if(null != fileNameExpr)
-//    {
-//      org.apache.xpath.XPathContext xctxt 
-//        = context.getTransformer().getXPathContext();
-//      XPath myxpath = new XPath(fileNameExpr, elem, xctxt.getNamespaceContext(), XPath.SELECT);
-//      XObject xobj = myxpath.execute(xctxt, context.getContextNode(), xctxt.getNamespaceContext());
-//      fileName = xobj.str();
-//      if((null == fileName) || (fileName.length() == 0))
-//      {
-//        fileName = elem.getAttribute ("file", 
-//                                      context.getContextNode(), 
-//                                      context.getTransformer());
-//      }
-//    }
-//    else
-//    {
-//      fileName = elem.getAttribute ("file", context.getContextNode(), 
-//                                                               context.getTransformer());
-//    }
-//    if(null == fileName)
-//    {
-//      context.getTransformer().getMsgMgr().error(elem, elem, 
-//                                     context.getContextNode(), 
-//                                     XSLTErrorResources.ER_REDIRECT_COULDNT_GET_FILENAME);
-//                              //"Redirect extension: Could not get filename - file or select attribute must return vald string.");
-//    }
-//    return fileName;
-//  }
-//  
-//  // yuck.
-//  private String urlToFileName(String base)
-//  {
-//    if(null != base)
-//    {
-//      if(base.startsWith("file:////"))
-//      {
-//        base = base.substring(7);
-//      }
-//      else if(base.startsWith("file:///"))
-//      {
-//        base = base.substring(6);
-//      }
-//      else if(base.startsWith("file://"))
-//      {
-//        base = base.substring(5); // absolute?
-//      }
-//      else if(base.startsWith("file:/"))
-//      {
-//        base = base.substring(5);
-//      }
-//      else if(base.startsWith("file:"))
-//      {
-//        base = base.substring(4);
-//      }
-//    }
-//    return base;
-//  }
-//
-//  /**
-//   * Create a new ContentHandler, based on attributes of the current ContentHandler.
-//   */
-//  private ContentHandler makeFormatterListener(XSLProcessorContext context,
-//                                               ElemExtensionCall elem,
-//                                               String fileName,
-//                                               boolean shouldPutInTable,
-//                                               boolean mkdirs)
-//    throws java.net.MalformedURLException,
-//    java.io.FileNotFoundException,
-//    java.io.IOException,
-//    javax.xml.transform.TransformerException
-//  {
-//    File file = new File(fileName);
-//    TransformerImpl transformer = context.getTransformer();
-//    String base;          // Base URI to use for relative paths
-//
-//    if(!file.isAbsolute())
-//    {
-//      // This code is attributed to Jon Grov <jon@linpro.no>.  A relative file name
-//      // is relative to the Result used to kick off the transform.  If no such
-//      // Result was supplied, the filename is relative to the source document.
-//      // When transforming with a SAXResult or DOMResult, call
-//      // TransformerImpl.setOutputTarget() to set the desired Result base.
-//  //      String base = urlToFileName(elem.getStylesheet().getSystemId());
-//
-//      Result outputTarget = transformer.getOutputTarget();
-//      if ( (null != outputTarget) && ((base = outputTarget.getSystemId()) != null) ) {
-//        base = urlToFileName(base);
-//      }
-//      else
-//      {
-//        base = urlToFileName(transformer.getBaseURLOfSource());
-//      }
-//
-//      if(null != base)
-//      {
-//        File baseFile = new File(base);
-//        file = new File(baseFile.getParent(), fileName);
-//      }
-//    }
-//
-//    if(mkdirs)
-//    {
-//      String dirStr = file.getParent();
-//      if((null != dirStr) && (dirStr.length() > 0))
-//      {
-//        File dir = new File(dirStr);
-//        dir.mkdirs();
-//      }
-//    }
-//
-//    // This should be worked on so that the output format can be 
-//    // defined by a first child of the redirect element.
-//    OutputProperties format = transformer.getOutputFormat();
-//
-//    FileOutputStream ostream = new FileOutputStream(file);
-//    
-//    try
-//    {
-//      ContentHandler flistener 
-//        = transformer.createResultContentHandler(new StreamResult(ostream), format);
-//      try
-//      {
-//        flistener.startDocument();
-//      }
-//      catch(org.xml.sax.SAXException se)
-//      {
-//        throw new TransformerException(se);
-//      }
-//      if(shouldPutInTable)
-//      {
-//        m_outputStreams.put(fileName, ostream);
-//        m_formatterListeners.put(fileName, flistener);
-//      }
-//      return flistener;
-//    }
-//    catch(TransformerException te)
-//    {
-//      throw new javax.xml.transform.TransformerException(te);
-//    }
-//    
-//  }
+  /**
+   * Open the given file and put it in the XML, HTML, or Text formatter listener's table.
+   */
+  public void open(XSLProcessorContext context, ElemExtensionCall elem)
+    throws java.net.MalformedURLException,
+           java.io.FileNotFoundException,
+           java.io.IOException,
+           javax.xml.transform.TransformerException
+  {
+    String fileName = getFilename(context, elem);
+    Object flistener = m_formatterListeners.get(fileName);
+    if(null == flistener)
+    {
+      String mkdirsExpr 
+        = elem.getAttribute ("mkdirs", context.getContextNode(), 
+                                                  context.getTransformer());
+      boolean mkdirs = (mkdirsExpr != null)
+                       ? (mkdirsExpr.equals("true") || mkdirsExpr.equals("yes")) : true;
+          // ContentHandler fl = 
+          makeFormatterListener(context, elem, fileName, true, mkdirs);
+          // fl.startDocument();
+    }
+  }
+  
+  /**
+   * Write the evalutation of the element children to the given file. Then close the file
+   * unless it was opened with the open extension element and is in the formatter listener's table.
+   */
+  public void write(XSLProcessorContext context, ElemExtensionCall elem)
+    throws java.net.MalformedURLException,
+           java.io.FileNotFoundException,
+           java.io.IOException,
+           javax.xml.transform.TransformerException
+  {
+    String fileName = getFilename(context, elem);
+    Object flObject = m_formatterListeners.get(fileName);
+    ContentHandler formatter;
+    boolean inTable = false;
+    if(null == flObject)
+    {
+      String mkdirsExpr 
+        = ((ElemExtensionCall)elem).getAttribute ("mkdirs", 
+                                                  context.getContextNode(), 
+                                                  context.getTransformer());
+      boolean mkdirs = (mkdirsExpr != null)
+                       ? (mkdirsExpr.equals("true") || mkdirsExpr.equals("yes")) : true;
+      formatter = makeFormatterListener(context, elem, fileName, true, mkdirs);
+    }
+    else
+    {
+      inTable = true;
+      formatter = (ContentHandler)flObject;
+    }
+    
+    TransformerImpl transf = context.getTransformer();
+    
+    transf.executeChildTemplates(elem,
+                                 context.getContextNode(),
+                                 context.getMode(), formatter);
+    
+    if(!inTable)
+    {
+      OutputStream ostream = (OutputStream)m_outputStreams.get(fileName);
+      if(null != ostream)
+      {
+        try
+        {
+          formatter.endDocument();
+        }
+        catch(org.xml.sax.SAXException se)
+        {
+          throw new TransformerException(se);
+        }
+        ostream.close();
+        m_outputStreams.remove(fileName);
+        m_formatterListeners.remove(fileName);
+      }
+    }
+  }
+
+
+  /**
+   * Close the given file and remove it from the formatter listener's table.
+   */
+  public void close(XSLProcessorContext context, ElemExtensionCall elem)
+    throws java.net.MalformedURLException,
+    java.io.FileNotFoundException,
+    java.io.IOException,
+    javax.xml.transform.TransformerException
+  {
+    String fileName = getFilename(context, elem);
+    Object formatterObj = m_formatterListeners.get(fileName);
+    if(null != formatterObj)
+    {
+      ContentHandler fl = (ContentHandler)formatterObj;
+      try
+      {
+        fl.endDocument();
+      }
+      catch(org.xml.sax.SAXException se)
+      {
+        throw new TransformerException(se);
+      }
+      OutputStream ostream = (OutputStream)m_outputStreams.get(fileName);
+      if(null != ostream)
+      {
+        ostream.close();
+        m_outputStreams.remove(fileName);
+      }
+      m_formatterListeners.remove(fileName);
+    }
+  }
+
+  /**
+   * Get the filename from the 'select' or the 'file' attribute.
+   */
+  private String getFilename(XSLProcessorContext context, ElemExtensionCall elem)
+    throws java.net.MalformedURLException,
+    java.io.FileNotFoundException,
+    java.io.IOException,
+    javax.xml.transform.TransformerException
+  {
+    String fileName;
+    String fileNameExpr 
+      = ((ElemExtensionCall)elem).getAttribute ("select", 
+                                                context.getContextNode(), 
+                                                context.getTransformer());
+    if(null != fileNameExpr)
+    {
+      org.apache.xpath.XPathContext xctxt 
+        = context.getTransformer().getXPathContext();
+      XPath myxpath = new XPath(fileNameExpr, elem, xctxt.getNamespaceContext(), XPath.SELECT);
+      XObject xobj = myxpath.execute(xctxt, context.getContextNode(), xctxt.getNamespaceContext());
+      fileName = xobj.str();
+      if((null == fileName) || (fileName.length() == 0))
+      {
+        fileName = elem.getAttribute ("file", 
+                                      context.getContextNode(), 
+                                      context.getTransformer());
+      }
+    }
+    else
+    {
+      fileName = elem.getAttribute ("file", context.getContextNode(), 
+                                                               context.getTransformer());
+    }
+    if(null == fileName)
+    {
+      context.getTransformer().getMsgMgr().error(elem, elem, 
+                                     context.getContextNode(), 
+                                     XSLTErrorResources.ER_REDIRECT_COULDNT_GET_FILENAME);
+                              //"Redirect extension: Could not get filename - file or select attribute must return vald string.");
+    }
+    return fileName;
+  }
+  
+  // yuck.
+  private String urlToFileName(String base)
+  {
+    if(null != base)
+    {
+      if(base.startsWith("file:////"))
+      {
+        base = base.substring(7);
+      }
+      else if(base.startsWith("file:///"))
+      {
+        base = base.substring(6);
+      }
+      else if(base.startsWith("file://"))
+      {
+        base = base.substring(5); // absolute?
+      }
+      else if(base.startsWith("file:/"))
+      {
+        base = base.substring(5);
+      }
+      else if(base.startsWith("file:"))
+      {
+        base = base.substring(4);
+      }
+    }
+    return base;
+  }
+
+  /**
+   * Create a new ContentHandler, based on attributes of the current ContentHandler.
+   */
+  private ContentHandler makeFormatterListener(XSLProcessorContext context,
+                                               ElemExtensionCall elem,
+                                               String fileName,
+                                               boolean shouldPutInTable,
+                                               boolean mkdirs)
+    throws java.net.MalformedURLException,
+    java.io.FileNotFoundException,
+    java.io.IOException,
+    javax.xml.transform.TransformerException
+  {
+    File file = new File(fileName);
+    TransformerImpl transformer = context.getTransformer();
+    String base;          // Base URI to use for relative paths
+
+    if(!file.isAbsolute())
+    {
+      // This code is attributed to Jon Grov <jon@linpro.no>.  A relative file name
+      // is relative to the Result used to kick off the transform.  If no such
+      // Result was supplied, the filename is relative to the source document.
+      // When transforming with a SAXResult or DOMResult, call
+      // TransformerImpl.setOutputTarget() to set the desired Result base.
+  //      String base = urlToFileName(elem.getStylesheet().getSystemId());
+
+      Result outputTarget = transformer.getOutputTarget();
+      if ( (null != outputTarget) && ((base = outputTarget.getSystemId()) != null) ) {
+        base = urlToFileName(base);
+      }
+      else
+      {
+        base = urlToFileName(transformer.getBaseURLOfSource());
+      }
+
+      if(null != base)
+      {
+        File baseFile = new File(base);
+        file = new File(baseFile.getParent(), fileName);
+      }
+    }
+
+    if(mkdirs)
+    {
+      String dirStr = file.getParent();
+      if((null != dirStr) && (dirStr.length() > 0))
+      {
+        File dir = new File(dirStr);
+        dir.mkdirs();
+      }
+    }
+
+    // This should be worked on so that the output format can be 
+    // defined by a first child of the redirect element.
+    OutputProperties format = transformer.getOutputFormat();
+
+    FileOutputStream ostream = new FileOutputStream(file);
+    
+    try
+    {
+      ContentHandler flistener 
+        = transformer.createResultContentHandler(new StreamResult(ostream), format);
+      try
+      {
+        flistener.startDocument();
+      }
+      catch(org.xml.sax.SAXException se)
+      {
+        throw new TransformerException(se);
+      }
+      if(shouldPutInTable)
+      {
+        m_outputStreams.put(fileName, ostream);
+        m_formatterListeners.put(fileName, flistener);
+      }
+      return flistener;
+    }
+    catch(TransformerException te)
+    {
+      throw new javax.xml.transform.TransformerException(te);
+    }
+    
+  }
 }

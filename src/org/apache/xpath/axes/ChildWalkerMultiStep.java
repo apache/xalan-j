@@ -95,7 +95,7 @@ public class ChildWalkerMultiStep extends AxesWalker
 
     int current = this.getCurrentNode();
     
-    // %TBD%
+    // %NODETESTFILTER%
 //    if (current.isSupported(FEATURE_NODETESTFILTER, "1.0"))
 //      ((NodeTestFilter) current).setNodeTest(this);
     DTM dtm = getDTM(m_root);

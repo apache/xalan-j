@@ -440,13 +440,13 @@ public class DOM2DTM extends DTMDefaultBase
   }
 
   /**
-   * Get a Node from a handle.
+   * Return an DOM node for the given node.
    *
-   * NEEDSDOC @param nodeHandle
+   * @param nodeHandle The node ID.
    *
-   * NEEDSDOC ($objectName$) @return
+   * @return A node representation of the DTM node.
    */
-  protected Node getNode(int nodeHandle)
+  public Node getNode(int nodeHandle)
   {
 
     int identity = nodeHandle & m_mask;

@@ -77,6 +77,8 @@ import org.apache.xpath.objects.XRTreeFrag;
 import org.apache.xpath.objects.XNodeSet;
 import org.apache.xpath.XPathContext;
 
+import org.apache.xml.dtm.DTM;
+
 // import org.apache.xalan.xslt.*;
 
 /**
@@ -105,9 +107,10 @@ public class XSLProcessorContext
     this.transformer = transformer;
     this.stylesheetTree = stylesheetTree;
     // %TBD%
-//    this.mode = mode;
-//    this.sourceTree = sourceTree;
-//    this.sourceNode = sourceNode;
+    org.apache.xpath.XPathContext xctxt = transformer.getXPathContext();
+    this.mode = transformer.getMode();
+    this.sourceNode = xctxt.getCurrentNode();
+    this.sourceTree = xctxt.getDTM(this.sourceNode);
   }
 
   /** An instance of a transformer          */
@@ -137,32 +140,30 @@ public class XSLProcessorContext
   }
 
   /**  The root of the source tree being executed.        */
-  private int sourceTree;
+  private org.apache.xml.dtm.DTM sourceTree;
 
-  // %TBD%
-//  /**
-//   * Get the root of the source tree being executed.
-//   *
-//   * @return the root of the source tree being executed.
-//   */
-//  public Node getSourceTree()
-//  {
-//    return sourceTree;
-//  }
+  /**
+   * Get the root of the source tree being executed.
+   *
+   * @return the root of the source tree being executed.
+   */
+  public org.w3c.dom.Node getSourceTree()
+  {
+    return sourceTree.getNode(sourceTree.getDocument());
+  }
 
   /** the current context node.          */
   private int sourceNode;
 
-  // %TBD%
-//  /**
-//   * Get the current context node.
-//   *
-//   * @return the current context node.
-//   */
-//  public Node getContextNode()
-//  {
-//    return sourceNode;
-//  }
+  /**
+   * Get the current context node.
+   *
+   * @return the current context node.
+   */
+  public org.w3c.dom.Node getContextNode()
+  {
+    return sourceTree.getNode(sourceNode);
+  }
 
   /** the current mode being executed.         */
   private QName mode;
@@ -251,56 +252,58 @@ public class XSLProcessorContext
 
         rtreeHandler.characters(s.toCharArray(), 0, s.length());
         break;
-        // %TBD%
-//      case XObject.CLASS_NODESET :  // System.out.println(value);
-//        DTMIterator nl = value.nodeset();
-//        int pos;
-//
-//        while (DTM.NULL != (pos = nl.nextNode()))
-//        {
-//          int top = pos;
-//
-//          while (null != pos)
-//          {
-//            rtreeHandler.flushPending();
-//            rtreeHandler.cloneToResultTree(pos, true);
-//
-//            Node nextNode = pos.getFirstChild();
-//
-//            while (null == nextNode)
-//            {
-//              if (Node.ELEMENT_NODE == pos.getNodeType())
-//              {
-//                rtreeHandler.endElement("", "", pos.getNodeName());
-//              }
-//
-//              if (top == pos)
-//                break;
-//
-//              nextNode = pos.getNextSibling();
-//
-//              if (null == nextNode)
-//              {
-//                pos = pos.getParentNode();
-//
-//                if (top == pos)
-//                {
-//                  if (Node.ELEMENT_NODE == pos.getNodeType())
-//                  {
-//                    rtreeHandler.endElement("", "", pos.getNodeName());
-//                  }
-//
-//                  nextNode = null;
-//
-//                  break;
-//                }
-//              }
-//            }
-//
-//            pos = nextNode;
-//          }
-//        }
-//        break;
+
+      case XObject.CLASS_NODESET :  // System.out.println(value);
+        DTMIterator nl = value.nodeset();
+        
+        int pos;
+
+        while (DTM.NULL != (pos = nl.nextNode()))
+        {
+          DTM dtm = nl.getDTM(pos);
+          int top = pos;
+
+          while (DTM.NULL != pos)
+          {
+            rtreeHandler.flushPending();
+            rtreeHandler.cloneToResultTree(pos, true);
+
+            int nextNode = dtm.getFirstChild(pos);
+
+            while (DTM.NULL == nextNode)
+            {
+              if (DTM.ELEMENT_NODE == dtm.getNodeType(pos))
+              {
+                rtreeHandler.endElement("", "", dtm.getNodeName(pos));
+              }
+
+              if (top == pos)
+                break;
+
+              nextNode = dtm.getNextSibling(pos);
+
+              if (DTM.NULL == nextNode)
+              {
+                pos = dtm.getParent(pos);
+
+                if (top == pos)
+                {
+                  if (DTM.ELEMENT_NODE == dtm.getNodeType(pos))
+                  {
+                    rtreeHandler.endElement("", "", dtm.getNodeName(pos));
+                  }
+
+                  nextNode = DTM.NULL;
+
+                  break;
+                }
+              }
+            }
+
+            pos = nextNode;
+          }
+        }
+        break;
       case XObject.CLASS_RTREEFRAG :
         rtreeHandler.outputResultTreeFragment(value,
                                               transformer.getXPathContext());

@@ -190,7 +190,7 @@ public class NodeSet extends NodeVector
    */
   public void setEnvironment(Object environment)
   {
-    // %TBD%
+    // no-op
   }
 
 

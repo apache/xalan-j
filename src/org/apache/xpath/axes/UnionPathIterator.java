@@ -667,7 +667,7 @@ public class UnionPathIterator extends Expression
   public int getLength()
   {
 
-    // %TBD% ??
+    // %REVIEW% ??
 //    resetToCachedList();
 
     return m_cachedNodes.getLength();
@@ -732,7 +732,7 @@ public class UnionPathIterator extends Expression
    */
   public void setEnvironment(Object environment)
   {
-    // %TBD% ?
+    // no-op for now.
   }
   
   /**

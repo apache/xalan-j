@@ -170,7 +170,7 @@ import javax.xml.parsers.ParserConfigurationException;
  * representation of the transformation execution.</p>
  */
 public class TransformerImpl extends Transformer
-        implements Runnable, DTMWSFilter /* %TBD% , TransformState */
+        implements Runnable, DTMWSFilter
 {
   // Synch object to gaurd against setting values from the TrAX interface 
   // or reentry while the transform is going on.
@@ -938,7 +938,6 @@ public class TransformerImpl extends Transformer
     
     // If the Result object contains a Node, then create 
     // a ContentHandler that will add nodes to the input node.
-    // %TBD%
     org.w3c.dom.Node outputNode = null;
     if(outputTarget instanceof DOMResult)
     {
@@ -1949,6 +1948,41 @@ public class TransformerImpl extends Transformer
 
     return true;
   }
+  
+  /**
+   * <meta name="usage" content="advanced"/>
+   * Execute each of the children of a template element.  This method 
+   * is only for extension use.
+   *
+   * @param elem The ElemTemplateElement that contains the children 
+   * that should execute.
+   * @param sourceNode The current context node.
+   * @param mode The current mode.
+   * @param handler The ContentHandler to where the result events 
+   * should be fed.
+   * 
+   * @throws TransformerException
+   */
+  public void executeChildTemplates(
+          ElemTemplateElement elem, org.w3c.dom.Node context, QName mode, 
+           ContentHandler handler)
+            throws TransformerException
+  {
+    XPathContext xctxt = getXPathContext();
+    try
+    {
+      xctxt.pushCurrentNode(
+           xctxt.getDTMHandleFromNode(context));
+             
+      executeChildTemplates( elem, handler);
+    }
+    finally
+    {
+      xctxt.popCurrentNode();
+      if(null != mode)
+        popMode();
+    }
+  }
 
   /**
    * <meta name="usage" content="advanced"/>
@@ -1956,8 +1990,6 @@ public class TransformerImpl extends Transformer
    *
    * @param elem The ElemTemplateElement that contains the children 
    * that should execute.
-   * @param sourceNode The current context node.
-   * @param mode The current mode.
    * @param handler The ContentHandler to where the result events 
    * should be fed.
    * 

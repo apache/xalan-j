@@ -230,6 +230,36 @@ public class XPath implements Serializable
   {  
     this(exprString, locator, prefixResolver, type, null);    
   }
+  
+  /**
+   * <meta name="usage" content="experimental"/>
+   * Given an expression and a context, evaluate the XPath
+   * and call the callback as nodes are found.  Only some simple
+   * types of expresions right now can call back, so if this
+   * method returns null, then the callbacks have been called, otherwise
+   * a valid XObject will be returned.
+   * 
+   * @param xctxt The execution context.
+   * @param contextNode The node that "." expresses.
+   * @param namespaceContext The context in which namespaces in the
+   * XPath are supposed to be expanded.
+
+   * @return The result of the XPath or null if callbacks are used.
+   * @throws TransformerException thrown if
+   * the error condition is severe enough to halt processing.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public XObject execute(
+          XPathContext xctxt, org.w3c.dom.Node contextNode, 
+          PrefixResolver namespaceContext)
+            throws javax.xml.transform.TransformerException
+  {
+    return execute(
+          xctxt, xctxt.getDTMHandleFromNode(contextNode), 
+          namespaceContext);
+  }
+  
 
   /**
    * <meta name="usage" content="experimental"/>
@@ -238,18 +268,13 @@ public class XPath implements Serializable
    * types of expresions right now can call back, so if this
    * method returns null, then the callbacks have been called, otherwise
    * a valid XObject will be returned.
+   * 
    * @param xctxt The execution context.
    * @param contextNode The node that "." expresses.
    * @param namespaceContext The context in which namespaces in the
    * XPath are supposed to be expanded.
+   * 
    * @throws TransformerException thrown if the active ProblemListener decides
-   * the error condition is severe enough to halt processing.
-   * @param callback Interface that implements the processLocatedNode method.
-   * @param callbackInfo Object that will be passed to the processLocatedNode method.
-   * @param stopAtFirst True if the search should stop once the first node in document
-   * order is found.
-   * @return The result of the XPath or null if callbacks are used.
-   * @throws TransformerException thrown if
    * the error condition is severe enough to halt processing.
    *
    * @throws javax.xml.transform.TransformerException
