@@ -1641,6 +1641,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
                       ? m_valuesOrPrefixes.stringToIndex(qName) : 0;
     int elemNode = addNode(DTM.ELEMENT_NODE, exName, m_levelAmount,
                            m_parents.peek(), m_previous, prefixIndex, true);
+
     indexNode(exName, elemNode);
     
     m_levelAmount++;
@@ -1722,7 +1723,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     if (null != m_wsfilter)
     {
-      short wsv = m_wsfilter.getShouldStripSpace(elemNode);
+      short wsv = m_wsfilter.getShouldStripSpace(elemNode | m_dtmIdent);
       boolean shouldStrip = (DTMWSFilter.INHERIT == wsv)
                             ? getShouldStripWhitespace()
                             : (DTMWSFilter.STRIP == wsv);
