@@ -60,7 +60,7 @@ import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
 
-import org.apache.xalan.xpath.dtm.ChunkedIntArray;
+import org.apache.xml.dtm.ChunkedIntArray;
 import org.apache.xml.utils.FastStringBuffer;
 
 import org.xml.sax.Attributes;
@@ -186,8 +186,17 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
-	protected void setElementNameTable(DTMStringPool poolRef) {
+	void setElementNameTable(DTMStringPool poolRef) {
 		m_elementNames = poolRef;
+	}
+
+	/**
+	 * Get a reference pointer to the element name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+	DTMStringPool getElementNameTable() {
+		return m_elementNames;
 	}
 
 	/**
@@ -195,8 +204,17 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
-	protected void setNsNameTable(DTMStringPool poolRef) {
+	void setNsNameTable(DTMStringPool poolRef) {
 		m_nsNames = poolRef;
+	}
+
+	/**
+	 * Get a reference pointer to the namespace URI symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+	DTMStringPool getNsNameTable() {
+	  return m_nsNames;
 	}
 
 	/**
@@ -204,8 +222,17 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
-	protected void setAttributeNameTable(DTMStringPool poolRef) {
+        void setAttributeNameTable(DTMStringPool poolRef) {
 		m_attributeNames = poolRef;
+	}
+
+	/**
+	 * Get a reference pointer to the attribute name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+        DTMStringPool getAttributeNameTable() {
+		return m_attributeNames;
 	}
 
 	/**
@@ -213,8 +240,36 @@ public class DTMDocumentImpl implements DTM {
 	 *
 	 * @param poolRef DTMStringPool reference to an instance of table.
 	 */
-	protected void setPrefixNameTable(DTMStringPool poolRef) {
+	void setPrefixNameTable(DTMStringPool poolRef) {
 		m_prefixNames = poolRef;
+	}
+
+	/**
+	 * Get a reference pointer to the prefix name symbol table.
+	 *
+	 * @return DTMStringPool reference to an instance of table.
+	 */
+	DTMStringPool getPrefixNameTable() {
+		return m_prefixNames;
+	}
+
+	/**
+	 * Set a reference pointer to the content-text repository
+	 *
+	 * @param bufferRef FastStringBuffer reference to an instance of
+	 * buffer
+	 */
+	void setContentBuffer(FastStringBuffer buffer) {
+		m_char = buffer;
+	}
+
+	/**
+	 * Get a reference pointer to the content-text repository
+	 *
+	 * @return FastStringBuffer reference to an instance of buffer
+	 */
+	FastStringBuffer getContentBuffer() {
+		return m_char;
 	}
 
 	// ========= Document Handler Functions =========

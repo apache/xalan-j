@@ -115,13 +115,13 @@ implements ContentHandler, LexicalHandler
 
   // Scott suggests sharing pools between DTMs. Note that this will require
   // threadsafety at the pool level.
-  private static DTMStringPool commonLocalNames=new DTMSafeStringPool();
-  private static DTMStringPool commonAttributeNames=new DTMSafeStringPool();
+  private static DTMStringPool commonLocalElementNames=new DTMSafeStringPool();
+  private static DTMStringPool commonLocalAttributeNames=new DTMSafeStringPool();
   private static DTMStringPool commonNamespaceNames=new DTMSafeStringPool();
   private static DTMStringPool commonPrefixes=new DTMSafeStringPool();
 
-  private DTMStringPool localNames; // For this DTM, may be common
-  private DTMStringPool attributeNames; // For this DTM, may be common
+  private DTMStringPool localElementNames; // For this DTM, may be common
+  private DTMStringPool localAttributeNames; // For this DTM, may be common
   private DTMStringPool namespaceNames; // For this DTM, may be common
   private DTMStringPool prefixes; 
   private FastStringBuffer content; // Unique per DTM
@@ -139,27 +139,27 @@ implements ContentHandler, LexicalHandler
   {
     // Start with persistant shared pools unless the DTM expresses
     // other preferences
-    localNames=dtm.getLocalNames();
-    if(localNames==null)
-      dtm.setLocalNames(localNames=commonLocalNames);
+    localElementNames=dtm.getElementNameTable();
+    if(localElementNames==null)
+      dtm.setElementNameTable(localElementNames=commonLocalElementNames);
 
-    attributeNames=dtm.getAttributeNames();
-    if(attributeNames==null)
-      dtm.setAttributeNames(attributeNames=commonAttributeNames);
+    localAttributeNames=dtm.getAttributeNameTable();
+    if(localAttributeNames==null)
+      dtm.setAttributeNameTable(localAttributeNames=commonLocalAttributeNames);
 
-    namespaceNames=dtm.getnamespaceNames();
+    namespaceNames=dtm.getNsNameTable();
     if(namespaceNames==null)
-      dtm.setNamespaceNames(namespaceNames=commonNamespaceNames);
+      dtm.setNsNameTable(namespaceNames=commonNamespaceNames);
 
-    prefixes=dtm.getPrefixes();
+    prefixes=dtm.getPrefixNameTable();
     if(prefixes==null)
-      dtm.setPrefixes(prefixes=commonPrefixes);
+      dtm.setPrefixNameTable(prefixes=commonPrefixes);
 
     // Unlike the other strings, which may be shared and thus should be
     // reset elsewhere (if at all), content starts empty each time we parse.
-    content=dtm.getcontent();
+    content=dtm.getContentBuffer();
     if(content==null)
-      dtm.setcontent(content=new FastStringBuffer());
+      dtm.setContentBuffer(content=new FastStringBuffer());
     else
       content.reset();
     contentStart=0;
@@ -272,7 +272,7 @@ implements ContentHandler, LexicalHandler
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
     dtm.startElement(namespaceNames.stringToIndex(namespaceURI),
-		     localNames.stringToIndex(localName),
+		     localElementNames.stringToIndex(localName),
 		     prefixes.stringToIndex(prefix)); /////// %TBD%
 
     // %TBD% I'm assuming that DTM will require resequencing of
@@ -298,7 +298,7 @@ implements ContentHandler, LexicalHandler
 	    int contentEnd=content.length();
 	    
 	    dtm.appendNSDeclaration(namespaceNames.stringToIndex(atts.getURI(i)),
-				    attributeNames.stringToIndex(localName),
+				    localAttributeNames.stringToIndex(localName),
 				    prefixes.stringToIndex(prefix),
 				    contentStart, contentEnd-contentStart,
 				    atts.getType(i).equalsIgnoreCase("ID"));
@@ -323,7 +323,7 @@ implements ContentHandler, LexicalHandler
 	    
 	    if(!("xmlns".equals(prefix) || "xmlns".equals(qName)))
 	      dtm.appendAttribute(namespaceNames.stringToIndex(atts.getURI(i)),
-				  attributeNames.stringToIndex(localName),
+				  localAttributeNames.stringToIndex(localName),
 				  prefixes.stringToIndex(prefix),
 				  atts.getType(i).equalsIgnoreCase("ID"),
 				  contentStart, contentEnd-contentStart,

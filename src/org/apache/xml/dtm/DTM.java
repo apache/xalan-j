@@ -211,7 +211,7 @@ public interface DTM
   /**
    * Retrieves an attribute node by qualified name. 
    * <br>To retrieve an attribute node by local name and namespace URI, 
-   * use the <code>getAttributeNodeNS</code> method.
+   * use the <code>getAttributeNode(ns,local)</code> method.
    *
    * %REVIEW% I don't think XPath model needs it... but DOM support might.
    *
@@ -226,20 +226,10 @@ public interface DTM
   /**
    * Retrieves an attribute node by local name and namespace URI
    *
-   * @param name The namespace URI of the attribute to 
-   *   retrieve, or null.
-   * @param name The local name of the attribute to 
-   *   retrieve.
-   * @return The attribute node handle with the specified name (
-   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
-   *   attribute.
-   */
-  public int getAttributeNode(String namespaceURI, String name);
-
-  /**
-   * Retrieves an attribute node by name.
-   * <br>To retrieve an attribute node by qualified name and namespace URI, 
-   * use the <code>getAttributeNodeNS</code> method.
+   * %REVIEW% Note that this uses method overloading by argument signature.
+   * since we also have the single-string lookup by qname.
+   * If we ever want to port this to a language which doesn't support this
+   * capability, we might want to rename this to getAttributeNodeNS.
    *
    * @param name The namespace URI of the attribute to 
    *   retrieve, or null.

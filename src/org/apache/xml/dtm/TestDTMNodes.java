@@ -1,6 +1,6 @@
 package org.apache.xml.dtm;
 
-import org.apache.xalan.xpath.dtm.ChunkedIntArray;
+import org.apache.xml.dtm.ChunkedIntArray;
 
 public class TestDTMNodes {
 
