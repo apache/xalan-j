@@ -1510,17 +1510,21 @@ public class SAX2DTM2 extends SAX2DTM
       int node = _currentNode;
       int type;
 
+      // %OPT% If the startNode is the root node, do not need
+      // to do the isDescendant() check.
       if (startNode == ROOTNODE) {
+        int eType;
         do {
           node++;
-          type = _type2(node);
+          eType = _exptype2(node);
 
-          if (NULL == type) {
+          if (NULL == eType) {
             _currentNode = NULL;
             return END;
           }
-        } while(ATTRIBUTE_NODE == type || TEXT_NODE == type
-                 || NAMESPACE_NODE == type);
+        } while (eType == TEXT_NODE
+                 || (type = m_extendedTypes[eType].getNodeType()) == ATTRIBUTE_NODE
+                 || type == NAMESPACE_NODE);
       }
       else {
         do {
@@ -1586,24 +1590,24 @@ public class SAX2DTM2 extends SAX2DTM
      */
     public int next()
     {
-      int node;
-      int expType;
-
+      final int startNode = _startNode;
       if (_startNode == NULL) {
         return NULL;
       }
 
-      node = _currentNode;
+      int node = _currentNode;
 
+      int expType;
       final int nodeType = _nodeType;
-      if (nodeType >= DTM.NTYPES)
+      
+      if (nodeType != DTM.ELEMENT_NODE)
       {
         do
         {
           node++;
 	  expType = _exptype2(node);
 
-          if (NULL == expType ||!isDescendant(node)) {
+          if (NULL == expType || _parent2(node) < startNode && startNode != node) {
             _currentNode = NULL;
             return END;
           }
@@ -1613,7 +1617,7 @@ public class SAX2DTM2 extends SAX2DTM
       // %OPT% If the start node is root (e.g. in the case of //node),
       // we can save the isDescendant() check, because all nodes are
       // descendants of root.
-      else if (_startNode == DTMDefaultBase.ROOTNODE)
+      else if (startNode == DTMDefaultBase.ROOTNODE)
       {
 	do
 	{
@@ -1624,8 +1628,8 @@ public class SAX2DTM2 extends SAX2DTM
 	    _currentNode = NULL;
 	    return END;
 	  }
-	}
-	while (m_extendedTypes[expType].getNodeType() != nodeType && expType != nodeType);        
+	} while (expType < DTM.NTYPES 
+	        || m_extendedTypes[expType].getNodeType() != DTM.ELEMENT_NODE);
       }
       else
       {
@@ -1634,14 +1638,15 @@ public class SAX2DTM2 extends SAX2DTM
           node++;
 	  expType = _exptype2(node);
 
-          if (NULL == expType ||!isDescendant(node)) {
+          if (NULL == expType || _parent2(node) < startNode && startNode != node) {
             _currentNode = NULL;
             return END;
           }
         }
-        while (m_extendedTypes[expType].getNodeType() != nodeType && expType != nodeType);
+        while (expType < DTM.NTYPES 
+	       || m_extendedTypes[expType].getNodeType() != DTM.ELEMENT_NODE);      
       }
-
+      
       _currentNode = node;
       return returnNode(makeNodeHandle(node));
     }
