@@ -5,79 +5,103 @@ import org.apache.xml.dtm.TestDTMNodes;
 import org.xml.sax.helpers.AttributesImpl;
 
 /**
- * Tests the DTM by creating 
+ * Tests the DTM by creating
  *
+ * REWRITTEN to use SAX2 ContentHandler APIs -- original draft used
+ * an incomplete/incorrect version of SAX1 DocumentHandler, which is
+ * being phased out as quickly as we can possibly manage it.
+ *
+ * %TBD% I _think_ the SAX convention is that "no namespace" is expressed
+ * as "" rather than as null (which is the DOM's convention). What should 
+ * DTM expect? What should it do with the other?
  */
 public class TestDTM {
 
-	public static void main(String argv[]) {
+  public static void main(String argv[]) {
+    String text;
 
-		/*  <?xml version="1.0"?>
-		 *  <top>
-		 *   <A>
-		 *    <B hat="new" car="Honda" dog="Boxer">Life is good</B>
-		 *   </A>
-		 *   <C>My Anaconda<D/>Words</C>
-		 *  </top> */
+    /*  <?xml version="1.0"?>
+     *  <top>
+     *   <A>
+     *    <B hat="new" car="Honda" dog="Boxer">Life is good</B>
+     *   </A>
+     *   <C>My Anaconda<D/>Words</C>
+     *  </top> */
 
-		DTMDocumentImpl doc = new DTMDocumentImpl(0);
-		doc.createElement("top",  null);
-		doc.createElement( "A", null);
-		AttributesImpl atts = new AttributesImpl();
-		atts.addAttribute("", "", "hat", "CDATA", "new");
-		atts.addAttribute("", "", "car", "CDATA", "Honda");
-		atts.addAttribute("", "", "dog", "CDATA", "Boxer");
-		doc.createElement("B", atts);
-		doc.createTextNode("Life is good");
-		doc.endElement("", "B");
-		doc.endElement("", "A");
-		doc.createElement("C", null);
-		doc.createTextNode("My Anaconda");
-		doc.createElement("D", null);
-		doc.endElement("", "D");
-		doc.createTextNode("Words");
-		doc.endElement("", "C");
-		doc.endElement("", "top");
-		doc.documentEnd();
+    DTMDocumentImpl doc = new DTMDocumentImpl(0);
+    doc.startDocument();
 
-		boolean BUILDPURCHASEORDER=false;
-		if(BUILDPURCHASEORDER)
-		  {
-		    int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
+    doc.startElement("", "top", "top", null);
 
-		    root = doc.createElement("PurchaseOrderList", null);
-		    // root.createAttribute("version", "1.1"));
+    doc.startElement("", "A", "A", null);
 
-		    for (int i = 0; i < 10; i++) {
+    AttributesImpl atts = new AttributesImpl();
+    atts.addAttribute("", "", "hat", "CDATA", "new");
+    atts.addAttribute("", "", "car", "CDATA", "Honda");
+    atts.addAttribute("", "", "dog", "CDATA", "Boxer");
+    doc.startElement("","B","B", atts);
+    text="Life is good";
+    doc.characters(text.toCharArray(),0,text.length());
+    doc.endElement("","B","B");
 
-		      h = doc.createElement("PurchaseOrder", null);
+    doc.endElement("","A","A");
+    doc.startElement("","C","C", null);
 
-		      c1 = doc.createElement("Item", null);
-		      // c1.createAttribute();
-		      c1_text = doc.createTextNode("Basketball" + " - " + i);
-		      doc.endElement(null, "Item");
+    text="My Anaconda";
+    doc.characters(text.toCharArray(),0,text.length());
+    doc.startElement("","D","D",null);
+    doc.endElement("","D","D");
+    text="Words";
+    doc.characters(text.toCharArray(),0,text.length());
 
-		      c2 = doc.createElement("Description", null);
-		      // c2.createAttribute();
-		      c2_text = doc.createTextNode("Professional Leather Michael Jordan Signatured Basketball");
-		      doc.endElement(null, "Description");
+    doc.endElement("", "C", "C");
+    doc.endElement("", "top", "top");
+    doc.endDocument();
 
-		      c3 = doc.createElement("UnitPrice", null);
-		      c3_text = doc.createTextNode("$12.99");
-		      doc.endElement(null, "UnitPrice");
+    boolean BUILDPURCHASEORDER=false;
+    if(BUILDPURCHASEORDER)
+      {
+	int root, h, c1, c2, c3, c4, c1_text, c2_text, c3_text, c4_text;
 
-		      c4 = doc.createElement("Quanity", null);
-		      c4_text = doc.createTextNode("50");
-		      doc.endElement(null, "Quanity");
+	doc.startElement(null,"PurchaseOrderList","PurchaseOrderList", null);
 
-		      doc.endElement(null, "PurchaseOrder");
-		    }
+	for (int i = 0; i < 10; i++) {
 
-		    doc.endElement(null, "PurchaseOrderList");
-		  } // if(BUILDPURCHASEORDER)
-		
-		
+	  doc.startElement("","PurchaseOrder","PurchaseOrder", null);
 
-		TestDTMNodes.printNodeTable(doc);
+	  doc.startElement("","Item","Item", null);
+	  text="Basketball" + " - " + i;
+	  doc.characters(text.toCharArray(),0,text.length());
+		      
+	  doc.endElement("", "Item", "Item");
+
+	  doc.startElement("","Description","Description", null);
+	  // c2.createAttribute();
+	  text="Professional Leather Michael Jordan Signatured Basketball";
+	  doc.characters(text.toCharArray(),0,text.length());
+		      
+	  doc.endElement("", "Description", "Description");
+
+	  doc.startElement("","UnitPrice","UnitPrice", null);
+	  text="$12.99";
+	  doc.characters(text.toCharArray(),0,text.length());
+		      
+	  doc.endElement("", "UnitPrice", "UnitPrice");
+
+	  doc.startElement("","Quantity","Quantity", null);
+	  text="50";
+	  doc.characters(text.toCharArray(),0,text.length());
+		      
+	  doc.endElement("", "Quantity", "Quantity");
+
+	  doc.endElement("", "PurchaseOrder", "PurchaseOrder");
 	}
+
+	doc.endElement("", "PurchaseOrderList", "PurchaseOrderList");
+      } // if(BUILDPURCHASEORDER)
+		
+		
+
+    TestDTMNodes.printNodeTable(doc);
+  }
 }

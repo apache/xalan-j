@@ -294,7 +294,7 @@ implements ContentHandler, LexicalHandler
       prefix=qName.substring(0,colon);
 
     // %TBD% Where do we pool expandedName, or is it just the union, or...
-    m_dtm.startElement(namespaceNames.stringToIndex(namespaceURI),
+    m_dtm.appendStartElement(namespaceNames.stringToIndex(namespaceURI),
 		     localNames.stringToIndex(localName),
 		     prefixes.stringToIndex(prefix)); /////// %TBD%
 
