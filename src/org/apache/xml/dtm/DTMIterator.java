@@ -86,6 +86,8 @@ public interface DTMIterator
 {
 
   // Constants returned by acceptNode, borrowed from the DOM Traversal chapter
+  // %REVIEW% Should we explicitly initialize them from, eg,
+  // org.w3c.dom.traversal.NodeFilter.FILTER_ACCEPT?
 
   /**
    * Accept the node.
@@ -126,8 +128,6 @@ public interface DTMIterator
    * iterator may be passed without a DTMManager, this allows the 
    * caller to easily get the DTM using just the iterator.
    *
-   * TODO: Do we really need this, given getDTMManager()?
-   *
    * @param nodeHandle the nodeHandle.
    *
    * @return a non-null DTM reference.
@@ -157,7 +157,7 @@ public interface DTMIterator
    * Reset the root node of the <code>DTMIterator</code>, overriding
    * the value specified when it was created.  Note the root node is
    * not the root node of the document tree, but the context node from
-   * where the itteration begins.
+   * where the iteration begins.
    *
    * @param nodeHandle int Handle of the context node.
    */
@@ -196,11 +196,11 @@ public interface DTMIterator
    * to show the entity reference node and set
    * <code>expandEntityReferences</code> to false.</p>
    *
-   * NOTE: In DTM we will generally have fully expanded entity references
-   * when the document tree was built, and thus this flag will have no effect.
+   * <p>NOTE: In Xalan's use of DTM we will generally have fully expanded
+   * entity references when the document tree was built, and thus this
+   * flag will have no effect.</p>
    *
-   * @return true if entity references will be expanded.
-   */
+   * @return true if entity references will be expanded.  */
   public boolean getExpandEntityReferences();
 
   /**
@@ -229,10 +229,10 @@ public interface DTMIterator
    * calls to <code>nextNode</code> or <code>previousNode</code> will
    * raise a runtime exception.
    *
-   * TODO: This method may not be required in DTMIterator.
+   * %REVIEW% This method may not be required in DTMIterator.
    * It was needed in DOMIterator because data linkages were
    * established to support the "maintain relative position" semantic
-   * under document mutation...  but if DTM decides it doesn't need
+   * under document mutation...  but if DTM doesn't need
    * that semantic, we probably don't need to worry about this
    * cleanup. On the other hand, at worst it's a harmless no-op...
    */
@@ -263,7 +263,7 @@ public interface DTMIterator
    * be cached, enabling random access, and giving the ability to do 
    * sorts and the like.  They are not cached by default.
    *
-   * TODO: Shouldn't the other random-access methods throw an exception
+   * %REVIEW% Shouldn't the other random-access methods throw an exception
    * if they're called on a DTMIterator with this flag set false?
    *
    * @param b true if the nodes should be cached.

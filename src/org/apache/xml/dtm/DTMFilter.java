@@ -159,7 +159,7 @@ public interface DTMFilter
    * are modeled by DTM but not by the DOM.  Make sure this does not
    * conflict with {@link org.w3c.dom.traversal.NodeFilter}.
    * <p>
-   * ISSUE: Might be safer to start from higher bits and work down,
+   * %REVIEW% Might be safer to start from higher bits and work down,
    * to leave room for the DOM to expand its set of constants... Or,
    * possibly, to create a DTM-specific field for these additional bits.
    */
@@ -170,7 +170,7 @@ public interface DTMFilter
    * a function.  Make sure this does not conflict with
    * {@link org.w3c.dom.traversal.NodeFilter}.
    * <p>
-   * ISSUE: Might be safer to start from higher bits and work down,
+   * %REVIEW% Might be safer to start from higher bits and work down,
    * to leave room for the DOM to expand its set of constants... Or,
    * possibly, to create a DTM-specific field for these additional bits.
    */
@@ -196,8 +196,6 @@ public interface DTMFilter
    * it is not normally called directly from
    * user code.
    * <p>
-   * TODO: Is 0xFFFF really better than '*'? 
-   * <p>
    * TODO: Should this be setNameMatch(expandedName) followed by accept()?
    * Or will we really be testing a different name at every invocation?
    * 
@@ -218,7 +216,8 @@ public interface DTMFilter
    * @param whatToShow one of SHOW_XXX values.
    * @param expandedName a value defining the exanded name as defined in 
    *                     the DTM interface.  Wild cards will be defined 
-   *                     by 0xFFFF in the high word and/or in the low word.
+   *                     by 0xFFFF in the namespace and/or localname
+   *			 portion of the expandedName.
    * @return one of FILTER_ACCEPT, FILTER_REJECT, or FILTER_SKIP.  */
   public short acceptNode(int nodeHandle, int whatToShow, int expandedName);
  
