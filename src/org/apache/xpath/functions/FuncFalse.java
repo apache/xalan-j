@@ -84,4 +84,13 @@ public class FuncFalse extends Function
   {
     return XBoolean.S_FALSE;
   }
+  
+  /**
+   * No arguments to process, so this does nothing.
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    // no-op
+  }
+
 }

@@ -670,4 +670,13 @@ public class NodeTest extends Expression
   {
     return execute(xctxt, xctxt.getCurrentNode());
   }
+  
+  /**
+   * Node tests by themselves do not need to fix up variables.
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    // no-op
+  }
+
 }

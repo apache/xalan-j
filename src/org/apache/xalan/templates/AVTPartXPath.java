@@ -79,6 +79,21 @@ public class AVTPartXPath extends AVTPart
   private XPath m_xpath;
   
   /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    m_xpath.fixupVariables(vars, globalsSize);
+  }
+  
+  /**
    * Tell if this expression or it's subexpressions can traverse outside 
    * the current subtree.
    * 

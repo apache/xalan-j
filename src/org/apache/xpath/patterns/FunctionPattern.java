@@ -108,6 +108,23 @@ public class FunctionPattern extends StepPattern
   Expression m_functionExpr;
   
   /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    super.fixupVariables(vars, globalsSize);
+    m_functionExpr.fixupVariables(vars, globalsSize);
+  }
+
+  
+  /**
    * Test a node to see if it matches the given node test.
    *
    * @param xctxt XPath runtime context.

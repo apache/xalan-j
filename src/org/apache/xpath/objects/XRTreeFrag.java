@@ -56,9 +56,6 @@
  */
 package org.apache.xpath.objects;
 
-//import org.w3c.dom.*;
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.traversal.NodeFilter;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
@@ -67,17 +64,19 @@ import org.apache.xml.utils.XMLString;
 
 import org.apache.xpath.DOMHelper;
 import org.apache.xpath.XPathContext;
+import org.apache.xpath.Expression;
 
 /**
  * <meta name="usage" content="general"/>
  * This class represents an XPath result tree fragment object, and is capable of
  * converting the RTF to other types, such as a string.
  */
-public class XRTreeFrag extends XObject
+public class XRTreeFrag extends XObject implements Cloneable
 {
   DTM m_dtm;
   int m_dtmRoot;
   XPathContext m_xctxt;
+  boolean m_allowRelease = true;
 
 //  /**
 //   * Create an XRTreeFrag Object.
@@ -106,6 +105,83 @@ public class XRTreeFrag extends XObject
     m_xctxt = xctxt;
     m_dtm = xctxt.getDTM(root);
   }
+  
+  /**
+   * Create an XRTreeFrag Object.
+   *
+   * @param frag Document fragment this will wrap
+   */
+  public XRTreeFrag(Expression expr)
+  {
+    super(expr);
+  }
+  
+  /**
+   * Release any resources this object may have by calling destruct().
+   *
+   * @throws Throwable
+   */
+  protected void finalize() throws Throwable
+  {
+
+    try
+    {
+      destruct();
+    }
+    finally
+    {
+      super.finalize();  // Always use this.
+    }
+  }
+  
+  /**
+   * Specify if it's OK for detach to release the iterator for reuse.
+   * 
+   * @param allowRelease true if it is OK for detach to release this iterator 
+   * for pooling.
+   */
+  public void allowDetachToRelease(boolean allowRelease)
+  {
+    m_allowRelease = allowRelease;
+  }
+
+  /**
+   * Detaches the <code>DTMIterator</code> from the set which it iterated
+   * over, releasing any computational resources and placing the iterator
+   * in the INVALID state. After <code>detach</code> has been invoked,
+   * calls to <code>nextNode</code> or <code>previousNode</code> will
+   * raise a runtime exception.
+   * 
+   * In general, detach should only be called once on the object.
+   */
+  public void detach()
+  {
+    if(m_allowRelease)
+    {
+      if(null != m_dtm)
+      {
+        m_xctxt.release(m_dtm, true);
+        m_dtm = null;
+        m_xctxt = null;
+      }
+      m_obj = null;
+    }
+  }
+  
+  /**
+   * Forces the object to release it's resources.  This is more harsh than 
+   * detach().  You can call destruct as many times as you want.
+   */
+  public void destruct()
+  {
+    if(null != m_dtm)
+    {
+      m_xctxt.release(m_dtm, true);
+      m_dtm = null;
+      m_xctxt = null;
+    }
+    m_obj = null;
+ }
 
   /**
    * Tell what kind of class this is.
@@ -134,11 +210,10 @@ public class XRTreeFrag extends XObject
    * @return The result tree fragment as a number or NaN
    */
   public double num()
+    throws javax.xml.transform.TransformerException
   {
 
-    double result;
-    
-    XMLString s = m_dtm.getStringValue(m_dtmRoot);
+    XMLString s = xstr();
 
     return s.toDouble();
   }

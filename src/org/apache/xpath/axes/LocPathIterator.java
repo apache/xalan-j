@@ -268,16 +268,33 @@ public abstract class LocPathIterator extends PredicatedNodeTest
   public int asNode(XPathContext xctxt)
     throws javax.xml.transform.TransformerException
   {
-    LocPathIterator iter = (LocPathIterator)m_clones.getInstance();
+    DTMIterator iter = (DTMIterator)m_clones.getInstance();
 
     int current = xctxt.getCurrentNode();
     
     iter.setRoot(current, xctxt);
 
     int next = iter.nextNode();
-    m_clones.freeInstance(iter);
+    // m_clones.freeInstance(iter);
+    iter.detach();
     return next;
   }
+  
+  /**
+   * Evaluate this operation directly to a boolean.
+   *
+   * @param xctxt The runtime execution context.
+   *
+   * @return The result of the operation as a boolean.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public boolean bool(XPathContext xctxt)
+          throws javax.xml.transform.TransformerException
+  {
+    return (asNode(xctxt) != DTM.NULL);
+  }
+
 
   /**
    * <meta name="usage" content="advanced"/>
@@ -329,12 +346,8 @@ public abstract class LocPathIterator extends PredicatedNodeTest
 //    m_next = 0;
 
     if (m_isTopLevel)
-    {
-      VariableStack vars = xctxt.getVarStack();
+      this.m_stackFrame = xctxt.getVarStack().getStackFrame();
 
-      this.m_varStackPos = vars.getSearchStartOrTop();
-      this.m_varStackContext = vars.getContextPos();
-    }
     reset();
   }
 
@@ -646,6 +659,19 @@ public abstract class LocPathIterator extends PredicatedNodeTest
       m_clones.freeInstance(this);
     }
   }
+  
+  /**
+   * Reset the iterator.
+   */
+  public void reset()
+  {
+
+    // super.reset();
+    m_foundLast = false;
+    m_lastFetched = DTM.NULL;
+    m_next = 0;
+    m_last = 0;
+  }
 
   /**
    * Get a cloned Iterator that is reset to the beginning
@@ -680,19 +706,6 @@ public abstract class LocPathIterator extends PredicatedNodeTest
 //
 //    return clone;
 //  }
-
-  /**
-   * Reset the iterator.
-   */
-  public void reset()
-  {
-
-    // super.reset();
-    m_foundLast = false;
-    m_lastFetched = DTM.NULL;
-    m_next = 0;
-    m_last = 0;
-  }
 
   /**
    *  Returns the next node in the set and advances the position of the
@@ -943,18 +956,9 @@ public abstract class LocPathIterator extends PredicatedNodeTest
   transient protected DTM m_cdtm;
   
   /**
-   * An index to the point in the variable stack where we should
-   * begin variable searches for this iterator.
-   * This is -1 if m_isTopLevel is false.
+   * The stack frame index for this iterator.
    */
-  transient int m_varStackPos = -1;
-
-  /**
-   * An index into the variable stack where the variable context
-   * ends, i.e. at the point we should terminate the search and
-   * go looking for global variables.
-   */
-  transient int m_varStackContext;
+  transient int m_stackFrame = -1;
 
   /**
    * Value determined at compile time, indicates that this is an

@@ -113,6 +113,22 @@ public class ElemPI extends ElemTemplateElement
   {
     return m_name_atv;
   }
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    java.util.Vector vnames = sroot.getComposeState().getVariableNames();
+    if(null != m_name_atv)
+      m_name_atv.fixupVariables(vnames, sroot.getComposeState().getGlobalsSize());
+  }
+
+
 
   /**
    * Get an int constant identifying the type of element.

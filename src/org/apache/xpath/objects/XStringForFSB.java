@@ -970,7 +970,7 @@ public class XStringForFSB extends XString
     for (int i = start; i < end; i++) 
     {
       char c = fsb.charAt(i);
-      if( !Character.isSpaceChar( c ) )
+      if( !XMLCharacterRecognizer.isWhiteSpace( c ) )
       {
         break;
       }
@@ -992,7 +992,7 @@ public class XStringForFSB extends XString
       char c = fsb.charAt(i);
       if (c != '.')
       {
-        if(Character.isSpaceChar(c))
+        if(XMLCharacterRecognizer.isWhiteSpace(c))
           break;
         else if (Character.isDigit(c))
         {
@@ -1018,8 +1018,8 @@ public class XStringForFSB extends XString
       for (int i = end - 1; i > punctPos; i--)
       {
         char c = fsb.charAt(i);
-        if(Character.isSpaceChar(c))
-          break;
+        if(XMLCharacterRecognizer.isWhiteSpace(c))
+          continue;
         else if (Character.isDigit(c))
         {
           fractPart = fractPart / 10.0 + (c - 0x30);

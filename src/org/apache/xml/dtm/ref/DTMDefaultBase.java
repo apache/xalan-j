@@ -197,6 +197,11 @@ public abstract class DTMDefaultBase implements DTM
                         DTMWSFilter whiteSpaceFilter,
                         XMLStringFactory xstringfactory, boolean doIndexing)
   {
+    if(false == doIndexing)
+    {
+      m_initialblocksize = 8;
+      m_blocksize = 16;
+    }
 
     m_exptype = new int[m_initialblocksize];
     m_level = new byte[m_initialblocksize];
@@ -973,6 +978,10 @@ public abstract class DTMDefaultBase implements DTM
     return DTM.NULL;
   }
 
+  /** Lazily created namespace lists. */
+  private Vector m_namespaceLists = null;  // on demand
+
+
   /** Build table of namespace declaration
    * locations during DTM construction. Table is a Vector of
    * IntVectors containing the namespace node HANDLES declared at
@@ -1154,33 +1163,33 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
-	if(inScope)
-	  {	    
-	    IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
-	    if(nsContext==null || nsContext.size()<1)
-	      return NULL;
+        if(inScope)
+        {      
+            IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
+            if(nsContext==null || nsContext.size()<1)
+              return NULL;
 
-	    return nsContext.elementAt(0);
-	  }
-	else
-	  {
-	    // Assume that attributes and namespaces immediately
-	    // follow the element.
-	    //
-	    // %OPT% Would things be faster if all NS nodes were built
-	    // before all Attr nodes? Some costs at build time for 2nd
-	    // pass...
-	    int identity = nodeHandle & m_mask;
-	    while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
-	      {
-		int type = getNodeType(identity);
-		if (type == DTM.NAMESPACE_NODE)
-		    return identity | m_dtmIdent;
-		else if (DTM.ATTRIBUTE_NODE != type)
-		    break;
-	      }
-	    return NULL;
-	  }
+            return nsContext.elementAt(0);
+          }
+        else
+          {
+            // Assume that attributes and namespaces immediately
+            // follow the element.
+            //
+            // %OPT% Would things be faster if all NS nodes were built
+            // before all Attr nodes? Some costs at build time for 2nd
+            // pass...
+            int identity = nodeHandle & m_mask;
+            while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+              {
+                int type = getNodeType(identity);
+                if (type == DTM.NAMESPACE_NODE)
+                    return identity | m_dtmIdent;
+                else if (DTM.ATTRIBUTE_NODE != type)
+                    break;
+              }
+            return NULL;
+          }
   }
 
   /**
@@ -1198,40 +1207,40 @@ public abstract class DTMDefaultBase implements DTM
   public int getNextNamespaceNode(int baseHandle, int nodeHandle,
                                   boolean inScope)
   {
-	if(inScope)
-	  {
-	    //Since we've been given the base, try direct lookup
-	    //(could look from nodeHandle but this is at least one
-	    //comparison/get-parent faster)
-	    //IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
+        if(inScope)
+          {
+            //Since we've been given the base, try direct lookup
+            //(could look from nodeHandle but this is at least one
+            //comparison/get-parent faster)
+            //IntVector nsContext=findNamespaceContext(nodeHandle & m_mask);
 
-		IntVector nsContext=findNamespaceContext(baseHandle & m_mask);
+                IntVector nsContext=findNamespaceContext(baseHandle & m_mask);
 
-	    if(nsContext==null)
-	      return NULL;
-	    int i=1 + nsContext.indexOf(nodeHandle);
-	    if(i<=0 || i==nsContext.size())
-	      return NULL;
+            if(nsContext==null)
+              return NULL;
+            int i=1 + nsContext.indexOf(nodeHandle);
+            if(i<=0 || i==nsContext.size())
+              return NULL;
 
-	    return nsContext.elementAt(i);
-	  }
-	else
-	  {
-	    // Assume that attributes and namespace nodes immediately follow the element.
-	    int identity = nodeHandle & m_mask;
-	    while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
-	      {
-		int type = getNodeType(identity);
-		if (type == DTM.NAMESPACE_NODE)
-		  {
-		    return identity | m_dtmIdent;
-		  }
-		else if (type != DTM.ATTRIBUTE_NODE)
-		  {
-		    break;
-		  }
-	      }
-	  }
+            return nsContext.elementAt(i);
+          }
+        else
+          {
+            // Assume that attributes and namespace nodes immediately follow the element.
+            int identity = nodeHandle & m_mask;
+            while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+              {
+                int type = getNodeType(identity);
+                if (type == DTM.NAMESPACE_NODE)
+                  {
+                    return identity | m_dtmIdent;
+                  }
+                else if (type != DTM.ATTRIBUTE_NODE)
+                  {
+                    break;
+                  }
+              }
+          }
      return DTM.NULL;
   }
 

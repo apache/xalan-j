@@ -114,6 +114,20 @@ public class ElemCopyOf extends ElemTemplateElement
   {
     return m_selectExpression;
   }
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    m_selectExpression.fixupVariables(cstate.getVariableNames(), cstate.getGlobalsSize());
+  }
 
   /**
    * Get an int constant identifying the type of element.

@@ -62,13 +62,11 @@ import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.objects.XObject;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.DOMException;
-//import org.w3c.dom.traversal.NodeFilter;
-//import org.w3c.dom.traversal.NodeIterator;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMAxisTraverser;
+import org.apache.xml.dtm.Axis;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -78,6 +76,12 @@ import org.apache.xml.dtm.DTMFilter;
  */
 public class ChildTestIterator extends LocPathIterator
 {
+  /** The traverser to use to navigate over the descendants. */
+  transient protected DTMAxisTraverser m_traverser;
+  
+  /** The extended type ID, not set until setRoot. */
+//  protected int m_extendedTypeID;
+
 
   /**
    * Create a ChildTestIterator object.
@@ -135,10 +139,21 @@ public class ChildTestIterator extends LocPathIterator
    * @return The next node on the axis, or DTM.NULL.
    */
   protected int getNextNode()
-  {
-    m_lastFetched = (DTM.NULL == m_lastFetched)
-                     ? m_cdtm.getFirstChild(m_context)
-                     : m_cdtm.getNextSibling(m_lastFetched);
+  {                     
+    if(true /* 0 == m_extendedTypeID */)
+    {
+      m_lastFetched = (DTM.NULL == m_lastFetched)
+                   ? m_traverser.first(m_context)
+                   : m_traverser.next(m_context, m_lastFetched);
+    }
+//    else
+//    {
+//      m_lastFetched = (DTM.NULL == m_lastFetched)
+//                   ? m_traverser.first(m_context, m_extendedTypeID)
+//                   : m_traverser.next(m_context, m_lastFetched, 
+//                                      m_extendedTypeID);
+//    }
+
     return m_lastFetched;
   }
 
@@ -180,15 +195,14 @@ public class ChildTestIterator extends LocPathIterator
     
     org.apache.xpath.VariableStack vars;
     int savedStart;
-    if (-1 != m_varStackPos)
+    if (-1 != m_stackFrame)
     {
       vars = m_execContext.getVarStack();
 
       // These three statements need to be combined into one operation.
-      savedStart = vars.getSearchStart();
+      savedStart = vars.getStackFrame();
 
-      vars.setSearchStart(m_varStackPos);
-      vars.pushContextPosition(m_varStackContext);
+      vars.setStackFrame(m_stackFrame);
     }
     else
     {
@@ -233,13 +247,44 @@ public class ChildTestIterator extends LocPathIterator
     }
     finally
     {
-      if (-1 != m_varStackPos)
+      if (-1 != m_stackFrame)
       {
         // These two statements need to be combined into one operation.
-        vars.setSearchStart(savedStart);
-        vars.popContextPosition();
+        vars.setStackFrame(savedStart);
       }
     }
+  }
+  
+  /**
+   * Initialize the context values for this expression
+   * after it is cloned.
+   *
+   * @param execContext The XPath runtime context for this
+   * transformation.
+   */
+  public void setRoot(int context, Object environment)
+  {
+    super.setRoot(context, environment);
+    m_traverser = m_cdtm.getAxisTraverser(Axis.CHILD);
+    
+//    String localName = getLocalName();
+//    String namespace = getNamespace();
+//    int what = m_whatToShow;
+//    // System.out.println("what: ");
+//    // NodeTest.debugWhatToShow(what);
+//    if(DTMFilter.SHOW_ALL == what ||
+//       ((DTMFilter.SHOW_ELEMENT & what) == 0)
+//       || localName == NodeTest.WILD
+//       || namespace == NodeTest.WILD)
+//    {
+//      m_extendedTypeID = 0;
+//    }
+//    else
+//    {
+//      int type = getNodeTypeTest(what);
+//      m_extendedTypeID = m_cdtm.getExpandedTypeID(namespace, localName, type);
+//    }
+    
   }
 
 }

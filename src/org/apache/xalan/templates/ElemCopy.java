@@ -140,7 +140,7 @@ public class ElemCopy extends ElemUse
     try
     {
       int sourceNode = xctxt.getCurrentNode();
-                        xctxt.pushCurrentNode(sourceNode);
+      xctxt.pushCurrentNode(sourceNode);
       DTM dtm = xctxt.getDTM(sourceNode);
       short nodeType = dtm.getNodeType(sourceNode);
 

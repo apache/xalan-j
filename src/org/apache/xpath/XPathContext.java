@@ -467,22 +467,6 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     m_variableStacks = varStack;
   }
 
-  /**
-   * Given a name, locate a variable in the current context, and return
-   * the Object.
-   *
-   * @param qname The qualified name of a variable.
-   *
-   * @return reference to variable, or null if not found.
-   *
-   * @throws javax.xml.transform.TransformerException
-   */
-  public XObject getVariable(QName qname) throws javax.xml.transform.TransformerException
-  {
-
-    return getVarStack().getVariable(this, qname);
-  }
-
   // ================ SourceTreeManager ===================
 
   /** The source tree manager, which associates Source objects to source 

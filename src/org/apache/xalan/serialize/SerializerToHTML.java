@@ -593,6 +593,7 @@ public class SerializerToHTML extends SerializerToXML
       accum(
         "<META http-equiv=\"Content-Type\" content=\"text/html; charset=");
 
+      // String encoding = Encodings.getMimeEncoding(m_encoding).toLowerCase();
       String encoding = Encodings.getMimeEncoding(m_encoding);
 
       accum(encoding);
@@ -819,6 +820,12 @@ public class SerializerToHTML extends SerializerToXML
           // Reference is Unicode, A Primer, by Tony Graham.
           // Page 92.
           
+          // Note that Kay doesn't escape 0x20...
+          //  if(ch == 0x20) // Not sure about this... -sb
+          //  {
+          //    accum(ch);
+          //  }
+          //  else 
           if(ch <= 0x7F)
           {
             accum('%');

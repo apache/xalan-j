@@ -88,6 +88,8 @@ import javax.xml.transform.Templates;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.ErrorListener;
 
+import org.apache.xml.dtm.ref.ExpandedNameTable;
+
 /**
  * <meta name="usage" content="general"/>
  * This class represents the root object of the stylesheet tree.
@@ -268,15 +270,17 @@ public class StylesheetRoot extends StylesheetComposed
     for (int i = recomposableElements.size() - 1; i >= 0; i--)
       ((ElemTemplateElement) recomposableElements.elementAt(i)).recompose(this);
     
+    initComposeState();
+
     // Need final composition of TemplateList.  This adds the wild cards onto the chains.
-    m_templateList.compose();
+    m_templateList.compose(this);
     
     // Need to clear check for properties at the same import level.
-    m_outputProperties.compose();
-
+    m_outputProperties.compose(this);
+    
     // Now call the compose() method on every element to give it a chance to adjust
     // based on composed values.
-
+    
     n = getGlobalImportCount();
 
     for (int i = 0; i < n; i++)
@@ -289,6 +293,8 @@ public class StylesheetRoot extends StylesheetComposed
         composeTemplates(included);
       }
     }
+    
+    clearComposeState();
   }
 
   /**
@@ -298,16 +304,18 @@ public class StylesheetRoot extends StylesheetComposed
    * the composed method called on it, and will have it's children's composed 
    * methods called.
    */
-  static void composeTemplates(ElemTemplateElement templ) throws TransformerException
+  void composeTemplates(ElemTemplateElement templ) throws TransformerException
   {
 
-    templ.compose();
+    templ.compose(this);
 
     for (ElemTemplateElement child = templ.getFirstChildElem();
             child != null; child = child.getNextSiblingElem())
     {
       composeTemplates(child);
     }
+    
+    templ.endCompose(this);
   }
 
   /**
@@ -942,6 +950,25 @@ public class StylesheetRoot extends StylesheetComposed
   {
     return m_defaultRootRule;
   }
+  
+  /**
+   * <meta name="usage" content="advanced"/>
+   * The start rule to kick off the transformation.
+   * @serial
+   */
+  private ElemTemplate m_startRule;
+
+  /**
+   * <meta name="usage" content="advanced"/>
+   * Get the default template for a root node.
+   *
+   * @return The default template for a root node.
+   */
+  public final ElemTemplate getStartRule()
+  {
+    return m_startRule;
+  }
+
 
   /**
    * Used for default selection.
@@ -971,6 +998,8 @@ public class StylesheetRoot extends StylesheetComposed
     childrenElement.setIsDefaultTemplate(true);
     childrenElement.setSelect(m_selectDefault);
     m_defaultRule.appendChild(childrenElement);
+    
+    m_startRule = m_defaultRule;
 
     // -----------------------------
     m_defaultTextRule = new ElemTemplate();
@@ -1078,4 +1107,151 @@ public class StylesheetRoot extends StylesheetComposed
         }
       }
     } // end QuickSort2  */
+    
+    private ComposeState m_composeState;
+    
+    /**
+     * Initialize a new ComposeState.
+     */
+    void initComposeState()
+    {
+      m_composeState = new ComposeState();
+    }
+
+    /**
+     * Return class to track state global state during the compose() operation.
+     * @return ComposeState reference, or null if endCompose has been called.
+     */
+    ComposeState getComposeState()
+    {
+      return m_composeState;
+    }
+    
+    /**
+     * Clear the compose state.
+     */
+    private void clearComposeState()
+    {
+      m_composeState = null;
+    }
+    
+    /**
+     * Class to track state global state during the compose() operation.
+     */
+    class ComposeState
+    {
+      ComposeState()
+      {
+        int size = m_variables.size();
+        for (int i = 0; i < size; i++) 
+        {
+          ElemVariable ev = (ElemVariable)m_variables.elementAt(i);
+          m_variableNames.addElement(ev.getName());
+        }
+        
+      }
+      
+      private ExpandedNameTable m_ent = new ExpandedNameTable();
+      
+      /**
+       * Given a qualified name, return an integer ID that can be 
+       * quickly compared.
+       *
+       * @param qname a qualified name object, must not be null.
+       *
+       * @return the expanded-name id of the qualified name.
+       */
+      public int getQNameID(QName qname)
+      {
+        
+        return m_ent.getExpandedTypeID(qname.getNamespace(), 
+                                       qname.getLocalName(),
+                                       // The type doesn't matter for our 
+                                       // purposes. 
+                                       org.apache.xml.dtm.DTM.ELEMENT_NODE);
+      }
+      
+      /**
+       * A Vector of the current params and QNames within the current template.
+       * Set by ElemTemplate and used by ProcessorVariable.
+       */
+      private java.util.Vector m_variableNames = new java.util.Vector();
+            
+      /**
+       * Add the name of a qualified name within the template.  The position in 
+       * the vector is its ID.
+       * @param qname A qualified name of a param or variable, should be non-null.
+       * @return the index where the variable was added.
+       */
+      int addVariableName(final org.apache.xml.utils.QName qname)
+      {
+        int pos = m_variableNames.size();
+        m_variableNames.addElement(qname);
+        int frameSize = m_variableNames.size() - getGlobalsSize();
+        if(frameSize > m_maxStackFrameSize)
+          m_maxStackFrameSize++;
+        return pos;
+      }
+      
+      void resetStackFrameSize()
+      {
+        m_maxStackFrameSize = 0;
+      }
+      
+      int getFrameSize()
+      {
+        return m_maxStackFrameSize;
+      }
+      
+      /**
+       * Get the current size of the stack frame.  Use this to record the position 
+       * in a template element at startElement, so that it can be popped 
+       * at endElement.
+       */
+      int getCurrentStackFrameSize()
+      {
+        return m_variableNames.size();
+      }
+      
+      /**
+       * Set the current size of the stack frame.
+       */
+      void setCurrentStackFrameSize(int sz)
+      {
+        m_variableNames.setSize(sz);
+      }
+      
+      int getGlobalsSize()
+      {
+        return m_variables.size();
+      }
+      
+      IntStack m_marks = new IntStack();
+      
+      void pushStackMark()
+      {
+        m_marks.push(getCurrentStackFrameSize());
+      }
+      
+      void popStackMark()
+      {
+        int mark = m_marks.pop();
+        setCurrentStackFrameSize(mark);
+      }
+      
+      /**
+       * Get the Vector of the current params and QNames to be collected 
+       * within the current template.
+       * @return A reference to the vector of variable names.  The reference 
+       * returned is owned by this class, and so should not really be mutated, or 
+       * stored anywhere.
+       */
+      java.util.Vector getVariableNames()
+      {
+        return m_variableNames;
+      }
+      
+      private int m_maxStackFrameSize;
+
+    }
 }

@@ -122,4 +122,13 @@ public class FuncCurrent extends Function
 
     return new XNodeSet(currentNode, xctxt.getDTMManager());
   }
+  
+  /**
+   * No arguments to process, so this does nothing.
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    // no-op
+  }
+
 }

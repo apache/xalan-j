@@ -156,20 +156,22 @@ public class XUnresolvedVariable extends XObject
     VariableStack vars = xctxt.getVarStack();
     
     // These three statements need to be combined into one operation.
-    int savedStart = vars.getSearchStart();
-    vars.setSearchStart(m_varStackPos);
-    vars.pushContextPosition(m_varStackContext);
+    int currentFrame = vars.getStackFrame();
+    vars.setStackFrame(m_varStackPos);
 
-    m_doneEval = false;
-    ElemVariable velem = (ElemVariable)m_obj;
-    XObject var = velem.getValue(m_transformer, m_context);
-    
-    // These two statements need to be combined into one operation.
-    vars.setSearchStart(savedStart);
-    vars.popContextPosition();
-    m_doneEval = true;
-
-    return var;
+    try
+    {
+      m_doneEval = false;
+      ElemVariable velem = (ElemVariable)m_obj;
+      XObject var = velem.getValue(m_transformer, m_context);
+      m_doneEval = true;
+      return var;
+    }
+    finally
+    {
+      // These two statements need to be combined into one operation.
+      vars.setStackFrame(currentFrame);
+    }
   }
   
   /**

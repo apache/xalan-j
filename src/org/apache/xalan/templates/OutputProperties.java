@@ -846,10 +846,10 @@ public class OutputProperties extends ElemTemplateElement
    * values that may be based on some other property that
    * depends on recomposition.
    */
-  public void compose() throws TransformerException
+  public void compose(StylesheetRoot sroot) throws TransformerException
   {
 
-    super.compose();
+    super.compose(sroot);
 
     m_propertiesLevels = null;
   }

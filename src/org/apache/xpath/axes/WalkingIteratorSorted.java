@@ -158,7 +158,5 @@ public class WalkingIteratorSorted extends WalkingIterator
     }
 
   }
-
-
   
 }

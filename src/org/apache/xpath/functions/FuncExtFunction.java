@@ -96,6 +96,31 @@ public class FuncExtFunction extends Function
    *  function.
    *  @serial   */
   Vector m_argVec = new Vector();
+  
+  /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    if(null != m_argVec)
+    {
+      int nArgs = m_argVec.size();
+  
+      for (int i = 0; i < nArgs; i++)
+      {
+        Expression arg = (Expression) m_argVec.elementAt(i);
+        arg.fixupVariables(vars, globalsSize);
+      }
+    }
+  }
+
 
   /**
    * Create a new FuncExtFunction based on the qualified name of the extension, 

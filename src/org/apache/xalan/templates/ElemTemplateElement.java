@@ -231,13 +231,25 @@ public class ElemTemplateElement extends UnImplNode
    * values that may be based on some other property that
    * depends on recomposition.
    */
-  public void compose() throws TransformerException
+  public void compose(StylesheetRoot sroot) throws TransformerException
   {
     resolvePrefixTables();
     ElemTemplateElement t = getFirstChildElem();
     m_hasTextLitOnly = ((t != null) 
               && (t.getXSLToken() == Constants.ELEMNAME_TEXTLITERALRESULT) 
               && (t.getNextSiblingElem() == null));
+              
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    cstate.pushStackMark();
+  }
+  
+  /**
+   * This after the template's children have been composed.
+   */
+  public void endCompose(StylesheetRoot sroot) throws TransformerException
+  {
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    cstate.popStackMark();
   }
 
   /**
@@ -707,6 +719,17 @@ public class ElemTemplateElement extends UnImplNode
    * @serial
    */
   private boolean m_hasTextLitOnly = false;
+
+  /**
+   * Tell if this element only has one text child, for optimization purposes.
+   * @serial
+   */
+  protected boolean m_hasVariableDecl = false;
+  
+  public boolean hasVariableDecl()
+  {
+    return m_hasVariableDecl;
+  }
 
   /**
    * Set the "xml:space" attribute.

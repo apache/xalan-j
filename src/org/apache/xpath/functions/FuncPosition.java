@@ -155,4 +155,12 @@ public class FuncPosition extends Function
     
     return new XNumber(pos);
   }
+  
+  /**
+   * No arguments to process, so this does nothing.
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    // no-op
+  }
 }

@@ -460,7 +460,7 @@ public class TransformerImpl extends Transformer
       m_stackGuard = new StackGuard();
 
       m_xcontext.reset();
-      m_xcontext.getVarStack().setSize(1);
+      m_xcontext.getVarStack().reset();
 
       int n = m_currentTemplateElements.length;
       for (int i = 0; i < n; i++) 
@@ -1237,6 +1237,7 @@ public class TransformerImpl extends Transformer
         // ===========
         // System.out.println("Calling applyTemplateToNode - "+Thread.currentThread().getName());
         this.applyTemplateToNode(null, null, node);
+        // m_stylesheetRoot.getStartRule().execute(this);
 
         // System.out.println("Done with applyTemplateToNode - "+Thread.currentThread().getName());
         if (null != m_resultTreeHandler)
@@ -1391,10 +1392,10 @@ public class TransformerImpl extends Transformer
   {
     m_serializer = s;
   }
-
+  
   /**
    * Set a parameter for the templates.
-   *
+   * 
    * @param name The name of the parameter.
    * @param namespace The namespace of the parameter.
    * @param value The value object.  This can be any valid Java object
@@ -1405,11 +1406,22 @@ public class TransformerImpl extends Transformer
   public void setParameter(String name, String namespace, Object value)
   {
 
-    VariableStack varstack = m_xcontext.getVarStack();
+    VariableStack varstack = getXPathContext().getVarStack();
     QName qname = new QName(namespace, name);
     XObject xobject = XObject.create(value);
-
-    varstack.pushOrReplaceParameter(qname, xobject);
+    
+    StylesheetRoot sroot = m_stylesheetRoot;
+    Vector vars = sroot.getVariablesAndParamsComposed();
+    int i = vars.size();
+    while (--i >= 0)
+    {
+      ElemVariable variable = (ElemVariable)vars.elementAt(i);
+      if(variable.getXSLToken() == Constants.ELEMNAME_PARAMVARIABLE && 
+         variable.getName().equals(qname))
+      {
+          varstack.setGlobalVariable(i, xobject);
+      }
+    }
   }
 
   /** NEEDSDOC Field m_userParams          */
@@ -1596,86 +1608,6 @@ public class TransformerImpl extends Transformer
     }
   }
 
-  /**
-   * Given a template, search for
-   * the arguments and push them on the stack.  Also,
-   * push default arguments on the stack.
-   * You <em>must</em> call popContext() when you are
-   * done with the arguments.
-   *
-   * @param xctxt The XPath runtime state for this transformation.
-   * @param xslCallTemplateElement The xsl:call-template element.
-   * @param sourceNode The Current source tree node.
-   * @param mode The current xslt mode.
-   *
-   * @throws TransformerException
-   */
-  public void pushParams(
-          XPathContext xctxt, ElemCallTemplate xslCallTemplateElement)
-            throws TransformerException
-  {
-
-    // The trick here is, variables need to be executed outside the context 
-    // of the current stack frame.
-    VariableStack vars = xctxt.getVarStack();
-    int n = xslCallTemplateElement.getParamElemCount();
-    int paramDeclareContext = vars.getSearchStartOrTop();
-
-    vars.pushContextMarker();
-
-    int paramReferenceContext = -1;
-
-    for (int i = 0; i < n; i++)
-    {
-      vars.setSearchStart(paramDeclareContext);
-
-      ElemWithParam xslParamElement = xslCallTemplateElement.getParamElem(i);
-
-      // Get the argument value as either an expression or 
-      // a result tree fragment.
-      XObject var;
-      XPath param = xslParamElement.getSelect();
-
-      if (null != param)
-      {
-        int sourceNode = xctxt.getCurrentNode();
-
-        var = param.execute(m_xcontext, sourceNode, xslParamElement);
-      }
-      else if (null == xslParamElement.getFirstChildElem())
-      {
-        var = XString.EMPTYSTRING;
-      }
-      else
-      {
-        int sourceNode = xctxt.getCurrentNode();
-
-        // Use result tree fragment
-        // %REVIEW% Make sure current node is pushed.
-        int df = transformToRTF(xslParamElement);
-
-        var = new XRTreeFrag(df, xctxt);
-      }
-
-      vars.setSearchStart(paramReferenceContext);
-      vars.pushVariableArg(new Arg(xslParamElement.getName(), var, true));
-
-      //      m_newVars.addElement(new Arg(xslParamElement.getName(), var, true));
-    }
-
-    //    int nNew = m_newVars.size();
-    //
-    //    if (nNew > 0)
-    //    {
-    //      for (int i = 0; i < nNew; i++)
-    //      {
-    //        vars.pushVariableArg((Arg) m_newVars.elementAt(i));
-    //      }
-    //
-    //      // Dragons check: make sure this is nulling the refs.
-    //      m_newVars.removeAllElements();
-    //    }
-  }  // end pushParams method
 
   /**
    * Internal -- push the global variables from the Stylesheet onto
@@ -1699,62 +1631,26 @@ public class TransformerImpl extends Transformer
   protected void pushGlobalVars(int contextNode) throws TransformerException
   {
 
-    // I'm a little unhappy with this, as it seems like 
-    // this will make all the variables for all stylesheets 
-    // in scope, when really only the current stylesheet's 
-    // global variables should be in scope.  Have to think on 
-    // this more...
-    XObject xobj;
     XPathContext xctxt = m_xcontext;
     VariableStack vs = xctxt.getVarStack();
     StylesheetRoot sr = getStylesheet();
     Vector vars = sr.getVariablesAndParamsComposed();
-    int startGlobals = vs.size();
+    
     int i = vars.size();
+    vs.link(i);
 
     while (--i >= 0)
     {
       ElemVariable v = (ElemVariable) vars.elementAt(i);
-      Arg previouslyDeclared = vs.getDeclaredVariable(v.getName());
-
-      if (null != previouslyDeclared)
-      {
-        if ((v instanceof ElemParam) && previouslyDeclared.isFromWithParam())
-        {
-          previouslyDeclared.setIsVisible(true);
-        }
-        else
-        {
-          xobj = new XUnresolvedVariable(v, contextNode, this,
-                                         vs.getSearchStartOrTop(), 0, true);
-
-          previouslyDeclared.setVal(xobj);
-        }
-
-        continue;
-      }
 
       // XObject xobj = v.getValue(this, contextNode);
-      xobj = new XUnresolvedVariable(v, contextNode, this,
-                                     vs.getSearchStartOrTop(), 0, true);
-
-      vs.pushVariable(v.getName(), xobj);
-      vs.markGlobalStackFrame();
+      XObject xobj = new XUnresolvedVariable(v, contextNode, this,
+                                     vs.getStackFrame(), 0, true);
+      
+      if(null == vs.elementAt(i))                               
+        vs.setGlobalVariable(i, xobj);
     }
 
-    vs.markGlobalStackFrame();
-
-    int endGlobals = vs.size();
-
-    for (i = startGlobals; i < endGlobals; i++)
-    {
-      Arg arg = (Arg) vs.elementAt(i);
-      XUnresolvedVariable uv = (XUnresolvedVariable) arg.getVal();
-
-      uv.setVarStackPos(endGlobals);
-    }
-
-    vs.pushContextMarker();
   }
 
   /**
@@ -2016,7 +1912,7 @@ public class TransformerImpl extends Transformer
    * @return true if applied a template, false if not.
    */
   public boolean applyTemplateToNode(ElemTemplateElement xslInstruction,  // xsl:apply-templates or xsl:for-each
-                                     ElemTemplateElement template, int child)
+                                     ElemTemplate template, int child)
                                              throws TransformerException
   {
 
@@ -2140,6 +2036,8 @@ public class TransformerImpl extends Transformer
         // also unclear that "execute" is really the right name for
         // that entry point.)
         m_xcontext.setSAXLocator(template);
+        // m_xcontext.getVarStack().link();
+        m_xcontext.getVarStack().link(template.m_frameSize);
         executeChildTemplates(template, true);
       }
     }
@@ -2149,6 +2047,7 @@ public class TransformerImpl extends Transformer
     }
     finally
     {
+      m_xcontext.getVarStack().unlink();
       m_xcontext.popCurrentNode();
       popCurrentMatched();
       popElemTemplateElement();
@@ -2514,17 +2413,11 @@ public class TransformerImpl extends Transformer
 
     XPathContext xctxt = m_xcontext;
 
-    // Check for infinite loops if we have to.
-    boolean check = (m_stackGuard.m_recursionLimit > -1);
-
-    if (check)
-      getStackGuard().push(elem, xctxt.getCurrentNode());
-
-    // We need to push an element frame in the variables stack, 
-    // so all the variables can be popped at once when we're done.
-    VariableStack varstack = xctxt.getVarStack();
-
-    varstack.pushElemFrame();
+//    // Check for infinite loops if we have to.
+//    boolean check = (m_stackGuard.m_recursionLimit > -1);
+//
+//    if (check)
+//      getStackGuard().push(elem, xctxt.getCurrentNode());
 
     xctxt.pushSAXLocatorNull();
     int currentTemplateElementsTop = m_currentTemplateElementsTop;
@@ -2549,14 +2442,11 @@ public class TransformerImpl extends Transformer
     {
       m_currentTemplateElementsTop--;
       xctxt.popSAXLocator();
-
-      // Pop all the variables in this element frame.
-      varstack.popElemFrame();
     }
 
     // Check for infinite loops if we have to
-    if (check)
-      getStackGuard().pop();
+//    if (check)
+//      getStackGuard().pop();
   }
 
   /**

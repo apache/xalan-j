@@ -164,7 +164,7 @@ public class XString extends XObject implements XMLString
     {
       char c = charAt(i);
 
-      if (!Character.isSpaceChar(c))
+      if (!XMLCharacterRecognizer.isWhiteSpace(c))
       {
         break;
       }
@@ -189,7 +189,7 @@ public class XString extends XObject implements XMLString
 
       if (c != '.')
       {
-        if (Character.isSpaceChar(c))
+        if (XMLCharacterRecognizer.isWhiteSpace(c))
           break;
         else if (Character.isDigit(c))
         {
@@ -218,7 +218,7 @@ public class XString extends XObject implements XMLString
       {
         char c = charAt(i);
 
-        if (Character.isSpaceChar(c))
+        if (XMLCharacterRecognizer.isWhiteSpace(c))
           break;
         else if (Character.isDigit(c))
         {

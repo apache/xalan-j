@@ -249,15 +249,14 @@ public class MatchPatternIterator extends LocPathIterator
     
     org.apache.xpath.VariableStack vars;
     int savedStart;
-    if (-1 != m_varStackPos)
+    if (-1 != m_stackFrame)
     {
       vars = m_execContext.getVarStack();
 
       // These three statements need to be combined into one operation.
-      savedStart = vars.getSearchStart();
+      savedStart = vars.getStackFrame();
 
-      vars.setSearchStart(m_varStackPos);
-      vars.pushContextPosition(m_varStackContext);
+      vars.setStackFrame(m_stackFrame);
     }
     else
     {
@@ -310,11 +309,10 @@ public class MatchPatternIterator extends LocPathIterator
     }
     finally
     {
-      if (-1 != m_varStackPos)
+      if (-1 != m_stackFrame)
       {
         // These two statements need to be combined into one operation.
-        vars.setSearchStart(savedStart);
-        vars.popContextPosition();
+        vars.setStackFrame(savedStart);
       }
     }
 

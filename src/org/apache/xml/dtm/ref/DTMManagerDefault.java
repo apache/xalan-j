@@ -103,22 +103,31 @@ public class DTMManagerDefault extends DTMManager
    * Vector of DTMs that this manager manages. 
    */
   protected DTM m_dtms[] = new DTM[4095];
-  
-  /**
-   * The first free DTM slot.  Keep this at 1 so that 0 never gets used 
-   * as a DTM identity, which will avoid bugs with the DTM identity not 
-   * getting set on a node handle.
-   */
-  protected int m_dtmsFirstFree = 1;
-  
+    
   /**
    * Add a DTM to the DTM table.
    * 
    * @param dtm Should be a valid reference to a DTM.
    */
-  public void addDTM(DTM dtm)
+  public void addDTM(DTM dtm, int id)
   {
-    m_dtms[m_dtmsFirstFree++] = dtm;
+    m_dtms[id] = dtm;
+  }
+  
+  /**
+   * Get the first free DTM ID available.
+   */
+  public int getFirstFreeDTMID()
+  {
+    int n = m_dtms.length;
+    for (int i = 1; i < n; i++) 
+    {
+      if(null == m_dtms[i])
+      {
+        return i;
+      }
+    }
+    throw new DTMException("No more DTM IDs are available!");
   }
   
   /**
@@ -168,14 +177,15 @@ public class DTMManagerDefault extends DTMManager
     if(DEBUG && null != source)
       System.out.println("Starting source: "+source.getSystemId());
     XMLStringFactory xstringFactory = m_xsf;
-    int documentID = m_dtmsFirstFree << 20;
+    int dtmPos = getFirstFreeDTMID();
+    int documentID = dtmPos << 20;
 
     if ((null != source) && source instanceof DOMSource)
     {
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
                                 whiteSpaceFilter, xstringFactory, doIndexing);
 
-      addDTM(dtm);
+      addDTM(dtm, dtmPos);
 
       if (DUMPTREE)
       {
@@ -231,7 +241,7 @@ public class DTMManagerDefault extends DTMManager
 
         // Go ahead and add the DTM to the lookup table.  This needs to be 
         // done before any parsing occurs.
-        addDTM(dtm);
+        addDTM(dtm, dtmPos);
 
         boolean haveXercesParser =
           (null != reader)
@@ -240,7 +250,7 @@ public class DTMManagerDefault extends DTMManager
         if (haveXercesParser)
           incremental = true;  // No matter what.  %REVIEW%
 
-        if (true && incremental)
+        if (false && incremental)
         {
 
           // Create a CoroutineManager to manage the coordination between the 
@@ -422,15 +432,17 @@ public class DTMManagerDefault extends DTMManager
       // subtree, but that's going to entail additional work
       // checking more DTMs... and getHandleFromNode is not a
       // cheap operation in most implementations.
-      for(int i=m_dtmsFirstFree-1;i>=0;--i)
+      // [I had to change this to look forward... sorry.  -sb]
+      int max = m_dtms.length;
+      for(int i = 0; i < max; i++)
         {
           DTM thisDTM=m_dtms[i];
-          if(thisDTM instanceof DOM2DTM)
-            {
-              int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
-              if(handle!=DTM.NULL) return handle;
-            }
-        }
+          if((null != thisDTM) && thisDTM instanceof DOM2DTM)
+          {
+            int handle=((DOM2DTM)thisDTM).getHandleOfNode(node);
+            if(handle!=DTM.NULL) return handle;
+          }
+         }
       
       // Fallback: Not found in one we know how to search.
       // Current solution: Generate a new DOM2DTM with this node as root.
@@ -539,20 +551,21 @@ public class DTMManagerDefault extends DTMManager
   }
 
   /**
-   * NEEDSDOC Method getDTMIdentity
+   * Given a DTM, find it's ID number in the DTM list.
    *
    *
-   * NEEDSDOC @param dtm
+   * @param dtm The DTM reference in question.
    *
-   * NEEDSDOC (getDTMIdentity) @return
+   * @return The ID, or -1 if not found in the list.
    */
   public int getDTMIdentity(DTM dtm)
   {
 
     // A backwards search should normally be the fastest.
-    int n = m_dtmsFirstFree;
+    // [But we can't do it... sorry.  -sb]
+    int n = m_dtms.length;
 
-    for (int i = (n - 1); i >= 0; i--)
+    for (int i = 0; i < n; i++) 
     {
       DTM tdtm = m_dtms[i];
 

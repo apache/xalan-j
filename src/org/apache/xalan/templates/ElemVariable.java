@@ -65,6 +65,7 @@ import org.apache.xpath.*;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.objects.XString;
 import org.apache.xpath.objects.XRTreeFrag;
+import org.apache.xpath.objects.XRTreeFragSelectWrapper;
 import org.apache.xml.utils.QName;
 import org.apache.xalan.trace.SelectionEvent;
 import org.apache.xalan.res.XSLTErrorResources;
@@ -86,6 +87,11 @@ import javax.xml.transform.TransformerException;
  */
 public class ElemVariable extends ElemTemplateElement
 {
+  /**
+   * This is the index into the stack frame.  If the index is above the 
+   * global area, it will have to be offset at execution time.
+   */
+  protected int m_index;
 
   /**
    * Constructor ElemVariable
@@ -133,7 +139,7 @@ public class ElemVariable extends ElemTemplateElement
    * The value of the "name" attribute.
    * @serial
    */
-  private QName m_qname;
+  protected QName m_qname;
 
   /**
    * Set the "name" attribute.
@@ -175,7 +181,7 @@ public class ElemVariable extends ElemTemplateElement
    * Set if this is a top-level variable or param, or not.
    * @see <a href="http://www.w3.org/TR/xslt#top-level-variables">top-level-variables in XSLT Specification</a>
    *
-   * @param v Boolean indicating whether this is a top-level variable 
+   * @param v Boolean indicating whether this is a top-level variable
    * or param, or not.
    */
   public void setIsTopLevel(boolean v)
@@ -187,7 +193,7 @@ public class ElemVariable extends ElemTemplateElement
    * Get if this is a top-level variable or param, or not.
    * @see <a href="http://www.w3.org/TR/xslt#top-level-variables">top-level-variables in XSLT Specification</a>
    *
-   * @return Boolean indicating whether this is a top-level variable 
+   * @return Boolean indicating whether this is a top-level variable
    * or param, or not.
    */
   public boolean getIsTopLevel()
@@ -245,9 +251,7 @@ public class ElemVariable extends ElemTemplateElement
    *
    * @throws TransformerException
    */
-  public void execute(
-          TransformerImpl transformer)
-            throws TransformerException
+  public void execute(TransformerImpl transformer) throws TransformerException
   {
 
     if (TransformerImpl.S_DEBUG)
@@ -256,7 +260,8 @@ public class ElemVariable extends ElemTemplateElement
     int sourceNode = transformer.getXPathContext().getCurrentNode();
     XObject var = getValue(transformer, sourceNode);
 
-    transformer.getXPathContext().getVarStack().pushVariable(m_qname, var);
+    // transformer.getXPathContext().getVarStack().pushVariable(m_qname, var);
+    transformer.getXPathContext().getVarStack().setLocalVariable(m_index, var);
   }
 
   /**
@@ -275,18 +280,20 @@ public class ElemVariable extends ElemTemplateElement
 
     XObject var;
     XPathContext xctxt = transformer.getXPathContext();
+
     xctxt.pushCurrentNode(sourceNode);
 
     try
     {
       if (null != m_selectPattern)
-      { 
+      {
         var = m_selectPattern.execute(xctxt, sourceNode, this);
-        if(var.getType() == XObject.CLASS_NODESET)
-          ((org.apache.xpath.objects.XNodeSet)var).allowDetachToRelease(false);
-        if(TransformerImpl.S_DEBUG)
-          transformer.getTraceManager().fireSelectedEvent(sourceNode, this, 
-                                        "select", m_selectPattern, var);
+
+        var.allowDetachToRelease(false);
+
+        if (TransformerImpl.S_DEBUG)
+          transformer.getTraceManager().fireSelectedEvent(sourceNode, this,
+                  "select", m_selectPattern, var);
       }
       else if (null == getFirstChildElem())
       {
@@ -294,9 +301,10 @@ public class ElemVariable extends ElemTemplateElement
       }
       else
       {
-  
+
         // Use result tree fragment
         int df = transformer.transformToRTF(this);
+
         var = new XRTreeFrag(df, xctxt);
       }
     }
@@ -307,6 +315,107 @@ public class ElemVariable extends ElemTemplateElement
 
     return var;
   }
+  
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    // See if we can reduce an RTF to a select with a string expression.
+    if(null == m_selectPattern)
+    {
+      XPath newSelect = rewriteChildToExpression(this);
+      if(null != newSelect)
+        m_selectPattern = newSelect;
+    }
+    
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    
+    // This should be done before addVariableName, so we don't have visibility 
+    // to the variable now being defined.
+    java.util.Vector vnames = cstate.getVariableNames();
+    if(null != m_selectPattern)
+      m_selectPattern.fixupVariables(vnames, cstate.getGlobalsSize());
+      
+    // Only add the variable if this is not a global.  If it is a global, 
+    // it was already added by stylesheet root.
+    if(!(m_parentNode instanceof Stylesheet))
+      m_index = cstate.addVariableName(m_qname) - cstate.getGlobalsSize();
+    
+    // This has to be done after the addVariableName, so that the variable 
+    // pushed won't be immediately popped again in endCompose.
+    super.compose(sroot);
+  }
+  
+  
+//  /**
+//   * This after the template's children have been composed.
+//   */
+//  public void endCompose() throws TransformerException
+//  {
+//    super.endCompose();
+//  }
+
+
+  /**
+   * If the children of a variable is a single xsl:value-of or text literal, 
+   * it is cheaper to evaluate this as an expression, so try and adapt the 
+   * child an an expression.
+   *
+   * @param varElem Should be a ElemParam, ElemVariable, or ElemWithParam.
+   *
+   * @return An XPath if rewrite is possible, else null.
+   *
+   * @throws TransformerException
+   */
+  static XPath rewriteChildToExpression(ElemTemplateElement varElem)
+          throws TransformerException
+  {
+
+    ElemTemplateElement t = varElem.getFirstChildElem();
+
+    // Down the line this can be done with multiple string objects using 
+    // the concat function.
+    if (null != t && null == t.getNextSiblingElem())
+    {
+      int etype = t.getXSLToken();
+
+      if (Constants.ELEMNAME_VALUEOF == etype)
+      {
+        ElemValueOf valueof = (ElemValueOf) t;
+
+        // %TBD% I'm worried about extended attributes here.
+        if (valueof.getDisableOutputEscaping() == false
+                && valueof.getDOMBackPointer() == null)
+        {
+          varElem.m_firstChild = null;
+
+          return new XPath(new XRTreeFragSelectWrapper(valueof.getSelect().getExpression()));
+        }
+      }
+      else if (Constants.ELEMNAME_TEXTLITERALRESULT == etype)
+      {
+        ElemTextLiteral lit = (ElemTextLiteral) t;
+
+        if (lit.getDisableOutputEscaping() == false
+                && lit.getDOMBackPointer() == null)
+        {
+          String str = lit.getNodeValue();
+          XString xstr = new XString(str);
+
+          varElem.m_firstChild = null;
+
+          return new XPath(new XRTreeFragSelectWrapper(xstr));
+        }
+      }
+    }
+
+    return null;
+  }
 
   /**
    * This function is called during recomposition to
@@ -316,6 +425,17 @@ public class ElemVariable extends ElemTemplateElement
   public void recompose(StylesheetRoot root)
   {
     root.recomposeVariables(this);
+  }
+  
+  /**
+   * Set the parent as an ElemTemplateElement.
+   *
+   * @param parent This node's parent as an ElemTemplateElement
+   */
+  public void setParentElem(ElemTemplateElement p)
+  {
+    super.setParentElem(p);
+    p.m_hasVariableDecl = true;
   }
 
 }

@@ -121,7 +121,30 @@ public class ElemLiteralResult extends ElemUse
   {
     return isLiteralResultAsStylesheet;
   }
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    java.util.Vector vnames = cstate.getVariableNames();
+    if (null != m_avts)
+    {
+      int nAttrs = m_avts.size();
 
+      for (int i = (nAttrs - 1); i >= 0; i--)
+      {
+        AVT avt = (AVT) m_avts.elementAt(i);
+        avt.fixupVariables(vnames, cstate.getGlobalsSize());
+      } 
+    }   
+  }
+  
   /**
    * The created element node will have the attribute nodes
    * that were present on the element node in the stylesheet tree,

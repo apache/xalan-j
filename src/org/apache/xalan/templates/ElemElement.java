@@ -156,6 +156,25 @@ public class ElemElement extends ElemUse
   {
     return m_namespace_avt;
   }
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    java.util.Vector vnames = cstate.getVariableNames();
+    if(null != m_name_avt)
+      m_name_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_namespace_avt)
+      m_namespace_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+  }
+
 
   /**
    * Get an int constant identifying the type of element.

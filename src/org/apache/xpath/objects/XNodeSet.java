@@ -154,7 +154,8 @@ public class XNodeSet extends XObject
    */
   public double getNumberFromNode(int n)
   {
-    return m_dtmMgr.getDTM(n).getStringValue(n).toDouble();
+    XMLString xstr = m_dtmMgr.getDTM(n).getStringValue(n);
+    return xstr.toDouble();
   }
 
   /**
@@ -235,7 +236,8 @@ public class XNodeSet extends XObject
    */
   public void allowDetachToRelease(boolean allowRelease)
   {
-    ((DTMIterator) m_obj).allowDetachToRelease(allowRelease);
+    if(null != m_obj)
+      ((DTMIterator) m_obj).allowDetachToRelease(allowRelease);
   }
 
   /**
@@ -247,7 +249,12 @@ public class XNodeSet extends XObject
    */
   public void detach()
   {
-    ((DTMIterator) m_obj).detach();
+    if(null != m_obj)
+    {
+      Object obj = m_obj;
+      m_obj = null;
+      ((DTMIterator) obj).detach();
+    }
   }
 
 
@@ -668,7 +675,8 @@ class LessThanComparator extends Comparator
    */
   boolean compareStrings(XMLString s1, XMLString s2)
   {
-    return s1.compareTo(s2) < 0;
+    return (s1.toDouble() < s2.toDouble());
+    // return s1.compareTo(s2) < 0;
   }
 
   /**
@@ -703,7 +711,8 @@ class LessThanOrEqualComparator extends Comparator
    */
   boolean compareStrings(XMLString s1, XMLString s2)
   {
-    return s1.compareTo(s2) <= 0;
+    return (s1.toDouble() <= s2.toDouble());
+    // return s1.compareTo(s2) <= 0;
   }
 
   /**
@@ -738,7 +747,8 @@ class GreaterThanComparator extends Comparator
    */
   boolean compareStrings(XMLString s1, XMLString s2)
   {
-    return s1.compareTo(s2) > 0;
+    return (s1.toDouble() > s2.toDouble());
+    // return s1.compareTo(s2) > 0;
   }
 
   /**
@@ -773,7 +783,8 @@ class GreaterThanOrEqualComparator extends Comparator
    */
   boolean compareStrings(XMLString s1, XMLString s2)
   {
-    return s1.compareTo(s2) >= 0;
+    return (s1.toDouble() >= s2.toDouble());
+    // return s1.compareTo(s2) >= 0;
   }
 
   /**

@@ -114,6 +114,21 @@ public class XPath implements Serializable
   {
     return m_mainExp;
   }
+  
+  /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    m_mainExp.fixupVariables(vars, globalsSize);
+  }
 
   /**
    * Set the raw expression object for this object.
@@ -230,19 +245,17 @@ public class XPath implements Serializable
   {  
     this(exprString, locator, prefixResolver, type, null);    
   }
-	
-	/**
-   * Construct an XPath object.  The object must be initialized by the
-   * XPathParser.initXPath method.
+
+  /**
+   * Construct an XPath object.
    *
-   * @param exp The XPath expression.
+   * @param expr The Expression object.
    *
    * @throws javax.xml.transform.TransformerException if syntax or other error.
    */
-  public XPath(Expression exp)
-            throws javax.xml.transform.TransformerException
+  public XPath(Expression expr)
   {  
-    this.setExpression(exp);    
+    this.setExpression(expr);   
   }
   
   /**
@@ -342,6 +355,76 @@ public class XPath implements Serializable
     }
 
     return xobj;
+  }
+  
+  /**
+   * <meta name="usage" content="experimental"/>
+   * Given an expression and a context, evaluate the XPath
+   * and return the result.
+   * 
+   * @param xctxt The execution context.
+   * @param contextNode The node that "." expresses.
+   * @param namespaceContext The context in which namespaces in the
+   * XPath are supposed to be expanded.
+   * 
+   * @throws TransformerException thrown if the active ProblemListener decides
+   * the error condition is severe enough to halt processing.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public boolean bool(
+          XPathContext xctxt, int contextNode, PrefixResolver namespaceContext)
+            throws javax.xml.transform.TransformerException
+  {
+
+    xctxt.pushNamespaceContext(namespaceContext);
+
+    xctxt.pushCurrentNodeAndExpression(contextNode, contextNode);
+
+    try
+    {
+      return m_mainExp.bool(xctxt);
+    }
+    catch (TransformerException te)
+    {
+      te.setLocator(this.getLocator());
+      ErrorListener el = xctxt.getErrorListener();
+      if(null != el) // defensive, should never happen.
+      {
+        el.error(te);
+      }
+      else
+        throw te;
+    }
+    catch (Exception e)
+    {
+      while (e instanceof org.apache.xml.utils.WrappedRuntimeException)
+      {
+        e = ((org.apache.xml.utils.WrappedRuntimeException) e).getException();
+      }
+      // e.printStackTrace();
+
+      String msg = e.getMessage();
+      msg = (msg == null || msg.length()== 0)? "Unknown error in XPath" : msg;
+      TransformerException te = new TransformerException(msg,
+              getLocator(), e);
+      ErrorListener el = xctxt.getErrorListener();
+      // te.printStackTrace();
+      if(null != el) // defensive, should never happen.
+      {
+        el.fatalError(te);
+      }
+      else
+        throw te;
+    }
+    finally
+    {
+      xctxt.popNamespaceContext();
+
+      xctxt.popCurrentNodeAndExpression();
+    }
+
+    return false;
   }
 
   /** Set to true to get diagnostic messages about the result of 

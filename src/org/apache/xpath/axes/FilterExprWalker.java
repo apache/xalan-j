@@ -151,15 +151,13 @@ public class FilterExprWalker extends AxesWalker
         VariableStack vars = m_lpi.m_execContext.getVarStack();
         
         // These three statements need to be combined into one operation.
-        int savedStart = vars.getSearchStart();
-        vars.setSearchStart(m_lpi.m_varStackPos);
-        vars.pushContextPosition(m_lpi.m_varStackContext);
+        int savedStart = vars.getStackFrame();
+        vars.setStackFrame(m_lpi.m_stackFrame);
         
         obj = m_expr.execute(m_lpi.getXPathContext());
         
         // These two statements need to be combined into one operation.
-        vars.setSearchStart(savedStart);
-        vars.popContextPosition();
+        vars.setStackFrame(savedStart);
       }
       else
         obj = m_expr.execute(m_lpi.getXPathContext());
@@ -292,4 +290,21 @@ public class FilterExprWalker extends AxesWalker
 
     // return m_lpi.getDOMHelper().getLevel(this.m_currentNode)+1;
   }
+  
+  /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    super.fixupVariables(vars, globalsSize);
+    m_expr.fixupVariables(vars, globalsSize);
+  }
+
 }

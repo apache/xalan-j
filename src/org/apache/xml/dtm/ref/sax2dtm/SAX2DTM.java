@@ -1664,10 +1664,6 @@ public class SAX2DTM extends DTMDefaultBaseIterators
 
     for (int i = startDecls; i < nDecls; i += 2)
     {
-      // %TBD% JJK OUCH! We're explicitly reasserting the prefixes on every
-      // element. That is NOT USEFUL given that both Scott and Joe implemented
-      // search-the-parents logic and we're supposedly trying to distinguish
-      // inherited from local.
       prefix = (String) m_prefixMappings.elementAt(i);
 
       if (prefix == null)

@@ -26,9 +26,6 @@ public class OneStepIteratorForward extends ChildTestIterator
   /** The traversal axis from where the nodes will be filtered. */
   protected int m_axis = -1;
 
-  /** The DTM inner traversal class, that corresponds to the super axis. */
-  protected DTMAxisTraverser m_traverser;
-
   /**
    * Create a OneStepIterator object.
    *
@@ -63,44 +60,45 @@ public class OneStepIteratorForward extends ChildTestIterator
     m_traverser = m_cdtm.getAxisTraverser(m_axis);
   }
   
-  /**
-   * Return the first node out of the nodeset, if this expression is 
-   * a nodeset expression.  This is the default implementation for 
-   * nodesets.
-   * <p>WARNING: Do not mutate this class from this function!</p>
-   * @param xctxt The XPath runtime context.
-   * @return the first node out of the nodeset, or DTM.NULL.
-   */
-  public int asNode(XPathContext xctxt)
-    throws javax.xml.transform.TransformerException
-  {
-    if(getPredicateCount() > 0)
-      return super.asNode(xctxt);
-      
-    int current = xctxt.getCurrentNode();
-    
-    DTM dtm = xctxt.getDTM(current);
-    DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axis);
-    
-    String localName = getLocalName();
-    String namespace = getNamespace();
-    int what = m_whatToShow;
-    
-    // System.out.println("what: ");
-    // NodeTest.debugWhatToShow(what);
-    if(DTMFilter.SHOW_ALL == what
-       || localName == NodeTest.WILD
-       || namespace == NodeTest.WILD)
-    {
-      return traverser.first(current);
-    }
-    else
-    {
-      int type = getNodeTypeTest(what);
-      int extendedType = dtm.getExpandedTypeID(namespace, localName, type);
-      return traverser.first(current, extendedType);
-    }
-  }
+//  /**
+//   * Return the first node out of the nodeset, if this expression is 
+//   * a nodeset expression.  This is the default implementation for 
+//   * nodesets.
+//   * <p>WARNING: Do not mutate this class from this function!</p>
+//   * @param xctxt The XPath runtime context.
+//   * @return the first node out of the nodeset, or DTM.NULL.
+//   */
+//  public int asNode(XPathContext xctxt)
+//    throws javax.xml.transform.TransformerException
+//  {
+//    if(getPredicateCount() > 0)
+//      return super.asNode(xctxt);
+//      
+//    int current = xctxt.getCurrentNode();
+//    
+//    DTM dtm = xctxt.getDTM(current);
+//    DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axis);
+//    
+//    String localName = getLocalName();
+//    String namespace = getNamespace();
+//    int what = m_whatToShow;
+//    
+//    // System.out.println("what: ");
+//    // NodeTest.debugWhatToShow(what);
+//    if(DTMFilter.SHOW_ALL == what
+//       || ((DTMFilter.SHOW_ELEMENT & what) == 0)
+//       || localName == NodeTest.WILD
+//       || namespace == NodeTest.WILD)
+//    {
+//      return traverser.first(current);
+//    }
+//    else
+//    {
+//      int type = getNodeTypeTest(what);
+//      int extendedType = dtm.getExpandedTypeID(namespace, localName, type);
+//      return traverser.first(current, extendedType);
+//    }
+//  }
   
   /**
    * Get the next node via getFirstAttribute && getNextAttribute.

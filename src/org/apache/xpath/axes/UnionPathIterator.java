@@ -116,16 +116,28 @@ public class UnionPathIterator extends Expression
     this.m_execContext = (XPathContext)environment;
     this.m_currentContextNode = context;
     this.m_context = context;
+    m_lastFetched = DTM.NULL;
+    m_next = 0;
+    m_last = 0;
+    m_foundLast = false;
 
-    if (null != m_iterators)
+    try
     {
-      int n = m_iterators.length;
-
-      for (int i = 0; i < n; i++)
+      if (null != m_iterators)
       {
-        m_iterators[i].setRoot(context, environment);
-        m_iterators[i].nextNode();
+        int n = m_iterators.length;
+  
+        for (int i = 0; i < n; i++)
+        {
+          m_iterators[i] = ((LocPathIterator)m_iterators[i]).asIterator(m_execContext, context);
+          m_iterators[i].setRoot(context, environment);
+          m_iterators[i].nextNode();
+        }
       }
+    }
+    catch(Exception e)
+    {
+      throw new org.apache.xml.utils.WrappedRuntimeException(e);
     }
   }
   
@@ -155,8 +167,21 @@ public class UnionPathIterator extends Expression
 
     if(m_allowDetach)
     {
-      this.m_execContext = null;
-      this.m_context = DTM.NULL;
+      m_cachedNodes = null;
+      m_execContext = null;
+      // m_prefixResolver = null;
+      // m_cdtm = null;
+      
+      if (null != m_iterators)
+      {
+        int n = m_iterators.length;
+  
+        for (int i = 0; i < n; i++)
+        {
+          m_iterators[i].detach();
+        }
+      }
+
   
   //    int n = m_iterators.length;
   //
@@ -430,9 +455,35 @@ public class UnionPathIterator extends Expression
 
     for (int i = 0; i < n; i++)
     {
-      clone.m_iterators[i] = (LocPathIterator) m_iterators[i].clone();
+      clone.m_iterators[i] = m_iterators[i];
     }
 
+    return clone;
+  }
+  
+  /**
+   * <meta name="usage" content="experimental"/>
+   * Given an select expression and a context, evaluate the XPath
+   * and return the resulting iterator.
+   * 
+   * @param xctxt The execution context.
+   * @param contextNode The node that "." expresses.
+   * @param namespaceContext The context in which namespaces in the
+   * XPath are supposed to be expanded.
+   * 
+   * @throws TransformerException thrown if the active ProblemListener decides
+   * the error condition is severe enough to halt processing.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public DTMIterator asIterator(
+          XPathContext xctxt, int contextNode)
+            throws javax.xml.transform.TransformerException
+  {
+    UnionPathIterator clone = (UnionPathIterator)m_clones.getInstance();
+    
+    clone.setRoot(contextNode, xctxt);
+    
     return clone;
   }
 
@@ -638,15 +689,22 @@ public class UnionPathIterator extends Expression
   public void runTo(int index)
   {
 
-    if (m_foundLast || ((index >= 0) && (index <= m_next)))
+    if (m_foundLast || ((index >= 0) && (index <= getCurrentPos())))
       return;
 
     int n;
 
-    while (DTM.NULL == (n = nextNode()))
+    if (-1 == index)
     {
-      if (m_next >= index)
-        break;
+      while (DTM.NULL != (n = nextNode()));
+    }
+    else
+    {
+      while (DTM.NULL != (n = nextNode()))
+      {
+        if (getCurrentPos() >= index)
+          break;
+      }
     }
   }
 
@@ -761,6 +819,29 @@ public class UnionPathIterator extends Expression
   public int getCurrentNode()
   {
     return m_lastFetched;
+  }
+  
+  /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    for (int i = 0; i < m_iterators.length; i++) 
+    {
+      DTMIterator iter = m_iterators[i];
+      if(iter instanceof Expression)
+      {
+        ((Expression)iter).fixupVariables(vars, globalsSize);
+      }
+    }
+    
   }
 
   /**

@@ -82,15 +82,15 @@ public class KeyRefIterator extends LocPathIterator
 
   /** Key name.
    *  @serial         */
-  private QName m_name;    
+  private final QName m_name;    
   
   /** Use field of key function.
    *  @serial         */
-  private XMLString m_lookupKey;  
+  private final XMLString m_lookupKey;  
   
   /** Main Key iterator for this iterator.
    *  @serial    */
-  private KeyIterator m_ki;    
+  private final KeyIterator m_ki;    
   
   /**
    * Get key name
@@ -185,6 +185,7 @@ public class KeyRefIterator extends LocPathIterator
    */
   public Object clone() throws CloneNotSupportedException
   {
+    // I wonder if we really want to clone the second time.  Myriam review.
     KeyRefIterator clone = (KeyRefIterator)super.clone();
     // clone.m_ki = (KeyIterator)m_ki.clone();
 
@@ -211,9 +212,24 @@ public class KeyRefIterator extends LocPathIterator
    */
   public void reset()
   {
-    super.reset();
-    
+    // I don't think we want to reset anything but the current position 
+    // for this specialized iterator.
+    // super.reset();
+    // setShouldCacheNodes(true);
     setCurrentPos(0);
+  }
+  
+  /**
+   *  Detaches the iterator from the set which it iterated over, releasing
+   * any computational resources and placing the iterator in the INVALID
+   * state. After<code>detach</code> has been invoked, calls to
+   * <code>nextNode</code> or<code>previousNode</code> will raise the
+   * exception INVALID_STATE_ERR.
+   */
+  public void detach()
+  {    
+    // I don't think we want to detach at all for this iterator.
+    // Myriam needs to review.  -sb.
   }
 
   

@@ -70,6 +70,7 @@ import javax.xml.transform.TransformerException;
 
 import org.apache.xml.utils.SAXSourceLocator;
 import org.apache.xml.utils.PrefixResolver;
+import org.apache.xml.utils.XMLString;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTM;
 
@@ -178,6 +179,44 @@ public abstract class Expression implements java.io.Serializable
     throws javax.xml.transform.TransformerException;
     
   /**
+   * Evaluate expression to a number.
+   *
+   * @return 0.0
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public double num(XPathContext xctxt) 
+    throws javax.xml.transform.TransformerException
+  {
+
+    return execute(xctxt).num();
+  }
+
+  /**
+   * Evaluate expression to a boolean.
+   *
+   * @return false
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public boolean bool(XPathContext xctxt) 
+    throws javax.xml.transform.TransformerException
+  {
+    return execute(xctxt).bool();
+  }
+
+  /**
+   * Cast result object to a string.
+   *
+   * @return The string this wraps or the empty string if null
+   */
+  public XMLString xstr(XPathContext xctxt)
+    throws javax.xml.transform.TransformerException
+  {
+    return execute(xctxt).xstr();
+  }
+    
+  /**
    * Tell if the expression is a nodeset expression.  In other words, tell 
    * if you can execute {@link asNode() asNode} without an exception.
    * @return true if the expression can be represented as a nodeset.
@@ -247,6 +286,18 @@ public abstract class Expression implements java.io.Serializable
     XObject obj = execute(xctxt);
     obj.dispatchCharactersEvents(handler);
   }
+  
+  /**
+   * This function is used to fixup variables from QNames to stack frame 
+   * indexes at stylesheet build time.
+   * @param vars List of QNames that correspond to variables.  This list 
+   * should be searched backwards for the first qualified name that 
+   * corresponds to the variable reference qname.  The position of the 
+   * QName in the vector from the start of the vector will be its position 
+   * in the stack frame (but variables above the globalsTop value will need 
+   * to be offset to the current stack frame).
+   */
+  public abstract void fixupVariables(java.util.Vector vars, int globalsSize);
 
 
   /**

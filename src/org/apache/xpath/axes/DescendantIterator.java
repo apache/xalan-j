@@ -108,12 +108,17 @@ public class DescendantIterator extends LocPathIterator
     {
       // %TBD% orSelf and fromRoot should be considered seperately.
       fromRoot = true;
-      orSelf = true;
+      // orSelf = true;
       firstStepPos += 8;
     }
     
     if(fromRoot)
-      m_axis = Axis.DESCENDANTSFROMROOT;
+    {
+      if(orSelf)
+        m_axis = Axis.DESCENDANTSORSELFFROMROOT;
+      else
+        m_axis = Axis.DESCENDANTSFROMROOT;
+    }
     else if(orSelf)
       m_axis = Axis.DESCENDANTORSELF;
     else
@@ -146,7 +151,7 @@ public class DescendantIterator extends LocPathIterator
   public DescendantIterator()
   {
     super(null);
-    m_axis = Axis.DESCENDANTSFROMROOT;
+    m_axis = Axis.DESCENDANTSORSELFFROMROOT;
     int whatToShow = DTMFilter.SHOW_ALL;
     initNodeTest(whatToShow);
   }
@@ -211,15 +216,14 @@ public class DescendantIterator extends LocPathIterator
     
     org.apache.xpath.VariableStack vars;
     int savedStart;
-    if (-1 != m_varStackPos)
+    if (-1 != m_stackFrame)
     {
       vars = m_execContext.getVarStack();
 
       // These three statements need to be combined into one operation.
-      savedStart = vars.getSearchStart();
+      savedStart = vars.getStackFrame();
 
-      vars.setSearchStart(m_varStackPos);
-      vars.pushContextPosition(m_varStackContext);
+      vars.setStackFrame(m_stackFrame);
     }
     else
     {
@@ -276,11 +280,10 @@ public class DescendantIterator extends LocPathIterator
     }
     finally
     {
-      if (-1 != m_varStackPos)
+      if (-1 != m_stackFrame)
       {
         // These two statements need to be combined into one operation.
-        vars.setSearchStart(savedStart);
-        vars.popContextPosition();
+        vars.setStackFrame(savedStart);
       }
     }
   }

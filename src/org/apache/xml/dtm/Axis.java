@@ -179,14 +179,20 @@ public interface Axis
   public static final int DESCENDANTSFROMROOT = 17;
 
   /**
+   * A non-xpath axis, returns all nodes that aren't namespaces or attributes, 
+   * from and including the root.
+   */
+  public static final int DESCENDANTSORSELFFROMROOT = 18;
+
+  /**
    * A non-xpath axis, returns root only.
    */
-  public static final int ROOT = 18;
+  public static final int ROOT = 19;
 
   /**
    * A non-xpath axis, for functions.
    */
-  public static final int FILTEREDLIST = 19;
+  public static final int FILTEREDLIST = 20;
 
 
   /** The names of the axes for diagnostic purposes. */
@@ -210,7 +216,8 @@ public interface Axis
     "preceding-and-ancestor",  // 15
     "all",  // 16
     "descendants-from-root",  // 17
-    "root",  // 18
-    "filtered-list"  // 19
+    "descendants-or-self-from-root",  // 18
+    "root",  // 19
+    "filtered-list"  // 20
   };
 }

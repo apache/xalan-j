@@ -355,6 +355,56 @@ public class ElemTemplate extends ElemTemplateElement
   {
     return Constants.ELEMNAME_TEMPLATE_STRING;
   }
+  
+  /**
+   * The stack frame size for this template, which is equal to the maximum number 
+   * of params and variables that can be declared in the template at one time.
+   */
+  public int m_frameSize;
+  
+  /**
+   * The size of the portion of the stack frame that can hold parameter 
+   * arguments.
+   */
+  int m_inArgsSize;
+  
+  /**
+   * List of namespace/local-name pairs, DTM style, that are unique 
+   * qname identifiers for the arguments.  The position of a given qname 
+   * in the list is the argument ID, and thus the position in the stack
+   * frame.
+   */
+  private int[] m_argsQNameIDs;
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    java.util.Vector vnames = cstate.getVariableNames();
+    if(null != m_matchPattern)
+      m_matchPattern.fixupVariables(vnames, sroot.getComposeState().getGlobalsSize());
+      
+    cstate.resetStackFrameSize();
+    m_inArgsSize = 0;
+  }
+  
+  /**
+   * This after the template's children have been composed.
+   */
+  public void endCompose(StylesheetRoot sroot) throws TransformerException
+  {
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    super.endCompose(sroot);
+    m_frameSize = cstate.getFrameSize();
+    
+    cstate.resetStackFrameSize();
+  }
 
   /**
    * Copy the template contents into the result tree.

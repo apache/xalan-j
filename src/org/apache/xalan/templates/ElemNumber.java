@@ -477,6 +477,36 @@ public class ElemNumber extends ElemTemplateElement
    * @see TransformerImpl#int2alphaCount
    */
   private static char[] m_alphaCountTable = null;
+  
+  /**
+   * This function is called after everything else has been
+   * recomposed, and allows the template to set remaining
+   * values that may be based on some other property that
+   * depends on recomposition.
+   */
+  public void compose(StylesheetRoot sroot) throws TransformerException
+  {
+    super.compose(sroot);
+    StylesheetRoot.ComposeState cstate = sroot.getComposeState();
+    java.util.Vector vnames = cstate.getVariableNames();
+    if(null != m_countMatchPattern)
+      m_countMatchPattern.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_format_avt)
+      m_format_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_fromMatchPattern)
+      m_fromMatchPattern.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_groupingSeparator_avt)
+      m_groupingSeparator_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_groupingSize_avt)
+      m_groupingSize_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_lang_avt)
+      m_lang_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_lettervalue_avt)
+      m_lettervalue_avt.fixupVariables(vnames, cstate.getGlobalsSize());
+    if(null != m_valueExpr)
+      m_valueExpr.fixupVariables(vnames, cstate.getGlobalsSize());
+  }
+
 
   /**
    * Get an int constant identifying the type of element.

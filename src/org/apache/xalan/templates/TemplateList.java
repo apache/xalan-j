@@ -204,7 +204,7 @@ public class TemplateList implements java.io.Serializable
    * After all templates have been added, this function
    * should be called.
    */
-  public void compose()
+  public void compose(StylesheetRoot sroot)
   {
 
     if (DEBUG)

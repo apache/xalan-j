@@ -119,4 +119,13 @@ public class FuncLast extends Function
     // System.out.println("last: "+xnum.num());
     return xnum;
   }
+  
+  /**
+   * No arguments to process, so this does nothing.
+   */
+  public void fixupVariables(java.util.Vector vars, int globalsSize)
+  {
+    // no-op
+  }
+
 }
