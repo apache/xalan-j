@@ -1930,8 +1930,8 @@ public class SAX2DTM2 extends SAX2DTM
     charactersFlush();
 
     int exName = m_expandedNameTable.getExpandedTypeID(uri, localName, DTM.ELEMENT_NODE);
-    String prefix = getPrefix(qName, uri);
-    int prefixIndex = (null != prefix)
+    
+    int prefixIndex = (qName.length() != localName.length())
                       ? m_valuesOrPrefixes.stringToIndex(qName) : 0;
 
     int elemNode = addNode(DTM.ELEMENT_NODE, exName,
@@ -1946,6 +1946,7 @@ public class SAX2DTM2 extends SAX2DTM
     int startDecls = m_contextIndexes.peek();
     int nDecls = m_prefixMappings.size();
     int prev = DTM.NULL;
+    String prefix;
 
     if(!m_pastFirstElement)
     {
@@ -2519,6 +2520,9 @@ public class SAX2DTM2 extends SAX2DTM
     {
       int qnameIndex = m_dataOrQName.elementAt(nodeID);
 
+      if (qnameIndex == 0)
+        return extType.getLocalName();
+      
       if (qnameIndex < 0)
       {
 	qnameIndex = -qnameIndex;
@@ -2576,6 +2580,9 @@ public class SAX2DTM2 extends SAX2DTM
     {
       int qnameIndex = m_dataOrQName.elementAt(nodeID);
 
+      if (qnameIndex == 0)
+        return extType.getLocalName();
+      
       if (qnameIndex < 0)
       {
 	qnameIndex = -qnameIndex;
