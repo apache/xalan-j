@@ -119,7 +119,7 @@ public class ExpandedNameTable
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(String namespace, String localName, int type)
+  public int getExpandedTypeID(String namespace, String localName, int type)
   {
     int nsID = (null != namespace) ? m_namespaceNames.stringToIndex(namespace) : 0;
     int lnID = m_locNamesPool.stringToIndex(localName);
@@ -139,7 +139,7 @@ public class ExpandedNameTable
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(int type)
+  public int getExpandedTypeID(int type)
   {
     int expandedTypeID = (type << (BITS_PER_NAMESPACE+BITS_PER_LOCALNAME));
 
@@ -161,6 +161,18 @@ public class ExpandedNameTable
     else
       return m_locNamesPool.indexToString(localNameID);
   }
+  
+  /**
+   * Given an expanded-name ID, return the local name ID.
+   *
+   * @param ExpandedNameID an ID that represents an expanded-name.
+   * @return The id of this local name.
+   */
+  public static final int getLocalNameID(int ExpandedNameID)
+  {
+    return (ExpandedNameID & MASK_LOCALNAME);
+  }
+
 
   /**
    * Given an expanded-name ID, return the namespace URI part.
@@ -175,17 +187,27 @@ public class ExpandedNameTable
     int id = (ExpandedNameID & MASK_NAMESPACE) >> BITS_PER_LOCALNAME;
     return (0 == id) ? null : m_namespaceNames.indexToString(id);
   }
-
+  
   /**
-   * Given an expanded-name ID, return the namespace URI part.
+   * Given an expanded-name ID, return the namespace URI ID.
    *
    * @param ExpandedNameID an ID that represents an expanded-name.
-   * @return String URI value of this node's namespace, or null if no
-   * namespace was resolved.
+   * @return The id of this namespace.
    */
-  public int getType(int ExpandedNameID)
+  public static final int getNamespaceID(int ExpandedNameID)
   {
-
-    return ((ExpandedNameID & MASK_NAMESPACE) >> (BITS_PER_LOCALNAME+BITS_PER_NAMESPACE));
+    return (ExpandedNameID & MASK_NAMESPACE) >> BITS_PER_LOCALNAME;
   }
+  
+  /**
+   * Given an expanded-name ID, return the local name ID.
+   *
+   * @param ExpandedNameID an ID that represents an expanded-name.
+   * @return The id of this local name.
+   */
+  public static final int getType(int ExpandedNameID)
+  {
+    return ExpandedNameID >> (BITS_PER_NAMESPACE+BITS_PER_LOCALNAME);
+  }
+
 }

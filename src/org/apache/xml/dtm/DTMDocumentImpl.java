@@ -1548,7 +1548,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          *
          * @return the expanded-name id of the node.
          */
-        public int getExpandedNameID(int nodeHandle) {
+        public int getExpandedTypeID(int nodeHandle) {
            nodes.readSlot(nodeHandle, gotslot);
            String qName = m_localNames.indexToString(gotslot[3]); 
            // Remove prefix from qName
@@ -1575,7 +1575,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          *
          * @return the expanded-name id of the node.
          */
-        public int getExpandedNameID(String namespace, String localName, int type) {
+        public int getExpandedTypeID(String namespace, String localName, int type) {
            // Create expanded name
           // %TBD% jjk Expanded name is bitfield-encoded as
           // typeID[6]nsuriID[10]localID[16]. Switch to that form, and to
@@ -2313,6 +2313,37 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
     return ;//(m_docHandle | ourslot);
   }
   
+  /**
+   * This is a shortcut to the iterators that implement the
+   * supported XPath axes (only namespace::) is not supported.
+   * Returns a bare-bones iterator that must be initialized
+   * with a start node (using iterator.setStartNode()).
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getAxisIterator(final int axis)
+  {
+    // %TBD%
+    return null;
+  }
+
+  /**
+   * Get an iterator that can navigate over an XPath Axis, predicated by 
+   * the extended type ID.
+   *
+   *
+   * @param axis 
+   * @param type An extended type ID.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getTypedAxisIterator(final int axis, final int type)
+  {
+    // %TBD%
+    return null;
+  }
 
 
   /** Terminate the element currently acting as an insertion point. Subsequent

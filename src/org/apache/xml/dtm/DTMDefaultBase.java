@@ -86,41 +86,34 @@ public abstract class DTMDefaultBase implements DTM
 {
 
   /**
-   * This is extra information about the node objects.  Each information
-   * block is composed of several array members.  The size of this will always
-   * be (m_nodes.size() * NODEINFOBLOCKSIZE).
+   * The number of nodes, which is also used to determine the next
+   *  node index.
    */
-  protected IntVector m_info = new IntVector();
+  protected int m_size = 0;
 
-  // Offsets into each set of integers in the <code>m_info</code> table.
+  /** The expanded names, one array element for each node. */
+  protected int[] m_exptype;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_EXPANDEDNAMEID = 0;
+  /** levels deep, one array element for each node. */
+  protected byte[] m_level;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_TYPE = 1;
+  /** First child values, one array element for each node. */
+  protected int[] m_firstch;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_LEVEL = 2;
+  /** Next sibling values, one array element for each node. */
+  protected int[] m_nextsib;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_FIRSTCHILD = 3;
+  /** Previous sibling values, one array element for each node. */
+  protected short[] m_prevsib;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_NEXTSIBLING = 4;
+  /** Previous sibling values, one array element for each node. */
+  protected short[] m_parent;
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_PREVSIBLING = 5;
+  /** The default initial block size of the node arrays */
+  protected int m_initialblocksize = 512;  // favor small docs.
 
-  /** %TBD% Doc */
-  protected static final int OFFSET_PARENT = 6;
-
-  /**
-   * This represents the number of integers per node in the
-   * <code>m_info</code> member variable, if the derived class
-   * does not add information.
-   */
-  protected static final int DEFAULTNODEINFOBLOCKSIZE = 7;
+  /** Size of blocks to allocate */
+  protected int m_blocksize = 2 * 1024;
 
   /**
    * The value to use when the information has not been built yet.
@@ -135,13 +128,13 @@ public abstract class DTMDefaultBase implements DTM
    */
   protected DTMManager m_mgr;
 
-  /** %TBD% Doc */
+  /** The document identity, which is OR'd with node indexes to make handles. */
   protected int m_dtmIdent;
 
-  /** %TBD% Doc */
+  /** The mask for the identity.  %REVIEW% static constant? */
   protected int m_mask;
 
-  /** %TBD% Doc */
+  /** The base URI for this document. */
   protected String m_documentBaseURI;
 
   /**
@@ -154,25 +147,35 @@ public abstract class DTMDefaultBase implements DTM
 
   /** Stack of flags indicating whether to strip whitespace nodes */
   protected BoolStack m_shouldStripWhitespaceStack;
-  
+
   /** The XMLString factory for creating XMLStrings. */
   protected XMLStringFactory m_xstrf;
+
+  /** The identity of the root node. */
+  public static final int ROOTNODE = 0;
 
   /**
    * Construct a DTMDefaultBase object from a DOM node.
    *
    * @param mgr The DTMManager who owns this DTM.
    * @param domSource the DOM source that this DTM will wrap.
-   * NEEDSDOC @param source
+   * @param source The object that is used to specify the construction source.
    * @param dtmIdentity The DTM identity ID for this DTM.
    * @param whiteSpaceFilter The white space filter for this DTM, which may
    *                         be null.
+   * @param xstringfactory The factory to use for creating XMLStrings.
    */
   public DTMDefaultBase(DTMManager mgr, Source source, int dtmIdentity,
                         DTMWSFilter whiteSpaceFilter,
                         XMLStringFactory xstringfactory)
   {
 
+    m_exptype = new int[m_initialblocksize];
+    m_level = new byte[m_initialblocksize];
+    m_firstch = new int[m_initialblocksize];
+    m_nextsib = new int[m_initialblocksize];
+    m_prevsib = new short[m_initialblocksize];
+    m_parent = new short[m_initialblocksize];
     m_mgr = mgr;
     m_documentBaseURI = (null != source) ? source.getSystemId() : null;
     m_dtmIdent = dtmIdentity;
@@ -206,35 +209,139 @@ public abstract class DTMDefaultBase implements DTM
   protected abstract boolean nextNode();
 
   /**
-   * Return the number of integers in each node info block.
-   *
-   * NEEDSDOC ($objectName$) @return
-   */
-  protected int getNodeInfoBlockSize()
-  {
-    return DEFAULTNODEINFOBLOCKSIZE;
-  }
-
-  /**
    * Get the number of nodes that have been added.
    *
-   * NEEDSDOC ($objectName$) @return
+   * @return the number of nodes that have been mapped.
    */
   protected abstract int getNumberOfNodes();
 
   /**
-   * Get a node handle that is relative to the given node.
+   * Ensure that the size of the information arrays can hold another entry
+   * at the given index.
    *
-   * @param identity The node identity.
-   * @param offsetValue One of OFFSET_XXX values.
-   * @return The relative node handle.
+   * @param on exit from this function, the information arrays sizes must be
+   * at least index+1.
+   *
+   * NEEDSDOC @param index
    */
-  protected int getNodeInfo(int identity, int offsetValue)
+  protected void ensureSize(int index)
   {
 
-    int base = (identity * getNodeInfoBlockSize());
-    int info = (identity >= getNumberOfNodes())
-               ? NOTPROCESSED : m_info.elementAt(base + offsetValue);
+    int capacity = m_exptype.length;
+
+    if (capacity <= index)
+    {
+      int[] exptype = m_exptype;
+      byte[] level = m_level;
+      int[] firstch = m_firstch;
+      int[] nextsib = m_nextsib;
+      short[] prevsib = m_prevsib;
+      short[] parent = m_parent;
+      int newcapacity = capacity + m_blocksize;
+
+      m_exptype = new int[newcapacity];
+      m_level = new byte[newcapacity];
+      m_firstch = new int[newcapacity];
+      m_nextsib = new int[newcapacity];
+      m_prevsib = new short[newcapacity];
+      m_parent = new short[newcapacity];
+
+      System.arraycopy(exptype, 0, m_exptype, 0, capacity);
+      System.arraycopy(level, 0, m_level, 0, capacity);
+      System.arraycopy(firstch, 0, m_firstch, 0, capacity);
+      System.arraycopy(nextsib, 0, m_nextsib, 0, capacity);
+      System.arraycopy(prevsib, 0, m_prevsib, 0, capacity);
+      System.arraycopy(parent, 0, m_parent, 0, capacity);
+
+      // %REVIEW%
+      m_blocksize = m_blocksize + m_blocksize;
+    }
+  }
+
+  /**
+   * Get the simple type ID for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The simple type ID, or DTM.NULL.
+   */
+  protected int _type(int identity)
+  {
+
+    int info = getExpandedTypeID(identity);
+
+    if (NULL != info)
+      return ExpandedNameTable.getType(info);
+    else
+      return NULL;
+  }
+
+  /**
+   * Get the expanded type ID for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The expanded type ID, or DTM.NULL.
+   */
+  protected int _exptype(int identity)
+  {
+
+    if (identity < m_size)
+      return m_exptype[identity];
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (true)
+    {
+      boolean isMore = nextNode();
+
+      if (!isMore)
+        return NULL;
+      else if (identity < m_size)
+        return m_exptype[identity];
+    }
+  }
+
+  /**
+   * Get the level in the tree for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The tree level, or DTM.NULL.
+   */
+  protected int _level(int identity)
+  {
+
+    if (identity < m_size)
+      return m_level[identity];
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (true)
+    {
+      boolean isMore = nextNode();
+
+      if (!isMore)
+        return NULL;
+      else if (identity < m_size)
+        return m_level[identity];
+    }
+  }
+
+  /**
+   * Get the first child for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The first child identity, or DTM.NULL.
+   */
+  protected int _firstch(int identity)
+  {
+
+    // Boiler-plate code for each of the _xxx functions, except for the array.
+    int info = (identity >= m_size) ? NOTPROCESSED : m_firstch[identity];
 
     // Check to see if the information requested has been processed, and, 
     // if not, advance the iterator until we the information has been 
@@ -243,34 +350,96 @@ public abstract class DTMDefaultBase implements DTM
     {
       boolean isMore = nextNode();
 
-      if (identity >= getNumberOfNodes())
-      {
-        info = NOTPROCESSED;
-      }
+      if (identity >= m_size &&!isMore)
+        return NULL;
       else
-        info = m_info.elementAt(base + offsetValue);
-
-      if (!isMore && NOTPROCESSED == info)
-        return DTM.NULL;
+        info = m_firstch[identity];
     }
 
     return info;
   }
 
   /**
-   * Get a node handle that is relative to the given node, but don't check for
-   * the NOTPROCESSED flag.  A class will need to use this call to get values
-   * that may be negative.  Also, it's a tiny bit faster than getNodeInfo if
-   * you know that NOTPROCESSED is not a possibility.
+   * Get the next sibling for the given node identity.
    *
    * @param identity The node identity.
-   * @param offsetValue One of OFFSET_XXX values.
-   * @return The relative node handle.
+   *
+   * @return The next sibling identity, or DTM.NULL.
    */
-  protected int getNodeInfoNoWait(int identity, int offsetValue)
+  protected int _nextsib(int identity)
   {
-    return m_info.elementAt((identity * getNodeInfoBlockSize())
-                            + offsetValue);
+
+    // Boiler-plate code for each of the _xxx functions, except for the array.
+    int info = (identity >= m_size) ? NOTPROCESSED : m_nextsib[identity];
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (info == NOTPROCESSED)
+    {
+      boolean isMore = nextNode();
+
+      if (identity >= m_size &&!isMore)
+        return NULL;
+      else
+        info = m_nextsib[identity];
+    }
+
+    return info;
+  }
+
+  /**
+   * Get the previous sibling for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The previous sibling identity, or DTM.NULL.
+   */
+  protected int _prevsib(int identity)
+  {
+
+    if (identity < m_size)
+      return m_prevsib[identity];
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (true)
+    {
+      boolean isMore = nextNode();
+
+      if (!isMore)
+        return NULL;
+      else if (identity < m_size)
+        return m_prevsib[identity];
+    }
+  }
+
+  /**
+   * Get the parent for the given node identity.
+   *
+   * @param identity The node identity.
+   *
+   * @return The parent identity, or DTM.NULL.
+   */
+  protected int _parent(int identity)
+  {
+
+    if (identity < m_size)
+      return m_parent[identity];
+
+    // Check to see if the information requested has been processed, and, 
+    // if not, advance the iterator until we the information has been 
+    // processed.
+    while (true)
+    {
+      boolean isMore = nextNode();
+
+      if (!isMore)
+        return NULL;
+      else if (identity < m_size)
+        return m_parent[identity];
+    }
   }
 
   /**
@@ -281,15 +450,12 @@ public abstract class DTMDefaultBase implements DTM
 
     while (nextNode()){}
 
-    int sizePerRecord = getNodeInfoBlockSize();
-    int nRecords = m_info.size() / sizePerRecord;
+    int nRecords = m_size;
 
     System.out.println("Total nodes: " + nRecords);
 
     for (int i = 0; i < nRecords; i++)
     {
-      int offset = i * sizePerRecord;
-
       System.out.println("=========== " + i + " ===========");
       System.out.println("NodeName: " + getNodeName(i));
       System.out.println("NodeNameX: " + getNodeNameX(i));
@@ -297,7 +463,7 @@ public abstract class DTMDefaultBase implements DTM
       System.out.println("NamespaceURI: " + getNamespaceURI(i));
       System.out.println("Prefix: " + getPrefix(i));
 
-      int exTypeID = getExpandedNameID(i);
+      int exTypeID = getExpandedTypeID(i);
 
       System.out.println("Expanded Type ID: "
                          + Integer.toHexString(exTypeID));
@@ -356,7 +522,7 @@ public abstract class DTMDefaultBase implements DTM
 
       System.out.println("Type: " + typestring);
 
-      int firstChild = m_info.elementAt(offset + OFFSET_FIRSTCHILD);
+      int firstChild = _firstch(i);
 
       if (DTM.NULL == firstChild)
         System.out.println("First child: DTM.NULL");
@@ -365,7 +531,7 @@ public abstract class DTMDefaultBase implements DTM
       else
         System.out.println("First child: " + firstChild);
 
-      int prevSibling = m_info.elementAt(offset + OFFSET_PREVSIBLING);
+      int prevSibling = _prevsib(i);
 
       if (DTM.NULL == prevSibling)
         System.out.println("Prev sibling: DTM.NULL");
@@ -374,7 +540,7 @@ public abstract class DTMDefaultBase implements DTM
       else
         System.out.println("Prev sibling: " + prevSibling);
 
-      int nextSibling = m_info.elementAt(offset + OFFSET_NEXTSIBLING);
+      int nextSibling = _nextsib(i);
 
       if (DTM.NULL == nextSibling)
         System.out.println("Next sibling: DTM.NULL");
@@ -383,7 +549,7 @@ public abstract class DTMDefaultBase implements DTM
       else
         System.out.println("Next sibling: " + nextSibling);
 
-      int parent = m_info.elementAt(offset + OFFSET_PARENT);
+      int parent = _parent(i);
 
       if (DTM.NULL == parent)
         System.out.println("Parent: DTM.NULL");
@@ -392,7 +558,7 @@ public abstract class DTMDefaultBase implements DTM
       else
         System.out.println("Parent: " + parent);
 
-      int level = m_info.elementAt(offset + OFFSET_LEVEL);
+      int level = _level(i);
 
       System.out.println("Level: " + level);
       System.out.println("Node Value: " + getNodeValue(i));
@@ -430,7 +596,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    int firstChild = getNodeInfo(identity, OFFSET_FIRSTCHILD);
+    int firstChild = _firstch(identity);
 
     return firstChild != DTM.NULL;
   }
@@ -447,7 +613,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    int firstChild = getNodeInfo(identity, OFFSET_FIRSTCHILD);
+    int firstChild = _firstch(identity);
 
     return firstChild | m_dtmIdent;
   }
@@ -465,13 +631,13 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    int child = getNodeInfo(identity, OFFSET_FIRSTCHILD);
+    int child = _firstch(identity);
     int lastChild = DTM.NULL;
 
     while (child != DTM.NULL)
     {
       lastChild = child;
-      child = getNodeInfo(child, OFFSET_NEXTSIBLING);
+      child = _nextsib(child);
     }
 
     return lastChild | m_dtmIdent;
@@ -541,7 +707,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    int nextSibling = getNodeInfo(identity, OFFSET_NEXTSIBLING);
+    int nextSibling = _nextsib(identity);
 
     return nextSibling | m_dtmIdent;
   }
@@ -557,10 +723,7 @@ public abstract class DTMDefaultBase implements DTM
    */
   public int getPreviousSibling(int nodeHandle)
   {
-
-    int firstChild = getNodeInfo(nodeHandle & m_mask, OFFSET_PREVSIBLING);
-
-    return firstChild | m_dtmIdent;
+    return _prevsib(nodeHandle & m_mask) | m_dtmIdent;
   }
 
   /**
@@ -601,16 +764,17 @@ public abstract class DTMDefaultBase implements DTM
     return DTM.NULL;
   }
 
-  /** NEEDSDOC Field m_namespaceLists */
+  /** Lazily created namespace lists. */
   private Vector m_namespaceLists = null;  // on demand
 
   /**
-   * NEEDSDOC Method getNamespaceList
+   * Get a full list of namespace handles for the given element.  In other words
+   * get all the namespace nodes in context for the given element.
    *
    *
-   * NEEDSDOC @param baseHandle
+   * @param baseHandle The base element handle.
    *
-   * NEEDSDOC (getNamespaceList) @return
+   * @return A list of namespace handles for this element.
    */
   protected NodeVector getNamespaceList(int baseHandle)
   {
@@ -638,12 +802,13 @@ public abstract class DTMDefaultBase implements DTM
   }
 
   /**
-   * NEEDSDOC Method buildNamespaceList
+   * Build a list of all namespace nodes in context for this element.
    *
    *
-   * NEEDSDOC @param baseHandle
+   * @param baseHandle The base element handle.
    *
-   * NEEDSDOC (buildNamespaceList) @return
+   * @return a NodeVector that contains a list of all namespace nodes in
+   * context for this element.
    */
   private NodeVector buildNamespaceList(int baseHandle)
   {
@@ -762,8 +927,9 @@ public abstract class DTMDefaultBase implements DTM
    * was relative to (needed to return nodes in document order).
    * @param namespaceHandle handle to node which must be of type
    * NAMESPACE_NODE.
-   * NEEDSDOC @param nodeHandle
-   * NEEDSDOC @param inScope
+   * @param nodeHandle A namespace handle for which we will find the next node.
+   * @param inScope true if all namespaces that are in scope should be processed,
+   * otherwise just process the nodes in the given element handle.
    * @return handle of next namespace, or DTM.NULL to indicate none exists.
    */
   public int getNextNamespaceNode(int baseHandle, int nodeHandle,
@@ -826,11 +992,7 @@ public abstract class DTMDefaultBase implements DTM
     int identity = nodeHandle & m_mask;
 
     if (identity > 0)
-    {
-      int parent = getNodeInfo(identity, OFFSET_PARENT);
-
-      return parent | m_dtmIdent;
-    }
+      return _parent(identity) | m_dtmIdent;
     else
       return DTM.NULL;
   }
@@ -934,11 +1096,11 @@ public abstract class DTMDefaultBase implements DTM
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(int nodeHandle)
+  public int getExpandedTypeID(int nodeHandle)
   {
 
     int identity = nodeHandle & m_mask;
-    int expandedNameID = getNodeInfo(identity, OFFSET_EXPANDEDNAMEID);
+    int expandedNameID = _exptype(identity);
 
     return expandedNameID;
   }
@@ -950,19 +1112,22 @@ public abstract class DTMDefaultBase implements DTM
    * expanded name will use this ID.
    *
    * @param nodeHandle The handle to the node in question.
-   * NEEDSDOC @param type
+   * @param type The simple type, i.e. one of ELEMENT, ATTRIBUTE, etc.
    *
-   * NEEDSDOC @param namespace
-   * NEEDSDOC @param localName
+   * @param namespace The namespace URI, which may be null, may be an empty
+   *                  string (which will be the same as null), or may be a
+   *                  namespace URI.
+   * @param localName The local name string, which must be a valid
+   *                  <a href="http://www.w3.org/TR/REC-xml-names/">NCName</a>.
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(String namespace, String localName, int type)
+  public int getExpandedTypeID(String namespace, String localName, int type)
   {
 
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    return ent.getExpandedNameID(namespace, localName, type);
+    return ent.getExpandedTypeID(namespace, localName, type);
   }
 
   /**
@@ -992,6 +1157,20 @@ public abstract class DTMDefaultBase implements DTM
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
     return ent.getNamespace(ExpandedNameID);
+  }
+
+  /**
+   * Returns the namespace type of a specific node
+   * @param nodeHandle the id of the node.
+   * @return the ID of the namespace.
+   */
+  public int getNamespaceType(final int nodeHandle)
+  {
+
+    int identity = nodeHandle & m_mask;
+    int expandedNameID = _exptype(identity);
+
+    return ExpandedNameTable.getNamespaceID(expandedNameID);
   }
 
   /**
@@ -1082,7 +1261,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    short type = (short) getNodeInfo(identity, OFFSET_TYPE);
+    short type = (short) _type(identity);
 
     return type;
   }
@@ -1101,7 +1280,7 @@ public abstract class DTMDefaultBase implements DTM
     int identity = nodeHandle & m_mask;
 
     // Apparently, the axis walker stuff requires levels to count from 1.
-    return (short) (getNodeInfo(identity, OFFSET_LEVEL) + 1);
+    return (short) (_level(identity) + 1);
   }
 
   // ============== Document query functions ============== 
@@ -1115,7 +1294,7 @@ public abstract class DTMDefaultBase implements DTM
    *   If the version is not
    *   specified, supporting any version of the feature will cause the
    *   method to return <code>true</code>.
-   * NEEDSDOC @param version
+   * @param version The version string of the feature requested, may be null.
    * @return Returns <code>true</code> if the specified feature is
    *   supported on this node, <code>false</code> otherwise.
    */
@@ -1197,9 +1376,7 @@ public abstract class DTMDefaultBase implements DTM
    * beginning of the document entity, and has no value if there is no XML
    * declaration.
    *
-   * @param the document handle
-   *
-   * NEEDSDOC @param documentHandle
+   * @param documentHandle The document handle
    *
    * @return the document version String object.
    */
@@ -1326,11 +1503,8 @@ public abstract class DTMDefaultBase implements DTM
    *
    * TODO: Make sure this does the right thing with attribute nodes!!!
    *
-   * @param node1 DOM Node to perform position comparison on.
-   * @param node2 DOM Node to perform position comparison on .
-   *
-   * NEEDSDOC @param nodeHandle1
-   * NEEDSDOC @param nodeHandle2
+   * @param nodeHandle1 Node handle to perform position comparison on.
+   * @param nodeHandle2 Second Node handle to perform position comparison on .
    *
    * @return false if node2 comes before node1, otherwise return true.
    * You can think of this as
@@ -1392,9 +1566,8 @@ public abstract class DTMDefaultBase implements DTM
    *        specified in the start-tag of its element, or was defaulted from the
    *        DTD.
    *
-   * @param the attribute handle
+   * @param attributeHandle The attribute handle in question.
    *
-   * NEEDSDOC @param attributeHandle
    * @return <code>true</code> if the attribute was specified;
    *         <code>false</code> if it was defaulted.
    */
@@ -1479,7 +1652,7 @@ public abstract class DTMDefaultBase implements DTM
   /**
    * Simple error for asserts and the like.
    *
-   * NEEDSDOC @param msg
+   * @param msg Error message to report.
    */
   protected void error(String msg)
   {
@@ -1538,4 +1711,1783 @@ public abstract class DTMDefaultBase implements DTM
     if (null != m_shouldStripWhitespaceStack)
       m_shouldStripWhitespaceStack.setTop(shouldStrip);
   }
+
+  /**
+   * Get an iterator that can navigate over an XPath Axis, predicated by
+   * the extended type ID.
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   * @param type An extended type ID.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getTypedAxisIterator(int axis, int type)
+  {
+
+    DTMAxisIterator iterator = null;
+
+    /* This causes an error when using patterns for elements that
+       do not exist in the DOM (translet types which do not correspond
+       to a DOM type are mapped to the DOM.ELEMENT type).
+    */
+
+    //        if (type == NO_TYPE) {
+    //            return(EMPTYITERATOR);
+    //        }
+    //        else if (type == ELEMENT) {
+    //            iterator = new FilterIterator(getAxisIterator(axis),
+    //                                          getElementFilter());
+    //        }
+    //        else 
+    {
+      switch (axis)
+      {
+      case Axis.SELF :
+        iterator = new TypedSingletonIterator(type);
+        break;
+      case Axis.CHILD :
+        iterator = new TypedChildrenIterator(type);
+        break;
+      case Axis.PARENT :
+        return (new ParentIterator().setNodeType(type));
+      case Axis.ANCESTOR :
+        return (new TypedAncestorIterator(type));
+      case Axis.ANCESTORORSELF :
+        return ((new TypedAncestorIterator(type)).includeSelf());
+      case Axis.ATTRIBUTE :
+        return (new TypedAttributeIterator(type));
+      case Axis.DESCENDANT :
+        iterator = new TypedDescendantIterator(type);
+        break;
+      case Axis.DESCENDANTORSELF :
+        iterator = (new TypedDescendantIterator(type)).includeSelf();
+        break;
+      case Axis.FOLLOWING :
+        iterator = new TypedFollowingIterator(type);
+        break;
+      case Axis.PRECEDING :
+        iterator = new TypedPrecedingIterator(type);
+        break;
+      case Axis.FOLLOWINGSIBLING :
+        iterator = new TypedFollowingSiblingIterator(type);
+        break;
+      case Axis.PRECEDINGSIBLING :
+        iterator = new TypedPrecedingSiblingIterator(type);
+        break;
+      default :
+        throw new DTMException("Error: typed iterator for axis "
+                               + Axis.names[axis] + "not implemented");
+      }
+    }
+
+    return (iterator);
+  }
+
+  /**
+   * This is a shortcut to the iterators that implement the
+   * supported XPath axes (only namespace::) is not supported.
+   * Returns a bare-bones iterator that must be initialized
+   * with a start node (using iterator.setStartNode()).
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getAxisIterator(final int axis)
+  {
+
+    DTMAxisIterator iterator = null;
+
+    switch (axis)
+    {
+    case Axis.SELF :
+      iterator = new SingletonIterator();
+      break;
+    case Axis.CHILD :
+      iterator = new ChildrenIterator();
+      break;
+    case Axis.PARENT :
+      return (new ParentIterator());
+    case Axis.ANCESTOR :
+      return (new AncestorIterator());
+    case Axis.ANCESTORORSELF :
+      return ((new AncestorIterator()).includeSelf());
+    case Axis.ATTRIBUTE :
+      return (new AttributeIterator());
+    case Axis.DESCENDANT :
+      iterator = new DescendantIterator();
+      break;
+    case Axis.DESCENDANTORSELF :
+      iterator = (new DescendantIterator()).includeSelf();
+      break;
+    case Axis.FOLLOWING :
+      iterator = new FollowingIterator();
+      break;
+    case Axis.PRECEDING :
+      iterator = new PrecedingIterator();
+      break;
+    case Axis.FOLLOWINGSIBLING :
+      iterator = new FollowingSiblingIterator();
+      break;
+    case Axis.PRECEDINGSIBLING :
+      iterator = new PrecedingSiblingIterator();
+      break;
+    case Axis.NAMESPACE :
+
+    // return(new N()); %TBD%
+    default :
+      throw new DTMException("Error: iterator for axis '" + Axis.names[axis]
+                             + "' not implemented");
+    }
+
+    return (iterator);
+  }
+
+  /**
+   * Iterator that returns all children of a given node
+   */
+  private final class ChildrenIterator extends DTMAxisIteratorBase
+  {
+
+    /** child to return next. */
+    private int _currentChild;
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(final int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _currentChild = NOTPROCESSED;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      _currentChild = (NOTPROCESSED == _currentChild)
+                      ? getFirstChild(_startNode)
+                      : getNextSibling(_currentChild);
+
+      return returnNode(_currentChild);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _currentChild;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _currentChild = _markedNode;
+    }
+  }  // end of ChildrenIterator
+
+  /**
+   * Iterator that returns the parent of a given node
+   */
+  private final class ParentIterator extends DTMAxisIteratorBase
+  {
+
+    /** candidate parent node. */
+    private int _node;
+
+    /** The extended type ID that was requested. */
+    private int _nodeType = -1;
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _node = getParent(node);
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Set the node type of the parent that we're looking for.
+     *
+     *
+     * @param type extended type ID.
+     *
+     * @return The node type.
+     */
+    public DTMAxisIterator setNodeType(final int type)
+    {
+
+      _nodeType = type;
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int result = _node;
+
+      if ((_nodeType != -1) && (getExpandedTypeID(_node) != _nodeType))
+        result = END;
+      else
+        result = _node;
+
+      _node = END;
+
+      return returnNode(result);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of ParentIterator
+
+  /**
+   * Iterator that returns children of a given type for a given node.
+   * The functionality chould be achieved by putting a filter on top
+   * of a basic child iterator, but a specialised iterator is used
+   * for efficiency (both speed and size of translet).
+   */
+  private final class TypedChildrenIterator extends DTMAxisIteratorBase
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /** node to consider next. */
+    private int _currentChild;
+
+    /**
+     * Constructor TypedChildrenIterator
+     *
+     *
+     * @param nodeType The extended type ID being requested.
+     */
+    public TypedChildrenIterator(int nodeType)
+    {
+      _nodeType = nodeType;
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _currentChild = NOTPROCESSED;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      for (int node = (NOTPROCESSED == _currentChild)
+                      ? getFirstChild(_startNode)
+                      : getNextSibling(_currentChild); node
+                        != END; node = getNextSibling(node))
+      {
+        if (getExpandedTypeID(node) == _nodeType)
+        {
+          _currentChild = node;
+
+          return returnNode(node);
+        }
+      }
+
+      return END;
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _currentChild;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _currentChild = _markedNode;
+    }
+  }  // end of TypedChildrenIterator
+
+  /**
+   * Iterator that returns children within a given namespace for a
+   * given node. The functionality chould be achieved by putting a
+   * filter on top of a basic child iterator, but a specialised
+   * iterator is used for efficiency (both speed and size of translet).
+   */
+  private final class NamespaceChildrenIterator extends DTMAxisIteratorBase
+  {
+
+    /** The extended type ID being requested. */
+    private final int _nsType;
+
+    /** The current child. */
+    private int _currentChild;
+
+    /**
+     * Constructor NamespaceChildrenIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public NamespaceChildrenIterator(final int type)
+    {
+      _nsType = type;
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _currentChild = NOTPROCESSED;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      for (int node = (NOTPROCESSED == _currentChild)
+                      ? getFirstChild(_startNode)
+                      : getNextSibling(_currentChild); node
+                        != END; node = getNextSibling(node))
+      {
+        if (getNamespaceType(node) == _nsType)
+        {
+          _currentChild = node;
+
+          return returnNode(node);
+        }
+      }
+
+      return END;
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _currentChild;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _currentChild = _markedNode;
+    }
+  }  // end of TypedChildrenIterator
+
+  /**
+   * Iterator that returns attributes within a given namespace for a node.
+   */
+  private final class NamespaceAttributeIterator extends DTMAxisIteratorBase
+  {
+
+    /** The extended type ID being requested. */
+    private final int _nsType;
+
+    /** The current attribute. */
+    private int _attribute;
+
+    /**
+     * Constructor NamespaceAttributeIterator
+     *
+     *
+     * @param nsType The extended type ID being requested.
+     */
+    public NamespaceAttributeIterator(int nsType)
+    {
+
+      super();
+
+      _nsType = nsType;
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _attribute = getFirstNamespaceNode(node, false);
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node = _attribute;
+
+      if (DTM.NULL != node)
+        _attribute = getNextNamespaceNode(_startNode, node, false);
+
+      return returnNode(node);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _attribute;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _attribute = _markedNode;
+    }
+  }  // end of TypedChildrenIterator
+
+  /**
+   * Iterator that returns all siblings of a given node.
+   */
+  private class FollowingSiblingIterator extends DTMAxisIteratorBase
+  {
+
+    /** The current node. */
+    private int _node;
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _node = _startNode = node;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+      return returnNode(_node = getNextSibling(_node));
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of FollowingSiblingIterator
+
+  /**
+   * Iterator that returns all following siblings of a given node.
+   */
+  private final class TypedFollowingSiblingIterator
+          extends FollowingSiblingIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedFollowingSiblingIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public TypedFollowingSiblingIterator(int type)
+    {
+      _nodeType = type;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL
+             && getExpandedTypeID(node) != _nodeType){}
+
+      return node;
+    }
+  }  // end of TypedFollowingSiblingIterator
+
+  /**
+   * Iterator that returns attribute nodes (of what nodes?)
+   */
+  private final class AttributeIterator extends DTMAxisIteratorBase
+  {
+
+    /** The current attribute. */
+    private int _attribute;
+
+    // assumes caller will pass element nodes
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _attribute = getFirstAttribute(node);
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      final int node = _attribute;
+
+      _attribute = getNextAttribute(node);
+
+      return returnNode(node);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _attribute;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _attribute = _markedNode;
+    }
+  }  // end of AttributeIterator
+
+  /**
+   * Iterator that returns attribute nodes of a given type
+   */
+  private final class TypedAttributeIterator extends DTMAxisIteratorBase
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /** The current attribute. */
+    private int _attribute;
+
+    /**
+     * Constructor TypedAttributeIterator
+     *
+     *
+     * @param nodeType The extended type ID that is requested.
+     */
+    public TypedAttributeIterator(int nodeType)
+    {
+      _nodeType = nodeType;
+    }
+
+    // assumes caller will pass element nodes
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+
+        for (node = getFirstAttribute(node); node != END;
+                node = getNextAttribute(node))
+        {
+          if (getExpandedTypeID(node) == _nodeType)
+            break;
+        }
+
+        _attribute = node;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      final int node = _attribute;
+
+      // singleton iterator, since there can only be one attribute of 
+      // a given type.
+      _attribute = NULL;
+
+      return returnNode(node);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _attribute;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _attribute = _markedNode;
+    }
+  }  // end of TypedAttributeIterator
+
+  /**
+   * Iterator that returns preceding siblings of a given node
+   */
+  private class PrecedingSiblingIterator extends DTMAxisIteratorBase
+  {
+
+    /** The start node (...on the left of the graph, I think. -sb) */
+    private int _start;
+
+    /** The current node. */
+    private int _node;
+
+    /**
+     * True if this iterator has a reversed axis.
+     *
+     * @return true.
+     */
+    public boolean isReverse()
+    {
+      return true;
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+        _node = getFirstChild(getParent(node));
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      if (_node == _start)
+      {
+        return NULL;
+      }
+      else
+      {
+        final int node = _node;
+
+        _node = getNextSibling(node);
+
+        return returnNode(node);
+      }
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of PrecedingSiblingIterator
+
+  /**
+   * Iterator that returns preceding siblings of a given type for
+   * a given node
+   */
+  private final class TypedPrecedingSiblingIterator
+          extends PrecedingSiblingIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedPrecedingSiblingIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public TypedPrecedingSiblingIterator(int type)
+    {
+      _nodeType = type;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL
+             && getExpandedTypeID(node) != _nodeType){}
+
+      return node;
+    }
+  }  // end of PrecedingSiblingIterator
+
+  /**
+   * Iterator that returns preceding nodes of a given node.
+   * This includes the node set {root+1, start-1}, but excludes
+   * all ancestors.
+   */
+  private class PrecedingIterator extends DTMAxisIteratorBase
+  {
+
+    /** The max ancestors, but it can grow... */
+    private final int _maxAncestors = 8;
+
+    /**
+     * The stack of start node + ancestors up to ROOTNODE,
+     *  which we must avoid.
+     */
+    private int[] _stack = new int[_maxAncestors];
+
+    /** (not sure yet... -sb) */
+    private int _sp, _oldsp;
+
+    /** _node precedes candidates.  This is the identity, not the handle! */
+    private int _node;
+
+    /**
+     * True if this iterator has a reversed axis.
+     *
+     * @return true since this iterator is a reversed axis.
+     */
+    public boolean isReverse()
+    {
+      return true;
+    }
+
+    /**
+     * Returns a deep copy of this iterator.
+     *
+     * @return a deep copy of this iterator.
+     */
+    public DTMAxisIterator cloneIterator()
+    {
+
+      _isRestartable = false;
+
+      final int[] stackCopy = new int[_maxAncestors];
+
+      try
+      {
+        final PrecedingIterator clone = (PrecedingIterator) super.clone();
+
+        System.arraycopy(_stack, 0, stackCopy, 0, _stack.length);
+
+        clone._stack = stackCopy;
+
+        return clone.reset();
+      }
+      catch (CloneNotSupportedException e)
+      {
+        throw new DTMException("Iterator clone not supported.");
+      }
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+
+        // iterator is not a clone
+        int parent, index;
+
+        _startNode = node;
+        _node = ROOTNODE;  // Remember it's the identity, not the full handle.
+        _stack[index = 0] = node;
+
+        if (node > ROOTNODE)
+        {
+          while ((parent = _parent(node)) != ROOTNODE)
+          {
+            if (++index == _stack.length)
+            {
+              final int[] stack = new int[index + 4];
+
+              System.arraycopy(_stack, 0, stack, 0, index);
+
+              _stack = stack;
+            }
+
+            _stack[index] = node = parent;
+          }
+        }
+
+        _oldsp = _sp = index;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      final int node = _node + 1;
+
+      if ((_sp >= 0) && (node < _stack[_sp]))
+      {
+        return returnNode((_node = node) | m_dtmIdent);
+      }
+      else
+      {
+        _node = node;  // skip ancestor
+
+        return --_sp >= 0 ? next() : NULL;
+      }
+    }
+
+    // redefine DTMAxisIteratorBase's reset
+
+    /**
+     * Resets the iterator to the last start node.
+     *
+     * @return A DTMAxisIterator, which may or may not be the same as this
+     *         iterator.
+     */
+    public DTMAxisIterator reset()
+    {
+
+      _sp = _oldsp;
+
+      return resetPosition();
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of PrecedingIterator
+
+  /**
+   * Iterator that returns preceding nodes of agiven type for a
+   * given node. This includes the node set {root+1, start-1}, but
+   * excludes all ancestors.
+   */
+  private final class TypedPrecedingIterator extends PrecedingIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedPrecedingIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public TypedPrecedingIterator(int type)
+    {
+      _nodeType = type;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL
+             && getExpandedTypeID(node) != _nodeType){}
+
+      return node;
+    }
+  }  // end of TypedPrecedingIterator
+
+  /**
+   * Iterator that returns following nodes of for a given node.
+   */
+  private class FollowingIterator extends DTMAxisIteratorBase
+  {
+
+    /** _node precedes search for next. */
+    protected int _node;
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        _startNode = node;
+
+        // ?? -sb
+        // find rightmost descendant (or self)
+        // int current;
+        // while ((node = getLastChild(current = node)) != NULL){}
+        // _node = current;
+        _node = node;
+
+        // _node precedes possible following(node) nodes
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node = _node;
+
+      while (END != node)
+      {
+        node++;
+
+        int type = _type(node);
+
+        if (DTM.NAMESPACE_NODE != type && DTM.ATTRIBUTE_NODE != type)
+        {
+          _node = node;
+
+          return returnNode(_node | m_dtmIdent);
+        }
+      }
+
+      return returnNode(_node = END);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of FollowingIterator
+
+  /**
+   * Iterator that returns following nodes of a given type for a given node.
+   */
+  private final class TypedFollowingIterator extends FollowingIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedFollowingIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public TypedFollowingIterator(int type)
+    {
+      _nodeType = type;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL
+             && getExpandedTypeID(node) != _nodeType){}
+
+      return returnNode(node);
+    }
+  }  // end of TypedFollowingIterator
+
+  /**
+   * Iterator that returns the ancestors of a given node in document
+   * order.  (NOTE!  This was changed from the XSLTC code!)
+   */
+  private class AncestorIterator extends DTMAxisIteratorBase
+  {
+
+    /** The current ancestor index. */
+    protected int _index;
+
+    /**
+     * True if this iterator has a reversed axis.
+     *
+     * @return true since this iterator is a reversed axis.
+     */
+    public final boolean isReverse()
+    {
+      return true;
+    }
+
+    /**
+     * Returns the last element in this interation.
+     *
+     * @return the last element in this interation.
+     */
+    public int getLast()
+    {
+      return (_startNode);
+    }
+
+    /**
+     * Returns a deep copy of this iterator.
+     *
+     * @return a deep copy of this iterator.
+     */
+    public DTMAxisIterator cloneIterator()
+    {
+
+      _isRestartable = false;  // must set to false for any clone
+
+      try
+      {
+        final AncestorIterator clone = (AncestorIterator) super.clone();
+
+        clone._startNode = _startNode;
+
+        return clone.reset();
+      }
+      catch (CloneNotSupportedException e)
+      {
+        throw new DTMException("Iterator clone not supported.");
+      }
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        if (_includeSelf)
+          _startNode = node;
+        else
+          _startNode = getParent(node);
+
+        _index = getDocument();
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Resets the iterator to the last start node.
+     *
+     * @return A DTMAxisIterator, which may or may not be the same as this
+     *         iterator.
+     */
+    public DTMAxisIterator reset()
+    {
+
+      _index = _startNode;
+
+      return resetPosition();
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int next = _index;
+
+      // The alternative to this is to just allocate a stack in setStartNode.
+      // Given often next() is only called once, I'm not sure that would 
+      // be optimal.  -sb
+      int node = _startNode;
+
+      while (node != END && node != _index)
+      {
+        _index = node;
+        node = getParent(node);
+      }
+
+      return (next);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _index;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _index = _markedNode;
+    }
+  }  // end of AncestorIterator
+
+  /**
+   * Typed iterator that returns the ancestors of a given node.
+   */
+  private final class TypedAncestorIterator extends AncestorIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedAncestorIterator
+     *
+     *
+     * @param type The extended type ID being requested.
+     */
+    public TypedAncestorIterator(int type)
+    {
+      _nodeType = type;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL)
+      {
+        if (getExpandedTypeID(node) == _nodeType)
+          return returnNode(node);
+      }
+
+      return (NULL);
+    }
+
+    /**
+     * Returns the last element in this interation.
+     *
+     * @return the last element in this interation.
+     */
+    public int getLast()
+    {
+
+      int last = NULL;
+      int curr = _startNode;
+
+      while (curr != NULL)
+      {
+        if (getExpandedTypeID(curr) == _nodeType)
+          last = curr;
+
+        curr = getParent(curr);
+      }
+
+      return (last);
+    }
+  }  // end of TypedAncestorIterator
+
+  /**
+   * Iterator that returns the descendants of a given node.
+   */
+  private class DescendantIterator extends DTMAxisIteratorBase
+  {
+
+    /** _node precedes search for next */
+    protected int _node;  // Identity, not handle!
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isRestartable)
+      {
+        node = node & m_mask;
+        _startNode = node;
+
+        if (_includeSelf)
+          node--;
+
+        _node = node;
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Tell if this node identity is a descendant.  Assumes that
+     * the node info for the element has already been obtained.
+     * @param identity The index number of the node in question.
+     * @return true if the index is a descendant of _startNode.
+     */
+    protected boolean isDescendant(int identity)
+    {
+      return _parent(identity) >= _startNode;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      while (true)
+      {
+        int node = ++_node;
+        int type = _type(node);
+
+        if (NULL == type ||!isDescendant(node))
+          return END;
+
+        if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
+          continue;
+
+        return returnNode(node | m_dtmIdent);  // make handle.
+      }
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }  // end of DescendantIterator
+
+  /**
+   * Typed iterator that returns the descendants of a given node.
+   */
+  private final class TypedDescendantIterator extends DescendantIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedDescendantIterator
+     *
+     *
+     * @param nodeType Extended type ID being requested.
+     */
+    public TypedDescendantIterator(int nodeType)
+    {
+      _nodeType = nodeType;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      int node;
+
+      while ((node = super.next()) != NULL
+             && getExpandedTypeID(node) != _nodeType){}
+
+      return node;
+    }
+  }  // end of TypedDescendantIterator
+
+  /**
+   * Iterator that returns the descendants of a given node.
+   * I'm not exactly clear about this one... -sb
+   */
+  private class NthDescendantIterator extends DescendantIterator
+  {
+
+    /** The current nth position. */
+    int _pos;
+
+    /**
+     * Constructor NthDescendantIterator
+     *
+     *
+     * @param pos The nth position being requested.
+     */
+    public NthDescendantIterator(int pos)
+    {
+      _pos = pos;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      // I'm not exactly clear yet what this is doing... -sb
+      int node;
+
+      while ((node = super.next()) != END)
+      {
+        node = (node & m_mask);
+
+        int parent = _parent(node);
+        int child = _firstch(parent);
+        int pos = 0;
+
+        do
+        {
+          int type = _type(child);
+
+          if (ELEMENT_NODE == type)
+            pos++;
+        }
+        while ((pos < _pos) && (child = _nextsib(child)) != END);
+
+        if (node == child)
+          return node;
+      }
+
+      return (END);
+    }
+  }  // end of NthDescendantIterator
+
+  /**
+   * Class SingletonIterator.
+   */
+  private class SingletonIterator extends DTMAxisIteratorBase
+  {
+
+    /** The current node. */
+    private int _node;
+
+    /** (not sure yet what this is.  -sb) */
+    private final boolean _isConstant;
+
+    /**
+     * Constructor SingletonIterator
+     *
+     */
+    public SingletonIterator()
+    {
+      this(Integer.MIN_VALUE, false);
+    }
+
+    /**
+     * Constructor SingletonIterator
+     *
+     *
+     * @param node The node handle to return.
+     */
+    public SingletonIterator(int node)
+    {
+      this(node, false);
+    }
+
+    /**
+     * Constructor SingletonIterator
+     *
+     *
+     * @param node the node handle to return.
+     * @param constant (Not sure what this is yet.  -sb)
+     */
+    public SingletonIterator(int node, boolean constant)
+    {
+      _node = _startNode = node;
+      _isConstant = constant;
+    }
+
+    /**
+     * Set start to END should 'close' the iterator,
+     * i.e. subsequent call to next() should return END.
+     *
+     * @param node Sets the root of the iteration.
+     *
+     * @return A DTMAxisIterator set to the start of the iteration.
+     */
+    public DTMAxisIterator setStartNode(int node)
+    {
+
+      if (_isConstant)
+      {
+        _node = _startNode;
+
+        return resetPosition();
+      }
+      else if (_isRestartable)
+      {
+        if (_node == Integer.MIN_VALUE)
+        {
+          _node = _startNode = node;
+        }
+
+        return resetPosition();
+      }
+
+      return this;
+    }
+
+    /**
+     * Resets the iterator to the last start node.
+     *
+     * @return A DTMAxisIterator, which may or may not be the same as this
+     *         iterator.
+     */
+    public DTMAxisIterator reset()
+    {
+
+      if (_isConstant)
+      {
+        _node = _startNode;
+
+        return resetPosition();
+      }
+      else
+      {
+        final boolean temp = _isRestartable;
+
+        _isRestartable = true;
+
+        setStartNode(_startNode);
+
+        _isRestartable = temp;
+      }
+
+      return this;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      final int result = _node;
+
+      _node = END;
+
+      return returnNode(result);
+    }
+
+    /**
+     * Remembers the current node for the next call to gotoMark().
+     */
+    public void setMark()
+    {
+      _markedNode = _node;
+    }
+
+    /**
+     * Restores the current node remembered by setMark().
+     */
+    public void gotoMark()
+    {
+      _node = _markedNode;
+    }
+  }
+
+  /**
+   * Iterator that returns a given node only if it is of a given type.
+   */
+  private final class TypedSingletonIterator extends SingletonIterator
+  {
+
+    /** The extended type ID that was requested. */
+    private final int _nodeType;
+
+    /**
+     * Constructor TypedSingletonIterator
+     *
+     *
+     * @param nodeType The extended type ID being requested.
+     */
+    public TypedSingletonIterator(int nodeType)
+    {
+      _nodeType = nodeType;
+    }
+
+    /**
+     * Get the next node in the iteration.
+     *
+     * @return The next node handle in the iteration, or END.
+     */
+    public int next()
+    {
+
+      final int result = super.next();
+
+      return getExpandedTypeID(result) == _nodeType ? result : NULL;
+    }
+  }  // end of TypedSingletonIterator
 }

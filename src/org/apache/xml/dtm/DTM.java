@@ -90,7 +90,7 @@ import org.apache.xml.utils.XMLString;
  * implementation of DTM can be created that wraps a DOM and vice
  * versa.</p>
  *
- * <p>State: In progress!!</p> 
+ * <p>State: In progress!!</p>
  */
 public interface DTM
 {
@@ -187,6 +187,29 @@ public interface DTM
   public void setFeature(String featureId, boolean state);
 
   // ========= Document Navigation Functions =========
+  
+  /**
+   * This is a shortcut to the iterators that implement the
+   * supported XPath axes (only namespace::) is not supported.
+   * Returns a bare-bones iterator that must be initialized
+   * with a start node (using iterator.setStartNode()).
+   *
+   * @param axis One of Axes.ANCESTORORSELF, etc.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getAxisIterator(final int axis);
+
+  /**
+   * Get an iterator that can navigate over an XPath Axis, predicated by 
+   * the extended type ID.
+   *
+   * @param axis 
+   * @param type An extended type ID.
+   *
+   * @return A DTMAxisIterator, or null if the givin axis isn't supported.
+   */
+  public DTMAxisIterator getTypedAxisIterator(final int axis, final int type);
 
   /**
    * Given a node handle, test if it has child nodes.
@@ -384,7 +407,7 @@ public interface DTM
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(int nodeHandle);
+  public int getExpandedTypeID(int nodeHandle);
 
   /**
    * Given an expanded name, return an ID.  If the expanded-name does not
@@ -400,7 +423,7 @@ public interface DTM
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(String namespace, String localName, int type);
+  public int getExpandedTypeID(String namespace, String localName, int type);
 
   /**
    * Given an expanded-name ID, return the local name part.
@@ -699,7 +722,7 @@ public interface DTM
    *
    * @return false if secondNode comes before firstNode, otherwise return true.
    * You can think of this as
-   * <code>(firstNode.documentOrderPosition &lt;= secondNode.documentOrderPosition)</code>.  
+   * <code>(firstNode.documentOrderPosition &lt;= secondNode.documentOrderPosition)</code>.
    */
   public boolean isNodeAfter(int firstNodeHandle, int secondNodeHandle);
 
@@ -793,15 +816,15 @@ public interface DTM
    */
   public void dispatchToEvents(int nodeHandle, org.xml.sax.ContentHandler ch)
     throws org.xml.sax.SAXException;
-    
+
   /**
    * Return an DOM node for the given node.
-   * 
+   *
    * @param nodeHandle The node ID.
-   * 
+   *
    * @return A node representation of the DTM node.
    */
-   public org.w3c.dom.Node getNode(int nodeHandle);
+  public org.w3c.dom.Node getNode(int nodeHandle);
 
   // ==== Construction methods (may not be supported by some implementations!) =====
   // %REVIEW% What response occurs if not supported?
@@ -880,7 +903,7 @@ public interface DTM
    * @param newChild Must be a valid new node handle.
    * @param clone true if the child should be cloned into the document.
    * @param cloneDepth if the clone argument is true, specifies that the
-   *                   clone should include all it's children.  
+   *                   clone should include all it's children.
    */
   public void appendChild(int newChild, boolean clone, boolean cloneDepth);
 

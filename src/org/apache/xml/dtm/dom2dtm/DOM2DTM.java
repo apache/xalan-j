@@ -83,12 +83,6 @@ import org.apache.xml.utils.XMLStringFactory;
  */
 public class DOM2DTM extends DTMDefaultBase
 {
-  /**
-   * This represents the number of integers per node in the
-   * <code>m_info</code> member variable.
-   */
-  protected static final int NODEINFOBLOCKSIZE = DEFAULTNODEINFOBLOCKSIZE;
-
   /** The top of the subtree, may not be the same as m_context if "//foo" pattern. */
   transient private Node m_root;
 
@@ -173,15 +167,14 @@ public class DOM2DTM extends DTMDefaultBase
   {
 
     int nodeIndex = m_nodes.size();
+    ensureSize(nodeIndex);
     
     int type = node.getNodeType();
     
     m_nodes.addElement(node);
-
-    int startInfo = nodeIndex * NODEINFOBLOCKSIZE;
-
-    m_info.addElements(NODEINFOBLOCKSIZE);
-    m_info.setElementAt(level, startInfo + OFFSET_LEVEL);
+    
+    // Do casts here so that if we change the sizes, the changes are localized.
+    m_level[nodeIndex] = (byte)level;
 
     if (Node.ATTRIBUTE_NODE == type)
     {
@@ -192,20 +185,18 @@ public class DOM2DTM extends DTMDefaultBase
         type = DTM.NAMESPACE_NODE;
       }
     }
-
-    m_info.setElementAt(type, startInfo + OFFSET_TYPE);
-    m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_FIRSTCHILD);
-    m_info.setElementAt(NOTPROCESSED, startInfo + OFFSET_NEXTSIBLING);
-    m_info.setElementAt(previousSibling, startInfo + OFFSET_PREVSIBLING);
-    m_info.setElementAt(parentIndex, startInfo + OFFSET_PARENT);
     
-    if(DTM.NULL != parentIndex && type != DTM.ATTRIBUTE_NODE && type != DTM.NAMESPACE_NODE)
+    m_firstch[nodeIndex] = NOTPROCESSED;
+    m_nextsib[nodeIndex] = NOTPROCESSED;
+    m_prevsib[nodeIndex] = (short)previousSibling;
+    m_parent[nodeIndex] = (short)parentIndex;
+    
+    if(DTM.NULL != parentIndex && 
+       type != DTM.ATTRIBUTE_NODE && 
+       type != DTM.NAMESPACE_NODE)
     {
-      int startParentInfo = parentIndex * NODEINFOBLOCKSIZE;
-      if(NOTPROCESSED == m_info.elementAt(startParentInfo + OFFSET_FIRSTCHILD))
-      {
-        m_info.setElementAt(nodeIndex, startParentInfo + OFFSET_FIRSTCHILD);
-      }
+      if(NOTPROCESSED == m_firstch[parentIndex])
+        m_firstch[parentIndex] = (short)nodeIndex;
     }
     
     String nsURI = node.getNamespaceURI();
@@ -215,27 +206,15 @@ public class DOM2DTM extends DTMDefaultBase
     ExpandedNameTable exnt = m_mgr.getExpandedNameTable(this);
 
     int expandedNameID = (null != localName) 
-       ? exnt.getExpandedNameID(nsURI, localName, type) :
-         exnt.getExpandedNameID(type);
+       ? exnt.getExpandedTypeID(nsURI, localName, type) :
+         exnt.getExpandedTypeID(type);
 
-    m_info.setElementAt(expandedNameID, startInfo + OFFSET_EXPANDEDNAMEID);    
+    m_exptype[nodeIndex]  = expandedNameID;
 
     if (DTM.NULL != previousSibling)
-    {
-      m_info.setElementAt(nodeIndex,
-                          (previousSibling * NODEINFOBLOCKSIZE)
-                          + OFFSET_NEXTSIBLING);
-    }
+      m_nextsib[previousSibling] = nodeIndex;
 
     return nodeIndex;
-  }
-  
-  /**
-   * Return the number of integers in each node info block.
-   */
-  protected int getNodeInfoBlockSize()
-  {
-    return NODEINFOBLOCKSIZE;
   }
   
   /**
@@ -280,7 +259,7 @@ public class DOM2DTM extends DTMDefaultBase
     int type = pos.getNodeType();
 
     int currentIndexHandle = m_nodes.size()-1;
-    int posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+    int posInfo = currentIndexHandle;
     
     boolean shouldPushLevel = true;
     if (Node.ELEMENT_NODE == type)
@@ -306,7 +285,7 @@ public class DOM2DTM extends DTMDefaultBase
     }
     else if (Node.ATTRIBUTE_NODE == type)
     {
-      m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
+      m_firstch[posInfo] = DTM.NULL;
       m_attrsPos++;
 
       if (m_attrsPos < m_attrs.getLength())
@@ -316,10 +295,10 @@ public class DOM2DTM extends DTMDefaultBase
       }
       else
       {
-        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING); 
+        m_nextsib[posInfo] = NULL;
         pos = m_elementForAttrs;
         currentIndexHandle = m_elementForAttrsIndex;
-        posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+        posInfo = currentIndexHandle;
         nextNode = pos.getFirstChild();
         m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
       }
@@ -349,14 +328,14 @@ public class DOM2DTM extends DTMDefaultBase
 
     while (null == nextNode)
     {
-      if(m_info.elementAt(posInfo + OFFSET_FIRSTCHILD) == NOTPROCESSED)
+      if(m_firstch[posInfo] == NOTPROCESSED)
       {
-        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
+        m_firstch[posInfo] = NULL;
       }
       
       if (top.equals(pos))
       {
-        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+        m_nextsib[posInfo] = NULL;
         break;
       }
       
@@ -391,16 +370,15 @@ public class DOM2DTM extends DTMDefaultBase
                   
       if (null == nextNode)
       {
-        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
-
-        currentIndexHandle = m_info.elementAt(posInfo + OFFSET_PARENT);
-        posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+        m_nextsib[posInfo] = NULL;
+        m_parent[posInfo] = (short)currentIndexHandle;
+        posInfo = currentIndexHandle;
         m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
         pos = pos.getParentNode();
 
         if ((null == pos) || (top.equals(pos)))
         {
-          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+          m_nextsib[posInfo] = NULL;
           nextNode = null;
           // break;
           m_nodesAreProcessed = true;
@@ -510,10 +488,10 @@ public class DOM2DTM extends DTMDefaultBase
     {
       int len = m_nodes.size();
       for (int i = 0; i < len; i++)
-	{
-	  if (m_nodes.elementAt(i) == node)
-	    return i | m_dtmIdent;
-	}
+        {
+          if (m_nodes.elementAt(i) == node)
+            return i | m_dtmIdent;
+        }
     }
 
     return DTM.NULL;
@@ -540,29 +518,29 @@ public class DOM2DTM extends DTMDefaultBase
       // This would be easier if m_root was always the Document node, but
       // we decided to allow wrapping a DTM around a subtree.
       if((m_root==node) ||
-	 (m_root.getNodeType()==DOCUMENT_NODE &&
-	  m_root==node.getOwnerDocument()) ||
-	 (m_root.getNodeType()!=DOCUMENT_NODE &&
-	  m_root.getOwnerDocument()==node.getOwnerDocument())
-	 )
-	{
-	  // If node _is_ in m_root's tree, find its handle
-	  //
-	  // %OPT% This check may be improved significantly when DOM
-	  // Level 3 nodeKey and relative-order tests become
-	  // available!
-	  for(Node cursor=node;
-	      cursor!=null;
-	      cursor=
-		(cursor.getNodeType()!=ATTRIBUTE_NODE)
-		? cursor.getParentNode()
-		: ((org.w3c.dom.Attr)cursor).getOwnerElement())
-	    {
-	      if(cursor==m_root)
-		// We know this node; find its handle.
-		return getHandleFromNode(node); 
-	    } // for ancestors of node
-	} // if node and m_root in same Document
+         (m_root.getNodeType()==DOCUMENT_NODE &&
+          m_root==node.getOwnerDocument()) ||
+         (m_root.getNodeType()!=DOCUMENT_NODE &&
+          m_root.getOwnerDocument()==node.getOwnerDocument())
+         )
+        {
+          // If node _is_ in m_root's tree, find its handle
+          //
+          // %OPT% This check may be improved significantly when DOM
+          // Level 3 nodeKey and relative-order tests become
+          // available!
+          for(Node cursor=node;
+              cursor!=null;
+              cursor=
+                (cursor.getNodeType()!=ATTRIBUTE_NODE)
+                ? cursor.getParentNode()
+                : ((org.w3c.dom.Attr)cursor).getOwnerElement())
+            {
+              if(cursor==m_root)
+                // We know this node; find its handle.
+                return getHandleFromNode(node); 
+            } // for ancestors of node
+        } // if node and m_root in same Document
     } // if node!=null
 
     return DTM.NULL;
