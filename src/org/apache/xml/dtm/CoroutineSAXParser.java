@@ -142,6 +142,7 @@ import org.apache.xml.dtm.CoroutineManager;
  *
  * <p>Status: In progress</p>
  *
+ * %TBD% Javadoc needs lots of work.
  * */
 public class CoroutineSAXParser
 implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
@@ -210,6 +211,7 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   }
   // Register a lexical handler for us to output to
   // Not all parsers support this...
+  // ??? Should we register directly on the parser?
   public void setLexicalHandler(LexicalHandler handler)
   {
     clientLexicalHandler=handler;
@@ -230,6 +232,11 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   // and resume our coroutine each time that counter hits zero and
   // is reset.
   //
+  // Note that for everything except endDocument, we do the count-and-yield
+  // BEFORE passing the call along. I'm hoping that this will encourage JIT
+  // compilers to realize that these are tail-calls, reducing the expense of
+  // the additional layer of data flow.
+  //
   // %REVIEW% Glenn suggests that pausing after endElement, endDocument,
   // and characters may be sufficient. I actually may not want to
   // stop after characters, since in our application these wind up being
@@ -240,17 +247,21 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   public void characters(char[] ch, int start, int length)
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.characters(ch,start,length);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.characters(ch,start,length);
   }
   public void endDocument() 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.endDocument();
+    // EXCEPTION: In this case we need to run the event BEFORE we yield.
+    if(clientContentHandler!=null)
+      clientContentHandler.endDocument();
+
     eventcounter=0;	
     co_yield(false); // Nothing more expected; co_yield up the ghost!
   }
@@ -258,92 +269,101 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
       java.lang.String qName) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.endElement(namespaceURI,localName,qName);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.endElement(namespaceURI,localName,qName);
   }
   public void endPrefixMapping(java.lang.String prefix) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.endPrefixMapping(prefix);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.endPrefixMapping(prefix);
   }
   public void ignorableWhitespace(char[] ch, int start, int length) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.ignorableWhitespace(ch,start,length);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.ignorableWhitespace(ch,start,length);
   }
   public void processingInstruction(java.lang.String target, java.lang.String data) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.processingInstruction(target,data);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.processingInstruction(target,data);
   }
   public void setDocumentLocator(Locator locator) 
   {
-    clientContentHandler.setDocumentLocator(locator);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.setDocumentLocator(locator);
   }
   public void skippedEntity(java.lang.String name) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.skippedEntity(name);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.skippedEntity(name);
   }
   public void startDocument() 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.startDocument();
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.startDocument();
   }
   public void startElement(java.lang.String namespaceURI, java.lang.String localName,
       java.lang.String qName, Attributes atts) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.startElement(namespaceURI, localName, qName, atts);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.startElement(namespaceURI, localName, qName, atts);
   }
   public void startPrefixMapping(java.lang.String prefix, java.lang.String uri) 
        throws org.xml.sax.SAXException
   {
-    clientContentHandler.startPrefixMapping(prefix,uri);
     if(--eventcounter<=0)
       {
 	co_yield(true);
 	eventcounter=frequency;
       }
+    if(clientContentHandler!=null)
+      clientContentHandler.startPrefixMapping(prefix,uri);
   }
 
   //
@@ -354,43 +374,50 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   // that they're rare enough that it makes little or no sense to
   // pause after them. As such, it may make more sense for folks who
   // actually want to use them to register directly with the parser.
-  // But I want 'em here to remind us to recheck this assertion!
+  // But I want 'em here for now, to remind us to recheck this assertion!
   //
   public void comment(char[] ch, int start, int length) 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.comment(ch,start,length);
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.comment(ch,start,length);
   }
   public void endCDATA() 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.endCDATA();
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.endCDATA();
   }
   public void endDTD() 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.endDTD();
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.endDTD();
   }
   public void endEntity(java.lang.String name) 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.endEntity(name);
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.endEntity(name);
   }
   public void startCDATA() 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.startCDATA();
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.startCDATA();
   }
   public void startDTD(java.lang.String name, java.lang.String publicId,
       java.lang.String systemId) 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler. startDTD(name, publicId, systemId);
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler. startDTD(name, publicId, systemId);
   }
   public void startEntity(java.lang.String name) 
        throws org.xml.sax.SAXException
   {
-    clientLexicalHandler.startEntity(name);
+    if(null!=clientLexicalHandler)
+      clientLexicalHandler.startEntity(name);
   }
 
   //
@@ -400,6 +427,29 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   public int getParserCoroutine() {
     return fParserCoroutine;
   }
+
+  /** <p>In the SAX delegation code, I've inlined the count-down in
+   * the hope of encouraging compilers to deliver better
+   * performance. However, if we subclass (eg to directly connect the
+   * output to a DTM builder), that would require calling super in
+   * order to run that logic... which seems inelegant.  Hence this
+   * routine for the convenience of subclasses: every [frequency]
+   * invocations, issue a co_yield.</p>
+   *
+   * @param moreExepcted Should always be true unless this is being called
+   * at the end of endDocument() handling.
+   * */
+  void count_and_yield(boolean moreExpected)
+  {
+    if(!moreExpected) eventCounter=0;
+    
+    if(--eventcounter<=0)
+      {
+	co_yield(true);
+	eventcounter=frequency;
+      }
+  }
+  
 
   /**
    * Co_Yield handles coroutine interactions while a parse is in progress.
@@ -474,7 +524,9 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    *                      resumes with:
    *                          co_resume(Boolean.TRUE, ...) on success.
    *                          co_resume(Exception, ...) on error.
-   */
+   *
+   * %REVEIW% Should this be able to set listeners? Partner coroutine ID?
+   * */
   public void run() {
     try 
       {
