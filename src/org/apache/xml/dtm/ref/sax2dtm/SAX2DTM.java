@@ -144,22 +144,22 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   transient protected IntStack m_contextIndexes = new IntStack();
 
   /** Type of next characters() event within text block in prgress. */
-  transient private int m_textType = DTM.TEXT_NODE;
+  transient protected int m_textType = DTM.TEXT_NODE;
 
   /**
    * Type of coalesced text block. See logic in the characters()
    * method.
    */
-  transient private int m_coalescedTextType = DTM.TEXT_NODE;
+  transient protected int m_coalescedTextType = DTM.TEXT_NODE;
 
   /** The SAX Document locator */
-  transient private Locator m_locator = null;
+  transient protected Locator m_locator = null;
 
   /** The SAX Document system-id */
   transient private String m_systemId = null;
 
   /** We are inside the DTD.  This is used for ignoring comments.  */
-  transient private boolean m_insideDTD = false;
+  transient protected boolean m_insideDTD = false;
 
   /** Tree Walker for dispatchToEvents. */
   protected DTMTreeWalker m_walker = new DTMTreeWalker();
@@ -218,7 +218,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * CDATA_SECTION node currently being acumulated,
    * or -1 if there is no text node in progress
    */
-  private int m_textPendingStart = -1;
+  protected int m_textPendingStart = -1;
 
   /**
    * Describes whether information about document source location
@@ -938,7 +938,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * @param  nodeIndex The node identity at which the new DTM ID will begin
    * addressing.
    */
-  private void addNewDTMID(int nodeIndex) {
+  protected void addNewDTMID(int nodeIndex) {
     try
     {
       if(m_mgr==null)
@@ -963,7 +963,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    * Store the source location of the current node.  This method must be called
    * as every node is added to the DTM or for no node.
    */
-  private void setSourceLocation() {
+  protected void setSourceLocation() {
     m_sourceSystemId.addElement(m_locator.getSystemId());
     m_sourceLine.addElement(m_locator.getLineNumber());
     m_sourceColumn.addElement(m_locator.getColumnNumber());
@@ -1423,12 +1423,20 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     {
       int indexOfNSSep = qname.indexOf(':');
 
-      if (qname.equals("xmlns"))
-        prefix = "";
-      else if (qname.startsWith("xmlns:"))
-        prefix = qname.substring(indexOfNSSep + 1);
+      if (indexOfNSSep > 0)
+      {
+        if (qname.startsWith("xmlns:"))
+          prefix = qname.substring(indexOfNSSep + 1);
+        else
+          prefix = qname.substring(0, indexOfNSSep);	
+      }
       else
-        prefix = (indexOfNSSep > 0) ? qname.substring(0, indexOfNSSep) : null;
+      {
+      	if (qname.equals("xmlns"))
+      	  prefix = "";
+      	else
+      	  prefix = null;
+      }
     }
     else
     {

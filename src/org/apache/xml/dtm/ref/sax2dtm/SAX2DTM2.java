@@ -1733,7 +1733,7 @@ public class SAX2DTM2 extends SAX2DTM
   protected int m_SHIFT;
   protected int m_MASK;
   protected int m_blocksize;
-  
+    
   // A constant for empty string
   private static final String EMPTY_STR = "";
 
@@ -1762,7 +1762,7 @@ public class SAX2DTM2 extends SAX2DTM
 
     super(mgr, source, dtmIdentity, whiteSpaceFilter,
           xstringfactory, doIndexing, blocksize);
-    
+        
     // Initialize the values of m_SHIFT and m_MASK.
     int shift;
     for(shift=0; (blocksize>>>=1) != 0; ++shift);
@@ -1885,7 +1885,264 @@ public class SAX2DTM2 extends SAX2DTM
     }
     return node;
   }
- 
+
+  /**
+   * Override SAX2DTM.startElement()
+   *
+   * Receive notification of the start of an element.
+   *
+   * <p>By default, do nothing.  Application writers may override this
+   * method in a subclass to take specific actions at the start of
+   * each element (such as allocating a new tree node or writing
+   * output to a file).</p>
+   *
+   * @param name The element type name.
+   *
+   * @param uri The Namespace URI, or the empty string if the
+   *        element has no Namespace URI or if Namespace
+   *        processing is not being performed.
+   * @param localName The local name (without prefix), or the
+   *        empty string if Namespace processing is not being
+   *        performed.
+   * @param qName The qualified name (with prefix), or the
+   *        empty string if qualified names are not available.
+   * @param attributes The specified or defaulted attributes.
+   * @throws SAXException Any SAX exception, possibly
+   *            wrapping another exception.
+   * @see org.xml.sax.ContentHandler#startElement
+   */
+  public void startElement(
+          String uri, String localName, String qName, Attributes attributes)
+            throws SAXException
+  {
+		
+    charactersFlush();
+
+    int exName = m_expandedNameTable.getExpandedTypeID(uri, localName, DTM.ELEMENT_NODE);
+    String prefix = getPrefix(qName, uri);
+    int prefixIndex = (null != prefix)
+                      ? m_valuesOrPrefixes.stringToIndex(qName) : 0;
+
+    int elemNode = addNode(DTM.ELEMENT_NODE, exName,
+                           m_parents.peek(), m_previous, prefixIndex, true);
+
+    if(m_indexing)
+      indexNode(exName, elemNode);
+    
+
+    m_parents.push(elemNode);
+
+    int startDecls = m_contextIndexes.peek();
+    int nDecls = m_prefixMappings.size();
+    int prev = DTM.NULL;
+
+    if(!m_pastFirstElement)
+    {
+      // SPECIAL CASE: Implied declaration at root element
+      prefix="xml";
+      String declURL = "http://www.w3.org/XML/1998/namespace";
+      exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
+      int val = m_valuesOrPrefixes.stringToIndex(declURL);
+      prev = addNode(DTM.NAMESPACE_NODE, exName, elemNode,
+                     prev, val, false);
+      m_pastFirstElement=true;
+    }
+
+    for (int i = startDecls; i < nDecls; i += 2)
+    {
+      prefix = (String) m_prefixMappings.elementAt(i);
+
+      if (prefix == null)
+        continue;
+
+      String declURL = (String) m_prefixMappings.elementAt(i + 1);
+
+      exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
+
+      int val = m_valuesOrPrefixes.stringToIndex(declURL);
+
+      prev = addNode(DTM.NAMESPACE_NODE, exName, elemNode,
+                     prev, val, false);
+    }
+
+    int n = attributes.getLength();
+
+    for (int i = 0; i < n; i++)
+    {
+      String attrUri = attributes.getURI(i);
+      String attrQName = attributes.getQName(i);
+      String valString = attributes.getValue(i);
+
+      prefix = getPrefix(attrQName, attrUri);
+
+      int nodeType;
+      
+       String attrLocalName = attributes.getLocalName(i);
+
+      if ((null != attrQName)
+              && (attrQName.equals("xmlns")
+                  || attrQName.startsWith("xmlns:")))
+      {
+        if (declAlreadyDeclared(prefix))
+          continue;  // go to the next attribute.
+
+        nodeType = DTM.NAMESPACE_NODE;
+      }
+      else
+      {
+        nodeType = DTM.ATTRIBUTE_NODE;
+
+        if (attributes.getType(i).equalsIgnoreCase("ID"))
+          setIDAttribute(valString, elemNode);
+      }
+
+      // Bit of a hack... if somehow valString is null, stringToIndex will
+      // return -1, which will make things very unhappy.
+      if(null == valString)
+        valString = "";
+
+      int val = m_valuesOrPrefixes.stringToIndex(valString);
+      //String attrLocalName = attributes.getLocalName(i);
+
+      if (null != prefix)
+      {
+
+        prefixIndex = m_valuesOrPrefixes.stringToIndex(attrQName);
+
+        int dataIndex = m_data.size();
+
+        m_data.addElement(prefixIndex);
+        m_data.addElement(val);
+
+        val = -dataIndex;
+      }
+
+      exName = m_expandedNameTable.getExpandedTypeID(attrUri, attrLocalName, nodeType);
+      prev = addNode(nodeType, exName, elemNode, prev, val,
+                     false);
+    }
+
+    if (DTM.NULL != prev)
+      m_nextsib.setElementAt(DTM.NULL,prev);
+
+    if (null != m_wsfilter)
+    {
+      short wsv = m_wsfilter.getShouldStripSpace(makeNodeHandle(elemNode), this);
+      boolean shouldStrip = (DTMWSFilter.INHERIT == wsv)
+                            ? getShouldStripWhitespace()
+                            : (DTMWSFilter.STRIP == wsv);
+
+      pushShouldStripWhitespace(shouldStrip);
+    }
+
+    m_previous = DTM.NULL;
+
+    m_contextIndexes.push(m_prefixMappings.size());  // for the children.
+  }
+
+  /**
+   * Receive notification of the end of an element.
+   *
+   * <p>By default, do nothing.  Application writers may override this
+   * method in a subclass to take specific actions at the end of
+   * each element (such as finalising a tree node or writing
+   * output to a file).</p>
+   *
+   * @param name The element type name.
+   * @param attributes The specified or defaulted attributes.
+   *
+   * @param uri The Namespace URI, or the empty string if the
+   *        element has no Namespace URI or if Namespace
+   *        processing is not being performed.
+   * @param localName The local name (without prefix), or the
+   *        empty string if Namespace processing is not being
+   *        performed.
+   * @param qName The qualified XML 1.0 name (with prefix), or the
+   *        empty string if qualified names are not available.
+   * @throws SAXException Any SAX exception, possibly
+   *            wrapping another exception.
+   * @see org.xml.sax.ContentHandler#endElement
+   */
+  public void endElement(String uri, String localName, String qName)
+          throws SAXException
+  {
+    charactersFlush();
+
+    // If no one noticed, startPrefixMapping is a drag.
+    // Pop the context for the last child (the one pushed by startElement)
+    m_contextIndexes.quickPop(1);
+
+    // Do it again for this one (the one pushed by the last endElement).
+    int topContextIndex = m_contextIndexes.peek();
+    if (topContextIndex != m_prefixMappings.size()) {
+      m_prefixMappings.setSize(topContextIndex);
+    }
+
+    int lastNode = m_previous;
+
+    m_previous = m_parents.pop();
+
+    // If lastNode is still DTM.NULL, this element had no children
+    if (DTM.NULL == lastNode)
+      m_firstch.setElementAt(DTM.NULL,m_previous);
+    else
+      m_nextsib.setElementAt(DTM.NULL,lastNode);
+
+    popShouldStripWhitespace();
+  }
+
+  /**
+   * Report an XML comment anywhere in the document.
+   *
+   * <p>This callback will be used for comments inside or outside the
+   * document element, including comments in the external DTD
+   * subset (if read).</p>
+   *
+   * @param ch An array holding the characters in the comment.
+   * @param start The starting position in the array.
+   * @param length The number of characters to use from the array.
+   * @throws SAXException The application may raise an exception.
+   */
+  public void comment(char ch[], int start, int length) throws SAXException
+  {
+
+    if (m_insideDTD)      // ignore comments if we're inside the DTD
+      return;
+
+    charactersFlush();
+
+    //int exName = m_expandedNameTable.getExpandedTypeID(DTM.COMMENT_NODE);
+
+    // For now, treat comments as strings...  I guess we should do a
+    // seperate FSB buffer instead.
+    int dataIndex = m_valuesOrPrefixes.stringToIndex(new String(ch, start,
+                      length));
+
+
+    m_previous = addNode(DTM.COMMENT_NODE, DTM.COMMENT_NODE,
+                         m_parents.peek(), m_previous, dataIndex, false);
+  }  
+
+  /**
+   * Receive notification of the beginning of the document.
+   *
+   * @throws SAXException Any SAX exception, possibly
+   *            wrapping another exception.
+   * @see org.xml.sax.ContentHandler#startDocument
+   */
+  public void startDocument() throws SAXException
+  {
+		
+    int doc = addNode(DTM.DOCUMENT_NODE,
+                      DTM.DOCUMENT_NODE,
+                      DTM.NULL, DTM.NULL, 0, true);
+
+    m_parents.push(doc);
+    m_previous = DTM.NULL;
+
+    m_contextIndexes.push(m_prefixMappings.size());  // for the next element.
+  }
+  
   /**
    * Receive notification of the end of the document.
    *
@@ -1896,7 +2153,7 @@ public class SAX2DTM2 extends SAX2DTM
   public void endDocument() throws SAXException
   {
     super.endDocument();
-    
+        
     // Add a NULL entry to the end of the node arrays as
     // the end indication.
     m_exptype.addElement(NULL);
@@ -1910,6 +2167,105 @@ public class SAX2DTM2 extends SAX2DTM
     m_nextsib_map = m_nextsib.getMap();
     m_firstch_map = m_firstch.getMap();
     m_parent_map  = m_parent.getMap();
+  }
+
+  /**
+   * Construct the node map from the node.
+   *
+   * @param type raw type ID, one of DTM.XXX_NODE.
+   * @param expandedTypeID The expended type ID.
+   * @param parentIndex The current parent index.
+   * @param previousSibling The previous sibling index.
+   * @param dataOrPrefix index into m_data table, or string handle.
+   * @param canHaveFirstChild true if the node can have a first child, false
+   *                          if it is atomic.
+   *
+   * @return The index identity of the node that was added.
+   */
+  protected final int addNode(int type, int expandedTypeID,
+                        int parentIndex, int previousSibling,
+                        int dataOrPrefix, boolean canHaveFirstChild)
+  {
+    // Common to all nodes:
+    int nodeIndex = m_size++;
+
+    // Have we overflowed a DTM Identity's addressing range?
+    if(m_dtmIdent.size() == (nodeIndex>>>DTMManager.IDENT_DTM_NODE_BITS))
+    {
+      addNewDTMID(nodeIndex);
+    }
+
+    m_firstch.addElement(canHaveFirstChild ? NOTPROCESSED : DTM.NULL);
+    m_nextsib.addElement(NOTPROCESSED);
+    m_prevsib.addElement(previousSibling);
+    m_parent.addElement(parentIndex);
+    m_exptype.addElement(expandedTypeID);
+    m_dataOrQName.addElement(dataOrPrefix);
+
+    if (DTM.NULL != previousSibling) {
+      m_nextsib.setElementAt(nodeIndex,previousSibling);
+    }
+
+    if (m_locator != null && m_useSourceLocationProperty) {
+      setSourceLocation();
+    }
+
+    // Note that nextSibling is not processed until charactersFlush()
+    // is called, to handle successive characters() events.
+
+    // Special handling by type: Declare namespaces, attach first child
+    switch(type)
+    {
+    case DTM.NAMESPACE_NODE:
+      declareNamespaceInContext(parentIndex,nodeIndex);
+      break;
+    case DTM.ATTRIBUTE_NODE:
+      break;
+    default:
+      if (DTM.NULL == previousSibling && DTM.NULL != parentIndex) {
+        m_firstch.setElementAt(nodeIndex,parentIndex);
+      }
+      break;
+    }
+
+    return nodeIndex;
+  }
+
+  /**
+   * Check whether accumulated text should be stripped; if not,
+   * append the appropriate flavor of text/cdata node.
+   */
+  protected final void charactersFlush()
+  {
+
+    if (m_textPendingStart >= 0)  // -1 indicates no-text-in-progress
+    {
+      int length = m_chars.size() - m_textPendingStart;
+      boolean doStrip = false;
+
+      if (getShouldStripWhitespace())
+      {
+        doStrip = m_chars.isWhitespace(m_textPendingStart, length);
+      }
+
+      if (doStrip)
+        m_chars.setLength(m_textPendingStart);  // Discard accumulated text
+      else
+      {
+        //int exName = m_expandedNameTable.getExpandedTypeID(DTM.TEXT_NODE);
+        int dataIndex = m_data.size();
+
+        m_previous = addNode(m_coalescedTextType, DTM.TEXT_NODE,
+                             m_parents.peek(), m_previous, dataIndex, false);
+
+        m_data.addElement(m_textPendingStart);
+        m_data.addElement(length);
+      }
+
+      // Reset for next text block
+      m_textPendingStart = -1;
+      m_textType = m_coalescedTextType = DTM.TEXT_NODE;
+    }
   }
 
   /**
@@ -1943,22 +2299,6 @@ public class SAX2DTM2 extends SAX2DTM
     m_data.addElement(m_valuesOrPrefixes.stringToIndex(target));
     m_data.addElement(m_valuesOrPrefixes.stringToIndex(data));
 
-  }
-
-  /**
-   * The optimized version of DTMDefaultBase.getNodeType().
-   * 
-   * Given a node handle, return its DOM- style node type.
-   * 
-   * @param  nodeHandle The node id.
-   * @return int Node type, as per the DOM's Node._NODE constants.
-   */
-  public final int getNodeType2(int nodeHandle)
-  {
-    if (nodeHandle == DTM.NULL)
-      return DTM.NULL;
-    else
-      return m_extendedTypes[_exptype2(makeNodeIdentity(nodeHandle))].getNodeType();
   }
 
   /**
