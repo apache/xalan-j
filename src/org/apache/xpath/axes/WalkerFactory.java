@@ -60,6 +60,7 @@ import org.apache.xpath.compiler.OpCodes;
 import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.patterns.NodeTest;
 import org.apache.xpath.patterns.StepPattern;
+import org.apache.xpath.patterns.ContextMatchStepPattern;
 import org.apache.xpath.patterns.FunctionPattern;
 import org.apache.xpath.Expression;
 import org.apache.xpath.objects.XNumber;
@@ -502,8 +503,7 @@ public class WalkerFactory
     
     if(axis < Axis.ALL)
     {
-      StepPattern selfPattern = new StepPattern(DTMFilter.SHOW_ALL, 
-                                                axis, paxis);
+      StepPattern selfPattern = new ContextMatchStepPattern(axis, paxis);
       // We need to keep the new nodetest from affecting the score...
       XNumber score = tail.getStaticScore();
       tail.setRelativePathPattern(selfPattern);
@@ -653,13 +653,13 @@ public class WalkerFactory
     }
     if(null == ai)
     {
-      whatToShow = compiler.getWhatToShow(firstStepPos); // %REVIEW%
+      whatToShow = compiler.getWhatToShow(opPos); // %REVIEW%
       ai = new StepPattern(whatToShow, compiler.getStepNS(opPos),
                                 compiler.getStepLocalName(opPos),
                                 axis, predicateAxis);
     }
    
-    if (false && DEBUG_PATTERN_CREATION)
+    if (DEBUG_PATTERN_CREATION)
     {
       System.out.print("new step: "+ ai + analysis);
       System.out.print(", pattern: " + compiler.toString());
@@ -997,7 +997,7 @@ public class WalkerFactory
   }
 
   /** Set to true for diagnostics about walker creation */
-  static final boolean DEBUG_PATTERN_CREATION = true;
+  static final boolean DEBUG_PATTERN_CREATION = false;
 
   /** Set to true for diagnostics about walker creation */
   static final boolean DEBUG_WALKER_CREATION = false;

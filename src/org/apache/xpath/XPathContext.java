@@ -721,9 +721,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
   
   /**
-   * Set the current context node.
-   *
-   * @param n the <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a>.
+   * Set the current predicate root.
    */
   public final void pushPredicateRoot(int n)
   {
@@ -731,7 +729,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
 
   /**
-   * Pop the current context node.
+   * Pop the current predicate root.
    */
   public final void popPredicateRoot()
   {
@@ -739,12 +737,40 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   }
 
   /**
-   * Pop the current context node.
+   * Get the current predicate root.
    */
   public final int getPredicateRoot()
   {
     return m_predicateRoots.peepOrNull();
   }
+  
+  /**
+   * Set the current location path iterator root.
+   */
+  public final void pushIteratorRoot(int n)
+  {
+    m_iteratorRoots.push(n);
+  }
+
+  /**
+   * Pop the current location path iterator root.
+   */
+  public final void popIteratorRoot()
+  {
+    m_iteratorRoots.popQuick();
+  }
+
+  /**
+   * Get the current location path iterator root.
+   */
+  public final int getIteratorRoot()
+  {
+    return m_iteratorRoots.peepOrNull();
+  }
+  
+  /** A stack of the current sub-expression nodes.  */
+  private NodeVector m_iteratorRoots = new NodeVector();
+
   
   /** A stack of the current sub-expression nodes.  */
   private NodeVector m_predicateRoots = new NodeVector();

@@ -96,9 +96,6 @@ public class StepPattern extends NodeTest implements SubContextList
 
     m_axis = axis;
     m_axisForPredicate = axisForPredicate;
-
-//    m_axis = Axis.PARENT;
-//    m_axisForPredicate = Axis.CHILD;
   }
 
   /**
@@ -115,9 +112,6 @@ public class StepPattern extends NodeTest implements SubContextList
     
     m_axis = axis;
     m_axisForPredicate = axisForPredicate;
-
-//    m_axis = Axis.PARENT;
-//    m_axisForPredicate = Axis.CHILD;
   }
 
   /**
