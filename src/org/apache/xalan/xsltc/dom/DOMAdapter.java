@@ -101,7 +101,7 @@ public final class DOMAdapter implements DOM {
                       String[] namespaceArray) {
       if (dom instanceof DOMImpl) {
           _domImpl = (DOMImpl) dom;
-      } else {
+      } else if (dom instanceof SAXImpl){
           _saxImpl = (SAXImpl) dom;
       }
 
@@ -116,7 +116,8 @@ public final class DOMAdapter implements DOM {
     }
     
     public DOM getDOMImpl() {
-    	return (_domImpl != null) ? (DOM)_domImpl : (DOM)_saxImpl;
+    	//return (_domImpl != null) ? (DOM)_domImpl : (DOM)_saxImpl;
+    	return _dom;
     }
 
     private short[] getMapping() {
@@ -134,7 +135,7 @@ public final class DOMAdapter implements DOM {
 	if (_reverse == null) {
             if (_domImpl != null) {
 	        _reverse = _domImpl.getReverseMapping(_namesArray);
-            } else {
+            } else if (_saxImpl != null){
 	        _reverse = _saxImpl.getReverseMapping(_namesArray);
             }
 	}
@@ -198,7 +199,9 @@ public final class DOMAdapter implements DOM {
     public DTMAxisIterator getTypedChildren(final int type) {
       final int[] reverse = getReverse();
 
-      DTMAxisIterator iterator = _dom.getTypedChildren(reverse[type]);
+      DTMAxisIterator iterator = (reverse != null)
+                                  ? _dom.getTypedChildren(reverse[type])
+                                  : _dom.getTypedChildren(type);
       /*
       if (_filter != null && reverse[type] == DTM.TEXT_NODE) {
       	if (_domImpl != null) {
@@ -242,7 +245,9 @@ public final class DOMAdapter implements DOM {
              iterator = _dom.getTypedAxisIterator(axis, NSReverse[type]);
           }
       } else {
-          iterator = _dom.getTypedAxisIterator(axis, reverse[type]);
+          iterator = (reverse != null)
+                      ? _dom.getTypedAxisIterator(axis, reverse[type])
+                      : _dom.getTypedAxisIterator(axis, type);
       }
       
       /*
@@ -403,15 +408,19 @@ public final class DOMAdapter implements DOM {
 
     public String getDocumentURI(int node) 
     {
+      /*
       if (_domImpl != null)
         return _domImpl.getDocumentURI();
       else
         return _saxImpl.getDocumentURI();
+      */
+      return _dom.getDocumentURI(node);
     }
 
     public int getDocument() 
     {
-      return(((DTMDefaultBase)_dom).getDocument());
+      //return(((DTMDefaultBase)_dom).getDocument());
+      return _dom.getDocument();
     }
 
     public boolean isElement(final int node) 
@@ -437,9 +446,9 @@ public final class DOMAdapter implements DOM {
     /**
      * Return a instance of a DOM class to be used as an RTF
      */ 
-    public DOM getResultTreeFrag(int initSize)
+    public DOM getResultTreeFrag(int initSize, boolean isSimple)
     {
-    	return _dom.getResultTreeFrag(initSize);
+    	return _dom.getResultTreeFrag(initSize, isSimple);
     }
     
     /**

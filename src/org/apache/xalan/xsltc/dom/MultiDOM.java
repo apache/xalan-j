@@ -291,16 +291,27 @@ public final class MultiDOM implements DOM {
         // This method only has a function in DOM adapters
     }
 
-    public int addDOMAdapter(DOMAdapter dom) {
-        return addDOMAdapter(dom, true);
+    public int addDOMAdapter(DOMAdapter adapter) {
+        return addDOMAdapter(adapter, true);
     }
 
-    private int addDOMAdapter(DOMAdapter dom, boolean indexByURI) {
+    private int addDOMAdapter(DOMAdapter adapter, boolean indexByURI) {
         // Add the DOM adapter to the array of DOMs
+        DOM dom = adapter.getDOMImpl();
+        
+        DTMManager dtmManager = null;
+        if (dom instanceof DTMDefaultBase)
+            dtmManager = ((DTMDefaultBase)dom).m_mgr;
+        else if (dom instanceof SimpleResultTreeImpl)
+            dtmManager = ((SimpleResultTreeImpl)dom).getDTMManager();
+        
+        /*
         DTMManager dtmManager =
                       ((DTMDefaultBase)((DOMAdapter)dom).getDOMImpl()).m_mgr;
+        */
+        
         final int domNo =
-             dtmManager.getDTMIdentity((DTM)((DOMAdapter)dom).getDOMImpl())
+             dtmManager.getDTMIdentity((DTM)dom)
                    >>> DTMManager.IDENT_DTM_NODE_BITS;
   
         if (domNo >= _size) {
@@ -313,16 +324,16 @@ public final class MultiDOM implements DOM {
             System.arraycopy(_adapters, 0, newArray, 0, oldSize);
             _adapters = newArray;
         }
-        _adapters[domNo] = dom;
+        _adapters[domNo] = adapter;
 
         // Store reference to document (URI) in hashtable
         if (indexByURI) {
-            String uri = dom.getDocumentURI(0);
+            String uri = adapter.getDocumentURI(0);
             _documents.put(uri, new Integer(domNo));
         }
         
         // Store mask in DOMAdapter
-        dom.setMultiDOMMask(domNo << 24);
+        adapter.setMultiDOMMask(domNo << 24);
         return (domNo << 24);
     }
         
@@ -588,9 +599,9 @@ public final class MultiDOM implements DOM {
         return _adapters[nodeId>>>24].getNodeHandle(nodeId & CLR);
     }
     
-    public DOM getResultTreeFrag(int initSize)
+    public DOM getResultTreeFrag(int initSize, boolean isSimple)
     {
-        return _adapters[0].getResultTreeFrag(initSize);
+        return _adapters[0].getResultTreeFrag(initSize, isSimple);
     }
     
     public DOM getMain()

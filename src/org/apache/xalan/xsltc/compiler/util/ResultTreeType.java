@@ -280,9 +280,10 @@ public final class ResultTreeType extends Type {
 	    il.append(methodGen.loadDOM());
 	    int index = cpg.addInterfaceMethodref(DOM_INTF,
 				 "getResultTreeFrag",
-				 "(I)" + DOM_INTF_SIG);
+				 "(IZ)" + DOM_INTF_SIG);
 	    il.append(new PUSH(cpg, RTF_INITIAL_SIZE));
-	    il.append(new INVOKEINTERFACE(index,2));
+	    il.append(new PUSH(cpg, false));
+	    il.append(new INVOKEINTERFACE(index,3));
 	    il.append(DUP);
 	    
 	    // Store new DOM into a local variable

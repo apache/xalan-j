@@ -172,6 +172,9 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 
     // Object used to map TransletOutputHandler events to SAX events
     private CH2TOH _ch2toh = new CH2TOH();
+    
+    // The DTMManager
+    private XSLTCDTMManager _dtmManager;
 
     // Support for access/navigation through org.w3c.dom API
     private Node[] _nodes;
@@ -1037,7 +1040,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Construct a SAXImpl object using the default block size.
      */
-    public SAXImpl(DTMManager mgr, Source saxSource,
+    public SAXImpl(XSLTCDTMManager mgr, Source saxSource,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing, boolean buildIdIndex)
@@ -1049,7 +1052,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Construct a SAXImpl object using the given block size.
      */
-    public SAXImpl(DTMManager mgr, Source saxSource,
+    public SAXImpl(XSLTCDTMManager mgr, Source saxSource,
                  int dtmIdentity, DTMWSFilter whiteSpaceFilter,
                  XMLStringFactory xstringfactory,
                  boolean doIndexing, int blocksize, 
@@ -1058,6 +1061,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       super(mgr, saxSource, dtmIdentity, whiteSpaceFilter, xstringfactory,
             doIndexing, blocksize, false, buildIdIndex);
       
+      _dtmManager = mgr;      
       _size = blocksize;
       
       // Use a smaller size for the space stack if the blocksize is small
@@ -2118,11 +2122,19 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     /**
      * Return a instance of a DOM class to be used as an RTF
      */ 
-    public DOM getResultTreeFrag(int initSize)
+    public DOM getResultTreeFrag(int initSize, boolean isSimple)
     {
-    	return (SAXImpl) ((XSLTCDTMManager)m_mgr).getDTM(null, true, m_wsfilter,
-                                                         true, false, false,
-                                                         initSize, m_buildIdIndex);
+    	if (isSimple) {
+            int dtmPos = _dtmManager.getFirstFreeDTMID();
+    	    SimpleResultTreeImpl rtf = new SimpleResultTreeImpl(_dtmManager,
+    	                               dtmPos << DTMManager.IDENT_DTM_NODE_BITS);
+    	    _dtmManager.addDTM(rtf, dtmPos, 0);
+    	    return rtf;
+    	}
+    	else
+    	    return (SAXImpl) _dtmManager.getDTM(null, true, m_wsfilter,
+                                                true, false, false,
+                                                initSize, m_buildIdIndex);
     }
 
     /**

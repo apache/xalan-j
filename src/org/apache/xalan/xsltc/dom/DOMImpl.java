@@ -1839,7 +1839,7 @@ public final class DOMImpl extends DOM2DTM implements DOM, Externalizable
     /**
      * Return a instance of a DOM class to be used as an RTF
      */ 
-    public DOM getResultTreeFrag(int initSize)
+    public DOM getResultTreeFrag(int initSize, boolean isSimple)
     {
         return (SAXImpl) ((XSLTCDTMManager)m_mgr).getDTM(null, true, m_wsfilter,
                                                          true, false, false,

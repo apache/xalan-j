@@ -484,7 +484,7 @@ public final class BasisLibrary implements Operators {
         return "boolean";
       else if (obj instanceof Number)
         return "number";
-      else if (obj instanceof DOMAdapter)
+      else if (obj instanceof DOM)
         return "RTF";
       else if (obj instanceof DTMAxisIterator)
         return "node-set";
@@ -497,8 +497,9 @@ public final class BasisLibrary implements Operators {
      */
     public static DTMAxisIterator nodesetF(Object obj) {
 	if (obj instanceof DOM) {
-	   final DOMAdapter adapter = (DOMAdapter) obj;
-	   return new SingletonIterator(adapter.getDocument(), true);
+	   //final DOMAdapter adapter = (DOMAdapter) obj;
+	   final DOM dom = (DOM)obj;
+	   return new SingletonIterator(dom.getDocument(), true);
 	}
         else if (obj instanceof DTMAxisIterator) {
 	   return (DTMAxisIterator) obj;
@@ -1240,7 +1241,9 @@ public final class BasisLibrary implements Operators {
 		dom.copy(((Node) obj).node, handler);
 	    }
 	    else if (obj instanceof DOM) {
-		((DOM)obj).copy(((org.apache.xml.dtm.ref.DTMDefaultBase)((DOMAdapter)obj).getDOMImpl()).getDocument(), handler);
+		//((DOM)obj).copy(((org.apache.xml.dtm.ref.DTMDefaultBase)((DOMAdapter)obj).getDOMImpl()).getDocument(), handler);
+		DOM newDom = (DOM)obj;
+		newDom.copy(newDom.getDocument(), handler);
 	    }
 	    else {
 		String string = obj.toString();		// or call stringF()

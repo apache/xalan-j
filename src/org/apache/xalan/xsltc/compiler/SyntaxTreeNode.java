@@ -539,6 +539,62 @@ public abstract class SyntaxTreeNode implements Constants {
 	    }
 	}
     }
+    
+    /**
+     * Return true if the node represents a simple RTF.
+     *
+     * A node is a simple RTF if all children only produce Text value.
+     *
+     * @param node A node
+     * @return true if the node content can be considered as a simple RTF.
+     */
+    private boolean isSimpleRTF(SyntaxTreeNode node) {
+        
+        Vector contents = node.getContents();
+        for (int i = 0; i < contents.size(); i++) {
+            SyntaxTreeNode item = (SyntaxTreeNode)contents.elementAt(i);
+            if (!isTextElement(item))
+                return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Return true if the node only produces Text content.
+     *
+     * A node is a Text element if it is Text, xsl:value-of or xsl:number.
+     * It can also be an xsl:if or xsl:choose whose content body are pure
+     * Text.
+     *
+     * @param node A node
+     * @return true if the node of Text type
+     */
+    private boolean isTextElement(SyntaxTreeNode node) {
+        if (node instanceof ValueOf || node instanceof Number
+            || node instanceof Text)
+        {
+            return true;
+        }
+        else if (node instanceof If) {
+            return isSimpleRTF(node);
+        }
+        else if (node instanceof Choose) {
+            Vector contents = node.getContents();
+            for (int i = 0; i < contents.size(); i++) {
+                SyntaxTreeNode item = (SyntaxTreeNode)contents.elementAt(i);
+                if (item instanceof Text || 
+                     ((item instanceof When || item instanceof Otherwise)
+                     && isSimpleRTF(item)))
+                    continue;
+                else
+                    return false;
+            }
+            return true;
+        }
+        else
+            return false;
+    }
 
     /**
      * Utility method used by parameters and variables to store result trees
@@ -552,6 +608,8 @@ public abstract class SyntaxTreeNode implements Constants {
 	final InstructionList il = methodGen.getInstructionList();
 	final Stylesheet stylesheet = classGen.getStylesheet();
 
+	boolean isSimple = isSimpleRTF(this);
+	
 	// Save the current handler base on the stack
 	il.append(methodGen.loadHandler());
 
@@ -564,9 +622,10 @@ public abstract class SyntaxTreeNode implements Constants {
 	il.append(methodGen.loadDOM());
 	int index = cpg.addInterfaceMethodref(DOM_INTF,
 				 "getResultTreeFrag",
-				 "(I)" + DOM_INTF_SIG);
+				 "(IZ)" + DOM_INTF_SIG);
 	il.append(new PUSH(cpg, RTF_INITIAL_SIZE));
-	il.append(new INVOKEINTERFACE(index,2));
+	il.append(new PUSH(cpg, isSimple));
+	il.append(new INVOKEINTERFACE(index,3));
 
 	
 	il.append(DUP);
@@ -590,8 +649,11 @@ public abstract class SyntaxTreeNode implements Constants {
 	il.append(methodGen.loadHandler());
 	il.append(methodGen.endDocument());
 
-	// Check if we need to wrap the DOMImpl object in a DOMAdapter object
-	if (!DOM_CLASS.equals(DOM_IMPL_CLASS)) {
+	// Check if we need to wrap the DOMImpl object in a DOMAdapter object.
+	// DOMAdapter is not needed if the RTF is a simple RTF and the nodeset()
+	// function is not used.
+	if ((!isSimple || stylesheet.callsNodeset())
+	    && !DOM_CLASS.equals(DOM_IMPL_CLASS)) {
 	    // new org.apache.xalan.xsltc.dom.DOMAdapter(DOMImpl,String[]);
 	    index = cpg.addMethodref(DOM_ADAPTER_CLASS,
 				     "<init>",

@@ -99,13 +99,13 @@ public final class XSLTCSource implements Source {
      */
     public XSLTCSource(int size) 
     {
-      DTMManager dtmManager =
+      XSLTCDTMManager dtmManager =
                 XSLTCDTMManager.newInstance();
-      int dtmPos = ((DTMManagerDefault)dtmManager).getFirstFreeDTMID();
+      int dtmPos = dtmManager.getFirstFreeDTMID();
       int documentID = dtmPos << DTMManager.IDENT_DTM_NODE_BITS;
       _dom = (DOM)new SAXImpl(dtmManager, this, documentID, null,
                               null, false, size, true);
-      ((DTMManagerDefault)dtmManager).addDTM((DTM)_dom, dtmPos);
+      dtmManager.addDTM((DTM)_dom, dtmPos);
     }
 
     /**
@@ -113,13 +113,13 @@ public final class XSLTCSource implements Source {
      */
     public XSLTCSource() 
     {
-      DTMManager dtmManager =
+      XSLTCDTMManager dtmManager =
                 XSLTCDTMManager.newInstance();
-      int dtmPos = ((DTMManagerDefault)dtmManager).getFirstFreeDTMID();
+      int dtmPos = dtmManager.getFirstFreeDTMID();
       int documentID = dtmPos << DTMManager.IDENT_DTM_NODE_BITS;
       _dom = (DOM)new SAXImpl(dtmManager, this, documentID, null,
                               null, false, true);
-      ((DTMManagerDefault)dtmManager).addDTM((DTM)_dom, dtmPos);
+      dtmManager.addDTM((DTM)_dom, dtmPos);
     }
 
     /**
