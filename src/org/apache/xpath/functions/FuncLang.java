@@ -95,7 +95,7 @@ public class FuncLang extends FunctionOneArg
     {
       if (DTM.ELEMENT_NODE == dtm.getNodeType(parent))
       {
-        int langAttr = dtm.getAttributeNode("http://www.w3.org/XML/1998/namespace", "lang");
+        int langAttr = dtm.getAttributeNode(parent, "http://www.w3.org/XML/1998/namespace", "lang");
 
         if (DTM.NULL != langAttr)
         {
