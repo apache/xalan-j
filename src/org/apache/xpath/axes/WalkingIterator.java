@@ -109,12 +109,6 @@ public class WalkingIterator extends LocPathIterator
 
       m_firstWalker.setRoot(m_context);
     }
-    if (null != m_firstWalker)
-    {
-      m_lastUsedWalker = m_firstWalker;
-
-      m_firstWalker.setRoot(m_context);
-    }
 
   }
   
