@@ -114,14 +114,14 @@ public class NodeSorter
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public void sort(NodeVector v, Vector keys, XPathContext support)
+  public void sort(DTMIterator v, Vector keys, XPathContext support)
           throws javax.xml.transform.TransformerException
   {
 
     m_keys = keys;
 
     // QuickSort2(v, 0, v.size() - 1 );
-    int n = v.size();
+    int n = v.getLength();
 
     // Create a vector of node compare elements
     // based on the input vector of nodes
@@ -129,7 +129,7 @@ public class NodeSorter
 
     for (int i = 0; i < n; i++)
     {
-      NodeCompareElem elem = new NodeCompareElem(v.elementAt(i));
+      NodeCompareElem elem = new NodeCompareElem(v.item(i));
 
       nodes.addElement(elem);
     }
@@ -141,7 +141,7 @@ public class NodeSorter
     // return sorted vector of nodes
     for (int i = 0; i < n; i++)
     {
-      v.setElementAt(((NodeCompareElem) nodes.elementAt(i)).m_node, i);
+      v.setItem(((NodeCompareElem) nodes.elementAt(i)).m_node, i);
     }
 
     // old code...

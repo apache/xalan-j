@@ -192,7 +192,7 @@ public class ElemApplyTemplates extends ElemCallTemplate
         if (!m_isDefaultTemplate)
         {
           if(((null == mode) && (null != m_mode) ) ||
-              !mode.equals(m_mode))
+              ((null != mode) && !mode.equals(m_mode)))
           {
             pushMode = true;
             transformer.pushMode(m_mode);

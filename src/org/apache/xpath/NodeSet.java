@@ -985,6 +985,23 @@ public class NodeSet extends NodeVector
 
     super.setElementAt(node, index);
   }
+  
+  /**
+   * Same as setElementAt.
+   *
+   * @param node  The node to be set.
+   * @param index The index of the node to be replaced.
+   * @throws RuntimeException thrown if this NodeSet is not of 
+   * a mutable type.
+   */
+  public void setItem(int node, int index)
+  {
+
+    if (!m_mutable)
+      throw new RuntimeException("This NodeSet is not mutable!");
+
+    super.setElementAt(node, index);
+  }
 
   /**
    * Get the nth element.

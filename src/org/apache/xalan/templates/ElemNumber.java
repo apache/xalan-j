@@ -1000,7 +1000,7 @@ public class ElemNumber extends ElemTemplateElement
         //Locale.getDefault().getDisplayCountry());
         if (null == locale)
         {
-          // %TBD%
+          // %DTBD%
 //          transformer.getMsgMgr().warn(this, null, contextNode,
 //                                       XSLTErrorResources.WG_LOCALE_NOT_FOUND,
 //                                       new Object[]{ langValue });  //"Warning: Could not find locale for xml:lang="+langValue);

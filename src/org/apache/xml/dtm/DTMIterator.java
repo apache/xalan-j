@@ -311,6 +311,21 @@ public interface DTMIterator
   public int item(int index);
   
   /**
+   * Sets the node at the specified index of this vector to be the
+   * specified node. The previous component at that position is discarded.
+   *
+   * <p>The index must be a value greater than or equal to 0 and less
+   * than the current size of the vector.  
+   * The iterator must be in cached mode.</p>
+   * 
+   * <p>Meant to be used for sorted iterators.</p>
+   *
+   * @param node Node to set
+   * @param index Index of where to set the node
+   */
+  public void setItem(int node, int index);
+  
+  /**
    * The number of nodes in the list. The range of valid child node indices
    * is 0 to <code>length-1</code> inclusive. Note that this requires running
    * the iterator to completion, and presumably filling the cache.
@@ -318,7 +333,7 @@ public interface DTMIterator
    * @return The number of nodes in the list.
    */
   public int getLength();
-  
+    
   //=========== Cloning operations. ============
   
   /**

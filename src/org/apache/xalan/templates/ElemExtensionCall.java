@@ -386,7 +386,7 @@ public class ElemExtensionCall extends ElemLiteralResult
    * @throws TransformerException
    */
   public String getAttribute(
-          String rawName, int sourceNode /* %TBD% Node varient? */, TransformerImpl transformer)
+          String rawName, int sourceNode /* %DTBD% Node varient? */, TransformerImpl transformer)
             throws TransformerException
   {
 

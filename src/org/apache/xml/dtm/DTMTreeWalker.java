@@ -246,7 +246,7 @@ public class DTMTreeWalker
     case DTM.ELEMENT_NODE :
 
       for (int nsn = m_dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
-           nsn = m_dtm.getNextNamespaceNode(nsn, true))
+           nsn = m_dtm.getNextNamespaceNode(node, nsn, true))
       {
         String prefix = m_dtm.getPrefix(nsn);
 
@@ -361,7 +361,7 @@ public class DTMTreeWalker
                                          m_dtm.getNodeName(node));
 
       for (int nsn = m_dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
-           nsn = m_dtm.getNextNamespaceNode(nsn, true))
+           nsn = m_dtm.getNextNamespaceNode(node, nsn, true))
       {
         String prefix = m_dtm.getPrefix(nsn);
 

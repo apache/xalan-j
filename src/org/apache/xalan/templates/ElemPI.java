@@ -161,7 +161,7 @@ public class ElemPI extends ElemTemplateElement
 
     if (piName.equalsIgnoreCase("xml"))
     {
-      // %TBD%
+      // %DTBD%
 //      error(XSLTErrorResources.ER_PROCESSINGINSTRUCTION_NAME_CANT_BE_XML);  //"processing-instruction name can not be 'xml'");
     }
     else if (!isValidNCName(piName))

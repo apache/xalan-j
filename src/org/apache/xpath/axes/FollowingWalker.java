@@ -257,7 +257,7 @@ public class FollowingWalker extends AxesWalker
 
   /** What this is is frankly a little unclear.  It is used in getParent 
    *  to see if we should continue to climb the tree. */
-  transient int m_currentAncestor;
+  transient int m_currentAncestor = DTM.NULL;
 
   /**
    * Tell what's the maximum level this axes can descend to.

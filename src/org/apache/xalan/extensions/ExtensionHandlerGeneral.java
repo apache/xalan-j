@@ -355,7 +355,7 @@ public class ExtensionHandlerGeneral extends ExtensionHandler
     Object result = null;
     XSLProcessorContext xpc = new XSLProcessorContext(transformer, stylesheetTree);
 
-    // %TBD%
+    // %DTBD%
 //    try
     {
       Vector argv = new Vector(2);
@@ -363,11 +363,11 @@ public class ExtensionHandlerGeneral extends ExtensionHandler
       argv.addElement(xpc);
       argv.addElement(element);
 
-      // %TBD% This wants an ExpressionContext.
+      // %DTBD% This wants an ExpressionContext.
 //      result = callFunction(localPart, argv, methodKey,
 //                            transformer.getXPathContext());
     }
-    // %TBD%
+    // %DTBD%
 //    catch (XPathProcessorException e)
 //    {
 //

@@ -185,11 +185,13 @@ public abstract class DTMManager
    * @param source the specification of the source object.
    * @param unique true if the returned DTM must be unique, probably because it
    * is going to be mutated.
+   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
+   *                         be null.
    *
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(javax.xml.transform.Source source,
-                             boolean unique);
+                             boolean unique, DTMWSFilter whiteSpaceFilter);
                              
   /**
    * Get the instance of DTM that "owns" a node handle.
@@ -199,6 +201,7 @@ public abstract class DTMManager
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(int nodeHandle);
+  
   /**
    * Creates a DTM representing an empty <code>DocumentFragment</code> object. 
    * @return a non-null DTM reference.

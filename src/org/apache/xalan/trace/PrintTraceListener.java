@@ -215,7 +215,7 @@ public class PrintTraceListener implements TraceListener
       if (ev.m_selection.getType() == ev.m_selection.CLASS_NODESET)
       {
         m_pw.println();
-        // %TBD%
+        // %DTBD%
 //        NodeIterator nl = ev.m_selection.nodeset();
 //        if(nl instanceof ContextNodeList)
 //        {
@@ -223,7 +223,7 @@ public class PrintTraceListener implements TraceListener
 //          {
 //            nl = ((ContextNodeList)nl).cloneWithReset();
 //          }
-//          catch(CloneNotSupportedException cnse)
+//          catch(CloneNotSupportedException cnse)S
 //          {
 //            m_pw.println("     [Can't trace nodelist because it it threw a CloneNotSupportedException]");
 //            return;

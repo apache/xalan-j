@@ -63,6 +63,7 @@ package org.apache.xpath.objects;
 
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMManager;
 
 import org.apache.xpath.DOMHelper;
 import org.apache.xpath.XPathContext;
@@ -77,6 +78,12 @@ import org.apache.xml.utils.StringVector;
  */
 public class XNodeSet extends XObject
 {
+  private DTMManager m_dtmMgr;
+  
+  public DTMManager getDTMMgr()
+  {
+    return m_dtmMgr;
+  }
 
   /**
    * Construct a XNodeSet object.
@@ -86,14 +93,16 @@ public class XNodeSet extends XObject
   public XNodeSet(DTMIterator val)
   {
     super(val);
+    m_dtmMgr = val.getDTMManager();
   }
 
   /**
    * Construct an empty XNodeSet object.
    */
-  public XNodeSet()
+  public XNodeSet(DTMManager dtmMgr)
   {
     super(new NodeSet());
+    m_dtmMgr = dtmMgr;
   }
 
   /**
@@ -101,10 +110,11 @@ public class XNodeSet extends XObject
    *
    * @param n Node to add to the new XNodeSet object
    */
-  public XNodeSet(int n)
+  public XNodeSet(int n, DTMManager dtmMgr)
   {
 
     super(new NodeSet());
+    m_dtmMgr = dtmMgr;
 
     if (DTM.NULL != n)
     {
@@ -140,7 +150,7 @@ public class XNodeSet extends XObject
    *
    * @return numeric value of the string conversion from a single node.
    */
-  public static double getNumberFromNode(int n)
+  public double getNumberFromNode(int n)
   {
     return XString.castToNum(getStringFromNode(n));
   }
@@ -169,7 +179,7 @@ public class XNodeSet extends XObject
   {
     return (nodeset().nextNode() != DTM.NULL);
   }
-
+  
   /**
    * Get the string conversion from a single node.
    *
@@ -177,27 +187,18 @@ public class XNodeSet extends XObject
    *
    * @return the string conversion from a single node.
    */
-  public static String getStringFromNode(int n)
+  public String getStringFromNode(int n)
   {
-
-    // %TBD%
+    // %OPT%
     // I guess we'll have to get a static instance of the DTM manager...
-    return null;
-//    switch (n.getNodeType())
-//    {
-//    case DTM.ELEMENT_NODE :
-//    case DTM.DOCUMENT_NODE :
-//      return DOMHelper.getNodeData(n);
-//    case DTM.CDATA_SECTION_NODE :
-//    case DTM.TEXT_NODE :
-//      return ((Text) n).getData();
-//    case DTM.COMMENT_NODE :
-//    case DTM.PROCESSING_INSTRUCTION_NODE :
-//    case DTM.ATTRIBUTE_NODE :
-//      return n.getNodeValue();
-//    default :
-//      return DOMHelper.getNodeData(n);
-//    }
+    if(DTM.NULL != n)
+    {
+      return m_dtmMgr.getDTM(n).getStringValue(n);
+    }
+    else
+    {
+      return "";
+    }
   }
 
   /**

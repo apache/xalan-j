@@ -181,7 +181,7 @@ public class FuncDocument extends Function2Args
       base = xctxt.getNamespaceContext().getBaseIdentifier();
     }
 
-    XNodeSet nodes = new XNodeSet();
+    XNodeSet nodes = new XNodeSet(xctxt.getDTMManager());
 //    NodeSet mnl = nodes.mutableNodeset();
     DTMIterator iterator = (XObject.CLASS_NODESET == arg.getType())
                             ? arg.nodeset() : null;

@@ -271,7 +271,7 @@ public class PrecedingWalker extends ReverseAxesWalker
   }
 
   /** The document owner node.  */
-  transient int m_doc;
+  transient int m_doc = DTM.NULL;
 
   /**
    * Tell what's the maximum level this axes can descend to.

@@ -226,6 +226,7 @@ public class ReverseAxesWalker extends AxesWalker
     }
 
     // System.out.println("getLastPos - pos: "+count);
+    // System.out.println("pos (ReverseAxesWalker): "+count);
     return count;
   }
 }

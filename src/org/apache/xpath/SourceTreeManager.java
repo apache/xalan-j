@@ -338,7 +338,8 @@ public class SourceTreeManager
 
     try
     {
-      DTM dtm = xctxt.getDTM(source, false);
+      // %TBD% I think I need a TransformerImpl here?
+      DTM dtm = xctxt.getDTM(source, false, null);
       return dtm.getDocument();
     }
     catch (Exception e)

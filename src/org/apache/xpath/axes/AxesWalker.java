@@ -278,8 +278,9 @@ public abstract class AxesWalker extends PredicatedNodeTest
   {
 
     int parent = m_root;
-
-    while (DTM.NULL != (parent = getDTM(parent).getParent(parent)))
+    
+    DTM dtm = getDTM(parent);
+    while (DTM.NULL != (parent = dtm.getParent(parent)))
     {
       if (parent == n)
         return true;
@@ -546,24 +547,15 @@ public abstract class AxesWalker extends PredicatedNodeTest
     String rootName;
     String currentNodeName;
 
-    try
-    {
-      rootName = (DTM.NULL == m_root)
-                 ? "null"
-                 : getDTM(m_root).getNodeName(m_root) + "{"
-                   + m_root + "}";
-      currentNodeName =
-        (DTM.NULL == m_root)
-        ? "null"
-        : getDTM(m_currentNode).getNodeName(m_currentNode) + "{"
-          + m_currentNode + "}";
-    }
-    catch (ClassCastException cce)
-    {
-      rootName = (DTM.NULL == m_root) ? "null" : getDTM(m_root).getNodeName(m_root);
-      currentNodeName = (DTM.NULL == m_root)
-                        ? "null" : getDTM(m_currentNode).getNodeName(m_currentNode);
-    }
+    rootName = (DTM.NULL == m_root)
+               ? "null"
+               : getDTM(m_root).getNodeName(m_root) + "{"
+                 + (m_root+1) + "}";
+    currentNodeName =
+      (DTM.NULL == m_currentNode)
+      ? "null"
+      : getDTM(m_currentNode).getNodeName(m_currentNode) + "{"
+        + (m_currentNode+1) + "}";
 
     return clName + "[" + rootName + "][" + currentNodeName + "]";
   }
@@ -1054,6 +1046,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
     if (DTM.NULL == next)
       this.m_isDone = true;
 
+    // System.out.println("Returning: "+this);
     return next;
   }
 
@@ -1248,6 +1241,7 @@ public abstract class AxesWalker extends PredicatedNodeTest
   {
 
     int pos = getProximityPosition();
+    
     AxesWalker walker;
 
     try
@@ -1390,15 +1384,15 @@ public abstract class AxesWalker extends PredicatedNodeTest
   /**
    *  The root node of the TreeWalker, as specified when it was created.
    */
-  transient int m_root;
+  transient int m_root = DTM.NULL;
 
   /**
    *  The node at which the TreeWalker is currently positioned.
    */
-  transient int m_currentNode;
+  transient int m_currentNode = DTM.NULL;
   
   /** The node last returned from nextNode(). */
-  transient int m_prevReturned;
+  transient int m_prevReturned = DTM.NULL;
 
   /**
    * The arg length of the XPath step. Does not change after the constructor.

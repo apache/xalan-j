@@ -79,7 +79,7 @@ public class UnitTest
               "</far-north>";
                 
   // namespaces and text
-  static String s_doc1String3 = 
+  static String s_doc1String3x = 
               "<?xml version=\"1.0\"?>" +
               "<far-north>a" +
               " <north xmlns:x='http://x.com'>b" +
@@ -100,6 +100,16 @@ public class UnitTest
               "  </near-north>s" +
               " </north>t" +
               "</far-north>";
+              
+    static String s_doc1String3 = 
+              "<?xml version=\"1.0\"?>" +
+              "<docs>" +
+              "  <doc xmlns:ext=\"http://somebody.elses.extension\">" +
+              "    <section xmlns:foo=\"http://foo.com\">" +
+              "      <inner xmlns:whiz=\"http://whiz.com/special/page\"/>" +
+              "    </section>" +
+              "  </doc>" +
+              "</docs>";
   
   protected int run(String[] args)
     throws Exception
@@ -112,7 +122,7 @@ public class UnitTest
     Document doc = db.parse(new InputSource(sr));
     
     DTMManager dtmMgr = DTMManager.newInstance();
-    DTM dtm = dtmMgr.getDTM(new DOMSource(doc), true);
+    DTM dtm = dtmMgr.getDTM(new DOMSource(doc), true, null);
     
     int docHandle = dtm.getDocument();
     outputChildren(docHandle, dtm, 0);
@@ -141,7 +151,7 @@ public class UnitTest
       System.out.println(", val: "+dtm.getStringValue(handle));
       
       for (int ns = dtm.getFirstNamespaceNode(handle, true); ns != DTM.NULL; 
-           ns = dtm.getNextNamespaceNode(ns, true)) 
+           ns = dtm.getNextNamespaceNode(handle, ns, true)) 
       {
         System.out.print("ns decl: "+dtm.getNodeName(ns));
         System.out.println(", val: "+dtm.getStringValue(ns));

@@ -95,50 +95,13 @@ public class FuncLast extends Function
     // assert(null != m_contextNodeList, "m_contextNodeList must be non-null");
     // If we're in a predicate, then this will return non-null.
     SubContextList iter = xctxt.getSubContextList();
-
+    // System.out.println("iter: "+iter);
     if (null != iter)
       return iter.getLastPos(xctxt);
 
     DTMIterator cnl = xctxt.getContextNodeList();
-
-    // %TBD%
-//    if (cnl.size() == 0)
-    {
-      try
-      {
-        DTMIterator ni = (DTMIterator)cnl.clone();
-        int count = cnl.getCurrentPos();
-        while(DTM.NULL != ni.nextNode())
-          count++;
-        // %TBD%
-//        cnl.setLast(count);
-        return count;
-      }
-      catch(CloneNotSupportedException cnse){}
-    }
-    // %REVIEW%
+    
     return cnl.getLength();
-//    return cnl.size();
-
-    /*
-    // The code below has massive problem if inside of a predicate.  -sb
-    if (cnl.size() == 0)
-    {
-      int currentPos = cnl.getCurrentPos();
-
-      // This has problems if inside a predicate.  For now, just clone.
-      if (!cnl.isFresh())
-        cnl.reset();
-
-      cnl.setShouldCacheNodes(true);
-      cnl.runTo(-1);
-      cnl.setCurrentPos(currentPos);
-      System.out.println("cnl.getCurrentPos() after: "+cnl.getCurrentPos());
-    }
-
-    // System.out.println("cnl.size(): "+cnl.size());
-    return cnl.size();
-    */
   }
 
   /**
@@ -151,6 +114,8 @@ public class FuncLast extends Function
    */
   public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
   {
-    return new XNumber((double) getCountOfContextNodeList(xctxt));
+    XNumber xnum = new XNumber((double) getCountOfContextNodeList(xctxt));
+    // System.out.println("last: "+xnum.num());
+    return xnum;
   }
 }

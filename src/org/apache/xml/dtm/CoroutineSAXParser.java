@@ -108,23 +108,23 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
    * %TBD% whether we should consider supporting SAX1
    */
   public CoroutineSAXParser(CoroutineManager co, int appCoroutine,
-			    org.xml.sax.XMLReader parser) {
+                            org.xml.sax.XMLReader parser) {
     xmlreader=parser;
     xmlreader.setContentHandler(this);
 
     // Not supported by all SAX2 parsers:
     try 
       {
-	xmlreader.setProperty("http://xml.org/sax/properties/lexical-handler",
-			      this);
+        xmlreader.setProperty("http://xml.org/sax/properties/lexical-handler",
+                              this);
       }
     catch(SAXNotRecognizedException e)
       {
-	// Nothing we can do about it
+        // Nothing we can do about it
       }
     catch(SAXNotSupportedException e)
       {
-	// Nothing we can do about it
+        // Nothing we can do about it
       }
 
     eventcounter=frequency;
@@ -189,8 +189,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.characters(ch,start,length);
@@ -211,8 +211,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.endElement(namespaceURI,localName,qName);
@@ -222,8 +222,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.endPrefixMapping(prefix);
@@ -233,8 +233,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.ignorableWhitespace(ch,start,length);
@@ -244,8 +244,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.processingInstruction(target,data);
@@ -254,8 +254,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.setDocumentLocator(locator);
@@ -265,8 +265,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.skippedEntity(name);
@@ -276,8 +276,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.startDocument();
@@ -288,8 +288,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.startElement(namespaceURI, localName, qName, atts);
@@ -299,8 +299,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   {
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
     if(clientContentHandler!=null)
       clientContentHandler.startPrefixMapping(prefix,uri);
@@ -385,8 +385,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     
     if(--eventcounter<=0)
       {
-	co_yield(true);
-	eventcounter=frequency;
+        co_yield(true);
+        eventcounter=frequency;
       }
   }
   
@@ -416,37 +416,37 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     Object arg= notYetDone ? Boolean.TRUE : Boolean.FALSE;
     try
       {
-	arg = fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine);
-	
-	if (arg == null) {
-	  fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
-	  throw shutdownException;
-	}
+        arg = fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine);
+        
+        if (arg == null) {
+          fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
+          throw shutdownException;
+        }
 
-	else if (arg instanceof Boolean) {
-	  boolean keepgoing = ((Boolean)arg).booleanValue();
-	  if (!keepgoing)
-	    throw stopException;
-	  }
+        else if (arg instanceof Boolean) {
+          boolean keepgoing = ((Boolean)arg).booleanValue();
+          if (!keepgoing)
+            throw stopException;
+          }
 
-	else // Unexpected!
-	  {
-	    System.err.println(
-		  "Active CoroutineSAXParser: unexpected resume parameter, "
-		  +arg.getClass
-		  ()+" with value=\""+arg+'"');
-	    System.err.println("\tStopping parser rather than risk deadlock");
-	    throw new RuntimeException("Coroutine parameter error ("+arg+')');
-	  }
+        else // Unexpected!
+          {
+            System.err.println(
+                  "Active CoroutineSAXParser: unexpected resume parameter, "
+                  +arg.getClass
+                  ()+" with value=\""+arg+'"');
+            System.err.println("\tStopping parser rather than risk deadlock");
+            throw new RuntimeException("Coroutine parameter error ("+arg+')');
+          }
 
       }
     catch(java.lang.NoSuchMethodException e)
       {
-	// Shouldn't happen unless we've miscoded our coroutine logic
-	// "Shut down the garbage smashers on the detention level!"
-	e.printStackTrace(System.err);
-	fCoroutineManager.co_exit(fParserCoroutine);
-	throw shutdownException;
+        // Shouldn't happen unless we've miscoded our coroutine logic
+        // "Shut down the garbage smashers on the detention level!"
+        e.printStackTrace(System.err);
+        fCoroutineManager.co_exit(fParserCoroutine);
+        throw shutdownException;
       }
   }
 
@@ -471,69 +471,69 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   public void run() {
     try 
       {
-	for(Object arg=fCoroutineManager.co_entry_pause(fParserCoroutine);
-	    true;
-	    arg=fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine))
-	  {
-	    
-	    // Shut down requested.
-	    if (arg == null) {
-	      if(DEBUG)System.out.println("CoroutineSAXParser at-rest shutdown requested");
-	      fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
-	      break;
-	    }
-	    
-	    // Start-Parse requested
-	    // For the duration of this operation, all coroutine handshaking
-	    // will occur in the co_yield method. That's the nice thing about
-	    // coroutines; they give us a way to hand off control from the
-	    // middle of a synchronous method.
-	    if (arg instanceof InputSource) {
-	      try {
-	      if(DEBUG)System.out.println("Inactive CoroutineSAXParser new parse "+arg);
-		xmlreader.parse((InputSource)arg);
-		arg=Boolean.TRUE;
-	      }
+        for(Object arg=fCoroutineManager.co_entry_pause(fParserCoroutine);
+            true;
+            arg=fCoroutineManager.co_resume(arg, fParserCoroutine, fAppCoroutine))
+          {
+            
+            // Shut down requested.
+            if (arg == null) {
+              if(DEBUG)System.out.println("CoroutineSAXParser at-rest shutdown requested");
+              fCoroutineManager.co_exit_to(arg, fParserCoroutine, fAppCoroutine);
+              break;
+            }
+            
+            // Start-Parse requested
+            // For the duration of this operation, all coroutine handshaking
+            // will occur in the co_yield method. That's the nice thing about
+            // coroutines; they give us a way to hand off control from the
+            // middle of a synchronous method.
+            if (arg instanceof InputSource) {
+              try {
+              if(DEBUG)System.out.println("Inactive CoroutineSAXParser new parse "+arg);
+                xmlreader.parse((InputSource)arg);
+                arg=Boolean.TRUE;
+              }
 
-	      catch (SAXException ex) {
-		Exception inner=ex.getException();
-		if(inner instanceof UserRequestedStopException){
-		  if(DEBUG)System.out.println("Active CoroutineSAXParser user stop exception");
-		  arg=Boolean.FALSE;
-		}
-		else if(inner instanceof UserRequestedShutdownException){
-		  if(DEBUG)System.out.println("Active CoroutineSAXParser user shutdown exception");
-		  break;
-		}
-		else {
-		  if(DEBUG)System.out.println("Active CoroutineSAXParser UNEXPECTED SAX exception: "+ex);
-		  arg=ex;		  
-		}
-		
-	      }
-	      catch(Exception ex)
-		{		    
-		  if(DEBUG)System.out.println("Active CoroutineSAXParser non-SAX exception: "+ex);
-		  arg = ex;
-		}
-	      
-	    }
+              catch (SAXException ex) {
+                Exception inner=ex.getException();
+                if(inner instanceof UserRequestedStopException){
+                  if(DEBUG)System.out.println("Active CoroutineSAXParser user stop exception");
+                  arg=Boolean.FALSE;
+                }
+                else if(inner instanceof UserRequestedShutdownException){
+                  if(DEBUG)System.out.println("Active CoroutineSAXParser user shutdown exception");
+                  break;
+                }
+                else {
+                  if(DEBUG)System.out.println("Active CoroutineSAXParser UNEXPECTED SAX exception: "+ex);
+                  arg=ex;		  
+                }
+                
+              }
+              catch(Exception ex)
+                {
+                  if(DEBUG)System.out.println("Active CoroutineSAXParser non-SAX exception: "+ex);
+                  arg = ex;
+                }
+              
+            }
 
-	    else // Unexpected!
-	      {
-		System.err.println(
-		  "Inactive CoroutineSAXParser: unexpected resume parameter, "
-		  +arg.getClass()+" with value=\""+arg+'"');
-	      }
+            else // Unexpected!
+              {
+                System.err.println(
+                  "Inactive CoroutineSAXParser: unexpected resume parameter, "
+                  +arg.getClass()+" with value=\""+arg+'"');
+              }
 
-	  } // end while
+          } // end while
       } // end try
     catch(java.lang.NoSuchMethodException e)
       {
-	// Shouldn't happen unless we've miscoded our coroutine logic
-	// "CPO, shut down the garbage smashers on the detention level!"
-	e.printStackTrace(System.err);
-	fCoroutineManager.co_exit(fParserCoroutine);
+        // Shouldn't happen unless we've miscoded our coroutine logic
+        // "CPO, shut down the garbage smashers on the detention level!"
+        e.printStackTrace(System.err);
+        fCoroutineManager.co_exit(fParserCoroutine);
       }
   }
 
@@ -542,14 +542,10 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   class UserRequestedStopException extends RuntimeException
   {
   }
-  UserRequestedStopException stopException=new UserRequestedStopException();
   
-  /** Used so co_yield can return control to run for coroutine thread
-   * termination.  */
-  class UserRequestedShutdownException extends RuntimeException
-  {
-  }
-  UserRequestedShutdownException shutdownException=new UserRequestedShutdownException();
+  UserRequestedStopException stopException=new UserRequestedStopException();
+    
+  UserRequestedShutdownException shutdownException = new UserRequestedShutdownException();
 
   //================================================================
   /** Simple unit test. Attempt coroutine parsing of document indicated
@@ -566,8 +562,8 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     int appCoroutine = co.co_joinCoroutineSet(-1);
     if (appCoroutine == -1)
       {
-	System.out.println("ERROR: Couldn't allocate coroutine number.\n");
-	return;
+        System.out.println("ERROR: Couldn't allocate coroutine number.\n");
+        return;
       }
     CoroutineSAXParser parser=
       new CoroutineSAXParser(co, appCoroutine, theSAXParser);
@@ -582,58 +578,65 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
     // Tell coroutine to begin parsing, run while parsing is in progress
     for(int arg=0;arg<args.length;++arg)
       {
-	try
-	  {
-	    InputSource source = new InputSource(args[arg]);
-	    Object result=null;
-	    Boolean more=Boolean.TRUE;
-	    for(result = co.co_resume(source, appCoroutine, parserCoroutine);
-		(result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-		result = co.co_resume(more, appCoroutine, parserCoroutine))
-	      {
-		System.out.println("\nSome parsing successful, trying more.\n");
-	    
-		// Special test: Terminate parsing early.
-		if(arg+1<args.length && "!".equals(args[arg+1]))
-		  {
-		    ++arg;
-		    more=Boolean.FALSE;
-		  }
-	    
-	      }
-	
-	    if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
-	      {
-		System.out.println("\nParser ended (EOF or on request).\n");
-	      }
-	    else if (result == null) {
-	      System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
-	    }
-	    else if (result instanceof Exception) {
-	      System.out.println("\nParser threw exception:");
-	      ((Exception)result).printStackTrace();
-	    }
+        try
+          {
+            InputSource source = new InputSource(args[arg]);
+            Object result=null;
+            Boolean more=Boolean.TRUE;
+            for(result = co.co_resume(source, appCoroutine, parserCoroutine);
+                (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+                result = co.co_resume(more, appCoroutine, parserCoroutine))
+              {
+                System.out.println("\nSome parsing successful, trying more.\n");
+            
+                // Special test: Terminate parsing early.
+                if(arg+1<args.length && "!".equals(args[arg+1]))
+                  {
+                    ++arg;
+                    more=Boolean.FALSE;
+                  }
+            
+              }
+        
+            if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
+              {
+                System.out.println("\nParser ended (EOF or on request).\n");
+              }
+            else if (result == null) {
+              System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
+            }
+            else if (result instanceof Exception) {
+              System.out.println("\nParser threw exception:");
+              ((Exception)result).printStackTrace();
+            }
 
-	  }
-	catch(java.lang.NoSuchMethodException e)
-	  {
-	    System.out.println("\nUNEXPECTED Coroutine not resolved:");
-	    e.printStackTrace();
-	  }
+          }
+        catch(java.lang.NoSuchMethodException e)
+          {
+            System.out.println("\nUNEXPECTED Coroutine not resolved:");
+            e.printStackTrace();
+          }
       }
 
     try
       {
-	System.out.println("Requesting parser shutdown");
-	Object result = co.co_resume(null, appCoroutine, parserCoroutine);
-	if(result!=null)
-	  System.out.println("\nUNEXPECTED: Parser co-shutdown answers "+result);
+        System.out.println("Requesting parser shutdown");
+        Object result = co.co_resume(null, appCoroutine, parserCoroutine);
+        if(result!=null)
+          System.out.println("\nUNEXPECTED: Parser co-shutdown answers "+result);
       }
     catch(java.lang.NoSuchMethodException e)
       {
-	System.out.println("\nUNEXPECTED Coroutine not resolved:");
-	e.printStackTrace();
+        System.out.println("\nUNEXPECTED Coroutine not resolved:");
+        e.printStackTrace();
       }
   }
+  
+  /** Used so co_yield can return control to run for coroutine thread
+   * termination.  */
+  class UserRequestedShutdownException extends RuntimeException
+  {
+  }
+
   
 } // class CoroutineSAXParser

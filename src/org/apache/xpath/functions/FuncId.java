@@ -159,7 +159,7 @@ public class FuncId extends FunctionOneArg
 
     XObject arg = m_arg0.execute(xctxt);
     int argType = arg.getType();
-    XNodeSet nodes = new XNodeSet();
+    XNodeSet nodes = new XNodeSet(xctxt.getDTMManager());
     NodeSet nodeSet = nodes.mutableNodeset();
 
     if (XObject.CLASS_NODESET == argType)

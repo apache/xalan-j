@@ -116,9 +116,11 @@ public class NamespaceWalker extends AxesWalker
 
     if (m_root == m_currentNode)
     {
-
-      // System.out.println("ChildWalker - Calling getFirstChild");
-      return setCurrentIfNotNull(getDTM(m_root).getFirstNamespaceNode(m_currentNode, true));
+      DTM dtm = getDTM(m_root);
+      // System.out.println("NamespaceWalker - Calling getFirstNamespaceNode: "+dtm.getNodeName(m_currentNode));
+      int nsNode = dtm.getFirstNamespaceNode(m_currentNode, true);
+      
+      return setCurrentIfNotNull(nsNode);
     }
     else
       return DTM.NULL;
@@ -135,7 +137,13 @@ public class NamespaceWalker extends AxesWalker
   {
 
     if (m_root != m_currentNode)
-      return setCurrentIfNotNull(getDTM(m_root).getNextNamespaceNode(m_currentNode, true));
+    {
+      DTM dtm = getDTM(m_root);
+      // System.out.println("NamespaceWalker - Calling getNextNamespaceNode: "+dtm.getNodeName(m_currentNode));
+      int nsNode = dtm.getNextNamespaceNode(m_root, m_currentNode, true);
+      
+      return setCurrentIfNotNull(nsNode);
+    }
     else
       return DTM.NULL;
   }

@@ -533,7 +533,7 @@ public class CompilingStylesheetHandler
                 // Literal value, can fully resolve at compile time.
                 // Exception won't be thrown, but we've gotta catch
 //                try{
-                  // %TBD% ??
+                  // %XTBD% ??
 //                    avtValueExpression=makeQuotedString(
 //                        avt.evaluate(null,null,null)
 //                        );
@@ -632,7 +632,7 @@ public class CompilingStylesheetHandler
                 // Recurse, since attrsets can reference attrsets
                 compileUseAttrSet(attrSet,body,interpretVector);
                     
-                // %TBD%    
+                // %XTBD%    
 //                ElemAttribute attr = (ElemAttribute)attrSet.getFirstChild();
 //                while(null != attr)
 //                {
@@ -649,7 +649,7 @@ public class CompilingStylesheetHandler
   String compileAVTvalue(org.apache.xalan.templates.AVT avt,StringBuffer body,Vector interpretVector)
   {
       // Literal string is easy -- except for potential of " within "".
-      // %TBD%
+      // %XTBD%
 //      if(avt.isContextInsensitive())
 //          try
 //          {

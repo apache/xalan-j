@@ -305,7 +305,7 @@ public class DescendantIterator extends LocPathIterator
   }
   
   /** The top of the subtree, may not be the same as m_context if "//foo" pattern. */ 
-  transient private int m_startContext;
+  transient private int m_startContext = DTM.NULL;
 
   /** True if this is a descendants-or-self axes.
    *  @serial */

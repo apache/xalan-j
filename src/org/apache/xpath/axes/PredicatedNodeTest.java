@@ -354,16 +354,14 @@ public abstract class PredicatedNodeTest extends NodeTest implements SubContextL
    */
   protected String nodeToString(int n)
   {
-    DTM dtm = m_lpi.getXPathContext().getDTM(n);
-    try
+    if(DTM.NULL != n)
     {
-      return (DTM.NULL != n)
-             ? dtm.getNodeName(n) + "{" + n + "}"
-             : "null";
+      DTM dtm = m_lpi.getXPathContext().getDTM(n);
+      return dtm.getNodeName(n) + "{" + (n+1) + "}";
     }
-    catch (ClassCastException cce)
+    else
     {
-      return (DTM.NULL != n) ? dtm.getNodeName(n) : "null";
+      return "null";
     }
   }
   

@@ -128,6 +128,8 @@ import org.apache.xalan.serialize.Method;
 //import org.w3c.dom.Node;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.DTMManager;
+import org.apache.xml.dtm.DTMWSFilter;
 
 // SAX2 Imports
 import org.xml.sax.ContentHandler;
@@ -171,7 +173,7 @@ import javax.xml.parsers.ParserConfigurationException;
  * representation of the transformation execution.</p>
  */
 public class TransformerImpl extends Transformer
-        implements Runnable /* %TBD% , TransformState */
+        implements Runnable, DTMWSFilter /* %TBD% , TransformState */
 {
   // Synch object to gaurd against setting values from the TrAX interface 
   // or reentry while the transform is going on.
@@ -256,15 +258,23 @@ public class TransformerImpl extends Transformer
    * ElemTemplateElement.  Needed for the 
    * org.apache.xalan.transformer.TransformState interface,  
    * so a tool can discover the calling template. */
-  NodeVector m_currentTemplateElements = new NodeVector(64);
+  Stack m_currentTemplateElements = new Stack();
 
   /** A node vector used as a stack to track the current 
-   * ElemTemplate that was matched, as well as the node that 
-   * was matched.  Needed for the 
+   * ElemTemplate that was matched.
+   * Needed for the 
    * org.apache.xalan.transformer.TransformState interface,  
-   * so a tool can discover the matched template, and matched 
+   * so a tool can discover the matched template
+   */
+  Stack m_currentMatchTemplates = new Stack();
+  
+  /** A node vector used as a stack to track the current 
+   * node that was matched.
+   * Needed for the 
+   * org.apache.xalan.transformer.TransformState interface,  
+   * so a tool can discover the matched 
    * node. */
-  NodeVector m_currentMatchTemplates = new NodeVector();
+  NodeVector m_currentMatchedNodes = new NodeVector();
 
   /**
    * The root of a linked set of stylesheets.
@@ -357,10 +367,12 @@ public class TransformerImpl extends Transformer
    */
   private boolean m_isTransformDone = false;
   
-  // %TODO% Doc
+  /** Flag to to tell if the tranformer needs to be reset. */
   private boolean m_hasBeenReset = false;
   
-  // %TODO% Doc
+  /**
+   * A stack of current template modes.
+   */
   private Stack m_modes = new Stack();
   
   //==========================================================
@@ -409,6 +421,7 @@ public class TransformerImpl extends Transformer
       getXPathContext().getVarStack().setSize(1);
       m_currentTemplateElements.removeAllElements();
       m_currentMatchTemplates.removeAllElements();
+      m_currentMatchedNodes.removeAllElements();
   
       m_resultTreeHandler = null;
       m_outputTarget = null;
@@ -605,31 +618,37 @@ public class TransformerImpl extends Transformer
         sth.setInputSource(source);
         sth.setUseMultiThreading(true);
 
-        // %TBD%
-//        Node doc = sth.getRoot();
-//
-//        if (null != doc)
-//        {
-//          SourceTreeManager stm = getXPathContext().getSourceTreeManager();
-//          stm.putDocumentInCache(doc, source);
-//
-//          m_xmlSource = source;
-//          m_doc = doc;
-//
-//          if (isParserEventsOnMain())
-//          {
-//            m_isTransformDone = false;
-//
-//            getXPathContext().getPrimaryReader().parse(xmlSource);
-//          }
-//          else
-//          {
-//            Thread t = createTransformThread();
-//  //            m_reportInPostExceptionFromThread = false;
-//            t.start();
-//            transformNode(doc);
-//          }
-//        }
+        int doc = sth.getDTMRoot();
+
+        if (DTM.NULL != doc)
+        {
+          SourceTreeManager stm = getXPathContext().getSourceTreeManager();
+          // stm.putDocumentInCache(doc, source);
+
+          m_xmlSource = source;
+          // m_doc = doc;
+
+          if (isParserEventsOnMain())
+          {
+            m_isTransformDone = false;
+            try
+            {
+            getXPathContext().getPrimaryReader().parse(xmlSource);
+            }
+            catch(Exception e)
+            {
+              e.printStackTrace();
+            }
+          }
+          else
+          {
+            Thread t = createTransformThread();
+//            m_reportInPostExceptionFromThread = false;
+            t.start();
+            
+            // transformNode(doc);
+          }
+        }
       }
       else
       {
@@ -1071,7 +1090,7 @@ public class TransformerImpl extends Transformer
     // If the Result object contains a Node, then create 
     // a ContentHandler that will add nodes to the input node.
     // %TBD%
-//    Node outputNode = null;
+    int outputNode = DTM.NULL;
     if(outputTarget instanceof DOMResult)
     {
       // %TBD%
@@ -1612,7 +1631,7 @@ public class TransformerImpl extends Transformer
 
          int sourceNode = xctxt.getCurrentNode();
        // Use result tree fragment
-       // %TBD% Make sure current node is pushed.
+       // %REVIEW% Make sure current node is pushed.
         int df = transformToRTF(xslParamElement);
 
         var = new XRTreeFrag(xctxt.createDTMIterator(df));
@@ -1786,90 +1805,53 @@ public class TransformerImpl extends Transformer
           ElemTemplateElement templateParent)
             throws TransformerException
   {
-    // %TBD%
-    return 0;
-//    // XPathContext xctxt = getXPathContext();
-//    // Document docFactory = xctxt.getDOMHelper().getDOMFactory();
-//    ContentHandler rtfHandler;
-//    DocumentFragment resultFragment;
-//    
-//    // If this is an Stree instance, handle it with SourceTreeHandler
-//    // and bypass the whole DOM process.
-//    boolean isSTree = (sourceNode instanceof org.apache.xalan.stree.Child);
-//    if (isSTree)
-//    {      
-//      rtfHandler = new SourceTreeHandler(this, true);
-//      ((SourceTreeHandler)rtfHandler).setUseMultiThreading(false);
-//      ((SourceTreeHandler)rtfHandler).setShouldTransformAtEnd(false);
-//      // Create a ResultTreeFrag object.
-//      resultFragment = (DocumentFragment)((SourceTreeHandler)rtfHandler).getRoot();
-//      // ((org.apache.xalan.stree.DocumentFragmentImpl)resultFragment).setComplete(true);     
-//    }     
-//    else
-//    {
-//      if (null == m_docBuilder)
-//      {
-//        try
-//        {
-//          DocumentBuilderFactory dfactory =
-//                                 DocumentBuilderFactory.newInstance();
-//
-//          dfactory.setNamespaceAware(true);
-//          dfactory.setValidating(true);
-//
-//          m_docBuilder = dfactory.newDocumentBuilder();
-//        }
-//        catch (ParserConfigurationException pce)
-//        {
-//          throw new TransformerException(pce);  //"createDocument() not supported in XPathContext!");
-//
-//          // return null;
-//        }
-//      }     
-//      Document docFactory = m_docBuilder.newDocument();
-//      // Create a ResultTreeFrag object.
-//      resultFragment = docFactory.createDocumentFragment();           
-//      // Create a DOMBuilder object that will handle the SAX events 
-//      // and build the ResultTreeFrag nodes.
-//      rtfHandler = new DOMBuilder(docFactory, resultFragment);
-//    }
-//
-//    // Save the current result tree handler.
-//    ResultTreeHandler savedRTreeHandler = this.m_resultTreeHandler;
-//
-//    // And make a new handler for the RTF.
-//    m_resultTreeHandler = new ResultTreeHandler(this, rtfHandler);
-//    ResultTreeHandler rth = m_resultTreeHandler;
-//
-//    try
-//    {
-//      rth.startDocument();
-//  
-//      try
-//      {
-//        // Do the transformation of the child elements.
-//        executeChildTemplates(templateParent, sourceNode, mode, true);
-//        
-//        // Make sure everything is flushed!
-//        rth.flushPending();
-//      }
-//      finally
-//      {      
-//        rth.endDocument();
-//      }
-//    }
-//    catch(org.xml.sax.SAXException se)
-//    {
-//      throw new TransformerException(se);
-//    }
-//
-//    finally
-//    {
-//    // Restore the previous result tree handler.
-//    this.m_resultTreeHandler = savedRTreeHandler;
-//    }
-//    
-//    return resultFragment;
+    // XPathContext xctxt = getXPathContext();
+    // Document docFactory = xctxt.getDOMHelper().getDOMFactory();
+    ContentHandler rtfHandler;
+    int resultFragment = DTM.NULL;
+    
+    rtfHandler = new SourceTreeHandler(this, true);
+    ((SourceTreeHandler)rtfHandler).setUseMultiThreading(false);
+    ((SourceTreeHandler)rtfHandler).setShouldTransformAtEnd(false);
+    // Create a ResultTreeFrag object.
+    resultFragment = ((SourceTreeHandler)rtfHandler).getDTMRoot();
+
+    // Save the current result tree handler.
+    ResultTreeHandler savedRTreeHandler = this.m_resultTreeHandler;
+
+    // And make a new handler for the RTF.
+    m_resultTreeHandler = new ResultTreeHandler(this, rtfHandler);
+    ResultTreeHandler rth = m_resultTreeHandler;
+
+    try
+    {
+      rth.startDocument();
+  
+      try
+      {
+        // Do the transformation of the child elements.
+        executeChildTemplates(templateParent, true);
+        
+        // Make sure everything is flushed!
+        rth.flushPending();
+      }
+      finally
+      {      
+        rth.endDocument();
+      }
+    }
+    catch(org.xml.sax.SAXException se)
+    {
+      throw new TransformerException(se);
+    }
+
+    finally
+    {
+      // Restore the previous result tree handler.
+      this.m_resultTreeHandler = savedRTreeHandler;
+    }
+    
+    return resultFragment;
   }
 
 
@@ -1932,7 +1914,7 @@ public class TransformerImpl extends Transformer
       }
       else
       {
-
+        // Leave Commented.  -sb
         // serializer.setWriter(sw);
         // serializer.setOutputFormat(m_textformat);
         // ContentHandler shandler = serializer.asContentHandler();
@@ -2026,7 +2008,7 @@ public class TransformerImpl extends Transformer
       try
       {
         xctxt.setNamespaceContext(xslInstruction);
-        // %TBD%
+
         QName mode = this.getMode();
         template = m_stylesheetRoot.getTemplateComposed(xctxt, child, mode, maxImportLevel,
                                   m_quietConflictWarnings);
@@ -2104,10 +2086,6 @@ public class TransformerImpl extends Transformer
 
         m_xcontext.setSAXLocator(template);
 
-        // %TBD% ??
-//        if (template.isCompiledTemplate())
-//          template.execute(this, child, mode);
-//        else
         executeChildTemplates(template, true);
       }
     }
@@ -2202,9 +2180,8 @@ public class TransformerImpl extends Transformer
     // Check for infinite loops if we have to.
     boolean check = (m_stackGuard.m_recursionLimit > -1);
 
-    // %TBD%
-//    if (check)
-//      getStackGuard().push(elem, sourceNode);
+    if (check)
+      getStackGuard().push(elem, xctxt.getCurrentNode());
 
     // We need to push an element frame in the variables stack, 
     // so all the variables can be popped at once when we're done.
@@ -2226,8 +2203,7 @@ public class TransformerImpl extends Transformer
         if(!shouldAddAttrs && t.getXSLToken() == Constants.ELEMNAME_ATTRIBUTE)
           continue;
         xctxt.setSAXLocator(t);
-        // %TBD% NodeVector may not work for this purpose anymore
-//        m_currentTemplateElements.setTail(t);
+        m_currentTemplateElements.setElementAt(t, m_currentTemplateElements.size()-1);
         t.execute(this);
       }
     }
@@ -2354,8 +2330,7 @@ public class TransformerImpl extends Transformer
    */
   public void pushElemTemplateElement(ElemTemplateElement elem)
   {
-        // %TBD% NodeVector may not work for this purpose anymore
-//    m_currentTemplateElements.push(elem);
+     m_currentTemplateElements.push(elem);
   }
 
   /**
@@ -2375,8 +2350,7 @@ public class TransformerImpl extends Transformer
    */
   public void setCurrentElement(ElemTemplateElement e)
   {
-        // %TBD% NodeVector may not work for this purpose anymore
-//    m_currentTemplateElements.setTail(e);
+    m_currentTemplateElements.setElementAt(e, m_currentTemplateElements.size()-1);
   }
 
   /**
@@ -2388,9 +2362,7 @@ public class TransformerImpl extends Transformer
    */
   public ElemTemplateElement getCurrentElement()
   {
-        // %TBD% NodeVector may not work for this purpose anymore
-      return null;
-//    return (ElemTemplateElement) m_currentTemplateElements.peepTail();
+    return (ElemTemplateElement) m_currentTemplateElements.peek();
   }
 
   /**
@@ -2438,8 +2410,8 @@ public class TransformerImpl extends Transformer
    */
   public void pushPairCurrentMatched(ElemTemplateElement template, int child)
   {
-        // %TBD% NodeVector may not work for this purpose anymore
-//    m_currentMatchTemplates.pushPair(template, child);
+    m_currentMatchTemplates.push(template);
+    m_currentMatchedNodes.push(child);
   }
 
   /**
@@ -2447,7 +2419,8 @@ public class TransformerImpl extends Transformer
    */
   public void popCurrentMatched()
   {
-    m_currentMatchTemplates.popPair();
+    m_currentMatchTemplates.pop();
+    m_currentMatchedNodes.pop();
   }
 
   /**
@@ -2461,9 +2434,7 @@ public class TransformerImpl extends Transformer
    */
   public ElemTemplate getMatchedTemplate()
   {
-        // %TBD% NodeVector may not work for this purpose anymore
-      return null;
-//    return (ElemTemplate) m_currentMatchTemplates.peepTailSub1();
+    return (ElemTemplate) m_currentMatchTemplates.peek();
   }
 
   /**
@@ -2475,7 +2446,7 @@ public class TransformerImpl extends Transformer
    */
   public int getMatchedNode()
   {
-    return m_currentMatchTemplates.peepTail();
+    return m_currentMatchedNodes.peepTail();
   }
 
   /**
@@ -2985,7 +2956,7 @@ public class TransformerImpl extends Transformer
 
     try
     {
-      // Node n = ((SourceTreeHandler)getInputContentHandler()).getRoot();
+      // int n = ((SourceTreeHandler)getInputContentHandler()).getDTMRoot();
       // transformNode(n);
       if (isParserEventsOnMain())
       {
@@ -2997,6 +2968,7 @@ public class TransformerImpl extends Transformer
         }
         catch (Exception e)
         {
+          // e.printStackTrace();
           // Strange that the other catch won't catch this...
           postExceptionFromThread(e);
         }
@@ -3018,6 +2990,7 @@ public class TransformerImpl extends Transformer
     }
     catch (Exception e)
     {
+      // e.printStackTrace();
       postExceptionFromThread(e);
     }
   }
@@ -3041,6 +3014,41 @@ public class TransformerImpl extends Transformer
   public void stopTransformation()
   {
   }
+  
+  /**
+   * Test whether whitespace-only text nodes are visible in the logical 
+   * view of <code>DTM</code>. Normally, this function
+   * will be called by the implementation of <code>DTM</code>; 
+   * it is not normally called directly from
+   * user code.
+   * 
+   * @param elementHandle int Handle of the element.
+   * @return one of NOTSTRIP, STRIP, or INHERIT.
+   */
+  public short getShouldStripSpace(int elementHandle)
+  {
+    try
+    {      
+      org.apache.xalan.templates.WhiteSpaceInfo info = 
+        m_stylesheetRoot.getWhiteSpaceInfo(m_xcontext, elementHandle);
+         
+      if (null == info)
+      {
+        return DTMWSFilter.INHERIT;
+      }
+      else
+      {
+        // System.out.println("getShouldStripSpace: "+info.getShouldStripSpace());
+        return info.getShouldStripSpace() ? DTMWSFilter.STRIP : DTMWSFilter.NOTSTRIP;
+      }
+    }
+    catch (TransformerException se)
+    {
+      return DTMWSFilter.INHERIT;
+    }
+
+  }
+
   
 }  // end TransformerImpl class
 

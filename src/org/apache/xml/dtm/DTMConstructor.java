@@ -131,7 +131,7 @@ public class DTMConstructor extends DTMManager
    * @return a non-null DTM reference.
    */
   public DTM getDTM(javax.xml.transform.Source source,
-                             boolean unique){
+                             boolean unique, DTMWSFilter whiteSpaceFilter){
       DTM dtmImpl;
       Integer iobj = null;
 
@@ -161,8 +161,8 @@ public class DTMConstructor extends DTMManager
           dtmAllocList.insertElementAt(dtmImpl, iobj.intValue());
       }
 
-			// ### shs:  startDocument and initDocument not declared in DTM interface
-			/*
+                        // ### shs:  startDocument and initDocument not declared in DTM interface
+                        /*
       if (iobj==null) dtmImpl.startDocument(0);
       else {
           dtmSymbolTable.put(dtmImpl,iobj);
@@ -172,7 +172,7 @@ public class DTMConstructor extends DTMManager
       }
       // %TBD%  note - need to determine how to load the source content, perhaps by
       //               passing the source object in the startDocument method
-			*/
+                        */
       return dtmImpl;
   }
 
@@ -194,7 +194,7 @@ public class DTMConstructor extends DTMManager
       // DTMManager register method call
       // ###yst: end comment modification
       if (dtmIndex == 0) 
-				return getDTM(null, false);
+                                return getDTM(null, false, null);
       // managed DTM
       return (DTM)dtmAllocList.elementAt(dtmIndex);
   }
@@ -204,9 +204,9 @@ public class DTMConstructor extends DTMManager
    * @return a non-null DTM reference.
    */
   public DTM createDocumentFragment() {
-		//  NEEDS to be worked ON!
-		return null;
-	}
+                //  NEEDS to be worked ON!
+                return null;
+        }
 
   /**
    * Release a DTM either to a lru pool, or completely remove reference.
@@ -230,7 +230,7 @@ public class DTMConstructor extends DTMManager
           // remove completely, let it be garbage collected naturally
           if (shouldHardDelete) return true;
           else {
-						// ###shs  Reset not declared in DTM interface
+                                                // ###shs  Reset not declared in DTM interface
               //dtm.reset();
               dtmReuseList.addElement(dtm);
               return false;
@@ -251,9 +251,9 @@ public class DTMConstructor extends DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public DTMIterator createDTMIterator(Object xpathCompiler, int pos) {
-		// NEEDS TO BE WORKED ON!
-		return null;
-	}
+                // NEEDS TO BE WORKED ON!
+                return null;
+        }
 
   /**
    * Create a new <code>DTMIterator</code> based on an XPath
@@ -269,9 +269,9 @@ public class DTMConstructor extends DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public DTMIterator createDTMIterator(String xpathString, PrefixResolver presolver) {
-		// NEEDS TO BE WORKED ON!
-		return null;
-	}
+                // NEEDS TO BE WORKED ON!
+                return null;
+        }
 
   /**
    * Create a new <code>DTMIterator</code> based only on a whatToShow and
@@ -291,10 +291,10 @@ public class DTMConstructor extends DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public DTMIterator createDTMIterator(int whatToShow, DTMFilter filter, 
-																			 boolean entityReferenceExpansion) {
-		// NEEDS TO BE WORKED ON!
-		return null;
-	}
+                                                                                                                                                         boolean entityReferenceExpansion) {
+                // NEEDS TO BE WORKED ON!
+                return null;
+        }
 
   /**
    * Create a new <code>DTMIterator</code> that holds exactly one node.
@@ -304,9 +304,9 @@ public class DTMConstructor extends DTMManager
    * @return The newly created <code>DTMIterator</code>.
    */
   public DTMIterator createDTMIterator(int node) {
-		// NEEDS TO BE WORKED ON!
-		return null;
-	}
+                // NEEDS TO BE WORKED ON!
+                return null;
+        }
 
     // -------------------- private methods --------------------
 
@@ -330,9 +330,9 @@ public class DTMConstructor extends DTMManager
      * %TBD% Doc
      */
     public int getDTMIdentity(DTM dtm){
-			// NEEDS TO BE WORKED ON!
-			return -1;
-		}
+                        // NEEDS TO BE WORKED ON!
+                        return -1;
+                }
 
     /**
      * %TBD% Doc

@@ -441,9 +441,27 @@ public class LocPathIterator extends PredicatedNodeTest
   public int item(int index)
   {
 
-    resetToCachedList();
+    // resetToCachedList();
 
     return m_cachedNodes.item(index);
+  }
+  
+  /**
+   * Sets the node at the specified index of this vector to be the
+   * specified node. The previous component at that position is discarded.
+   *
+   * <p>The index must be a value greater than or equal to 0 and less
+   * than the current size of the vector.  
+   * The iterator must be in cached mode.</p>
+   * 
+   * <p>Meant to be used for sorted iterators.</p>
+   *
+   * @param node Node to set
+   * @param index Index of where to set the node
+   */
+  public void setItem(int node, int index)
+  {
+    m_cachedNodes.setElementAt(node, index);
   }
 
   /**
@@ -455,9 +473,18 @@ public class LocPathIterator extends PredicatedNodeTest
   public int getLength()
   {
 
-    resetToCachedList();
-
-    return m_cachedNodes.getLength();
+    // resetToCachedList();
+    if(m_last > 0)
+      return m_last;
+    else if(null == m_cachedNodes || !m_foundLast)
+    {
+      m_last = getLastPos(m_execContext);
+    }
+    else
+    {
+      m_last = m_cachedNodes.getLength();
+    }
+    return m_last;
   }
 
   /**
@@ -466,7 +493,7 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   private void resetToCachedList()
   {
-
+    // %TBD% ? This doesn't seem to work so well...
     int pos = this.getCurrentPos();
 
     if ((null == m_cachedNodes) || (pos != 0))
@@ -970,7 +997,7 @@ public class LocPathIterator extends PredicatedNodeTest
    */
   public int getLast()
   {
-    return m_last;
+    return getLength();
   }
 
   /**
@@ -1104,7 +1131,7 @@ public class LocPathIterator extends PredicatedNodeTest
   // ObjectPool m_pool = new ObjectPool(this.getClass());
 
   /** The last node that was fetched, usually by nextNode. */
-  transient public int m_lastFetched;
+  transient public int m_lastFetched = DTM.NULL;
 
   /**
    * If this iterator needs to cache nodes that are fetched, they
@@ -1133,7 +1160,7 @@ public class LocPathIterator extends PredicatedNodeTest
    * The context node for this iterator, which doesn't change through
    * the course of the iteration.
    */
-  transient protected int m_context;
+  transient protected int m_context = DTM.NULL;
 
   /**
    * The node context from where the expression is being
@@ -1141,7 +1168,7 @@ public class LocPathIterator extends PredicatedNodeTest
    * from m_context in that this is the context for the entire
    * expression, rather than the context for the subexpression.
    */
-  transient protected int m_currentContextNode;
+  transient protected int m_currentContextNode = DTM.NULL;
 
   /**
    * Fast access to the current prefix resolver.  It isn't really

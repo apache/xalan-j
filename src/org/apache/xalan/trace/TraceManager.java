@@ -165,7 +165,7 @@ public class TraceManager
   public void fireTraceEvent(ElemTemplateElement styleNode)
   {
 
-  // %TBD%
+  // %DTBD%
 //    if (hasTraceListeners())
 //    {
 //      fireTraceEvent(new TracerEvent(m_transformer, sourceNode, mode,
@@ -210,7 +210,7 @@ public class TraceManager
             throws javax.xml.transform.TransformerException
   {
 
-  // %TBD%
+  // %DTBD%
 //    if (hasTraceListeners())
 //      fireSelectedEvent(new SelectionEvent(m_transformer, sourceNode,
 //                                           styleNode, attributeName, xpath,

@@ -277,10 +277,11 @@ public class ElemElement extends ElemUse
     if ((null != nodeName) /* && (indexOfNSSep >= 0) */)
     {
       prefix = (indexOfNSSep > 0) ? nodeName.substring(0, indexOfNSSep) : "";
-
+      
       // Catch the exception this may cause. We don't want to stop processing.
       try
       {
+        // Maybe temporary, until I get this worked out.  test: axes59
         nodeNamespace = getNamespaceForPrefix(prefix);
 
         if (null == nodeNamespace && indexOfNSSep <= 0)

@@ -106,7 +106,7 @@ import org.xml.sax.helpers.NamespaceSupport;
  *
  * @see Stylesheet
  */
-public class ElemTemplateElement /* %TBD% extends UnImplNode */
+public class ElemTemplateElement /* %DTBD% extends UnImplNode */
         implements PrefixResolver, Serializable, SourceLocator, 
                    WhitespaceStrippingElementMatcher
 {
@@ -308,7 +308,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
   
 
   // Implemented DOM Element methods.
-// %TBD%
+// %DTBD%
 //  /**
 //   * Add a child to the child list.
 //   * NOTE: This presumes the child did not previously have a parent.
@@ -405,7 +405,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
     return org.w3c.dom.Node.ELEMENT_NODE;
   }
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Return the nodelist (same reference).
 //   *
@@ -453,7 +453,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
     return childETE;
   }
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Replace the old child with a new child.
 //   *
@@ -578,7 +578,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
 //    return node;
 //  }  // item(int):Node
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the stylesheet owner.
 //   *
@@ -823,6 +823,10 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
    */
   public String getNamespaceForPrefix(String prefix)
   {
+//    if (null != prefix && prefix.equals("xmlns"))
+//    {
+//      return Constants.S_XMLNAMESPACEURI;
+//    }
 
     Vector nsDecls = m_declaredPrefixes;
 
@@ -1128,7 +1132,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
    */
   protected ElemTemplateElement m_parentNode;
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the parent as a Node.
 //   *
@@ -1155,7 +1159,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
    */
   ElemTemplateElement m_nextSibling;
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the next sibling (as a Node) or return null.
 //   *
@@ -1166,7 +1170,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
 //    return m_nextSibling;
 //  }
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the previous sibling (as a Node) or return null.
 //   * Note that this may be expensive if the parent has many kids;
@@ -1246,7 +1250,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
    */
   ElemTemplateElement m_firstChild;
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the first child as a Node.
 //   *
@@ -1267,7 +1271,7 @@ public class ElemTemplateElement /* %TBD% extends UnImplNode */
     return m_firstChild;
   }
 
-  // %TBD%
+  // %DTBD%
 //  /**
 //   * Get the last child.
 //   *

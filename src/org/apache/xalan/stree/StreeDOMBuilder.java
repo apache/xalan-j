@@ -217,8 +217,7 @@ public class StreeDOMBuilder extends DOMBuilder
     }
     
     append(elem);
-    // %TBD%
-//    m_elemStack.push(elem);
+    m_elemStack.push(elem);
 
     m_currentNode = elem;
   }

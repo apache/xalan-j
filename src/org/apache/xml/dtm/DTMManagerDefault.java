@@ -84,18 +84,28 @@ public class DTMManagerDefault extends DTMManager
   public DTMManagerDefault(){}
 
   /**
-   * Get the instance of DTM that "owns" a node handle.
+   * Get an instance of a DTM, loaded with the content from the
+   * specified source.  If the unique flag is true, a new instance will
+   * always be returned.  Otherwise it is up to the DTMManager to return a
+   * new instance or an instance that it already created and may be being used
+   * by someone else.
+   * (I think more parameters will need to be added for error handling, and entity
+   * resolution).
    *
-   * @param nodeHandle the nodeHandle.
+   * @param source the specification of the source object.
+   * @param unique true if the returned DTM must be unique, probably because it
+   * is going to be mutated.
+   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
+   *                         be null.
    *
    * @return a non-null DTM reference.
    */
-  public DTM getDTM(Source source, boolean unique)
+  public DTM getDTM(Source source, boolean unique, DTMWSFilter whiteSpaceFilter)
   {
 
     if(source instanceof DOMSource)
     {
-      DTM dtm = new DOM2DTM(this, (DOMSource)source, m_dtms.size());
+      DTM dtm = new DOM2DTM(this, (DOMSource)source, m_dtms.size(), whiteSpaceFilter);
       m_dtms.add(dtm);
       return dtm;
     }
@@ -180,7 +190,7 @@ public class DTMManagerDefault extends DTMManager
       Document doc = db.newDocument();
       Node df = doc.createDocumentFragment();
   
-      return getDTM(new DOMSource(df), true);
+      return getDTM(new DOMSource(df), true, null);
     }
     catch(Exception e)
     {

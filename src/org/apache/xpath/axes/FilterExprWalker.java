@@ -293,8 +293,9 @@ public class FilterExprWalker extends AxesWalker
       */
     }
 
-    // System.out.println("FilterExprWalker.getNextNode - Returning: "+next);
-    return setCurrentIfNotNull(next);
+    int current = setCurrentIfNotNull(next);
+    // System.out.println("Returning: "+this);
+    return current;
   }
   
   /** The contained expression. Should be non-null.

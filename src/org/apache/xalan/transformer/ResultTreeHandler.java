@@ -1000,7 +1000,7 @@ public class ResultTreeHandler extends QueuedEvents
       {
 
         for (int namespace = dtm.getFirstNamespaceNode(src, true);
-             DTM.NULL != namespace; namespace = dtm.getNextNamespaceNode(namespace, true))
+             DTM.NULL != namespace; namespace = dtm.getNextNamespaceNode(src, namespace, true))
         {
           String prefix = dtm.getPrefix(namespace);
           String desturi = getURI(prefix);
@@ -1365,7 +1365,7 @@ public class ResultTreeHandler extends QueuedEvents
    */
   public org.w3c.dom.Node getCurrentNode()
   {
-    // %TBD% Need DTM2DOM stuff
+    // %DTBD% Need DTM2DOM stuff
     return null;
 //    QueuedStartElement qe = getQueuedElem();
 //    if(null != qe && qe.isPending)
@@ -1425,7 +1425,7 @@ public class ResultTreeHandler extends QueuedEvents
    */
   public org.w3c.dom.Node getMatchedNode()
   {
-    // %TBD% Need DTM2DOM stuff
+    // %DTBD% Need DTM2DOM stuff
     return null;
 //    QueuedStartElement qe = getQueuedElem();
 //    if(null != qe && qe.isPending)
@@ -1441,7 +1441,7 @@ public class ResultTreeHandler extends QueuedEvents
    */
   public org.w3c.dom.traversal.NodeIterator getContextNodeList()
   {
-    // %TBD% Need DTM2DOM stuff
+    // %DTBD% Need DTM2DOM stuff
     return null;
 //    QueuedStartElement qe = getQueuedElem();
 //    if(null != qe && qe.isPending)

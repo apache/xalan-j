@@ -153,7 +153,7 @@ public interface DTM
   /** The node is a <code>namespace node</code>. Note that this is not
    * currently a node type defined by the DOM API.
    * */
-  public static final short NAMESPACE_NODE             = 113;
+  public static final short NAMESPACE_NODE             = 13;
   
   // ========= DTM Implementation Control Functions. ==============
 
@@ -281,12 +281,14 @@ public interface DTM
    * Given a namespace handle, advance to the next namespace in the same scope
    * (local or local-plus-inherited, as selected by getFirstNamespaceNode)
    * 
+   * @param baseHandle handle to original node from where the first child 
+   * was relative to (needed to return nodes in document order).
    * @param namespaceHandle handle to node which must be of type
    * NAMESPACE_NODE.
    * @return handle of next namespace,
    * or DTM.NULL to indicate none exists.
    */
-  public int getNextNamespaceNode(int namespaceHandle, boolean inScope);
+  public int getNextNamespaceNode(int baseHandle, int namespaceHandle, boolean inScope);
 
   /** Lightweight subtree-walker. Given a node handle, find the next
    * node in document order. (Preorder left-to-right traversal).  The
@@ -432,7 +434,7 @@ public interface DTM
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(String namespace, String localName);
+  public int getExpandedNameID(String namespace, String localName, int type);
   
   /**
    * Given an expanded-name ID, return the local name part.

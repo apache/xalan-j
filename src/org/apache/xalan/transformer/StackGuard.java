@@ -177,7 +177,7 @@ public class StackGuard
   {
 
     // for the moment, these diagnostics are really bad...
-    // %TBD% We need an execution context.
+    // %DTBD% We need an execution context.
 //    if (m_sourceXML instanceof Text)
 //    {
 //      Text tx = (Text) m_sourceXML;

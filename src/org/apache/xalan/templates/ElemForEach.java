@@ -270,8 +270,7 @@ public class ElemForEach extends ElemTemplateElement
 
     try
     {
-      // %TBD%
-//      sorter.sort(sourceNodes, keys, xctxt);
+      sorter.sort(sourceNodes, keys, xctxt);
       sourceNodes.setCurrentPos(0);
     }
     finally
@@ -455,7 +454,7 @@ public class ElemForEach extends ElemTemplateElement
               transformer.getTraceManager().fireTraceEvent(template);
 
             // And execute the child templates.
-            // %TBD% ???
+            // %XTBD% ???
 //            if (template.isCompiledTemplate())
 //              template.execute(transformer, child, mode);
 //            else

@@ -107,6 +107,7 @@ import org.apache.xml.dtm.DTMManager;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMWSFilter;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -121,7 +122,7 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    * the DTMManager, it really is a proxy for this object, which 
    * is the real DTMManager.
    */
-  DTMManager m_dtmManager;
+  private DTMManager m_dtmManager = DTMManager.newInstance();
   
   /**
    * Return the DTMManager object.  Though XPathContext context extends 
@@ -148,9 +149,10 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    *
    * @return a non-null DTM reference.
    */
-  public DTM getDTM(javax.xml.transform.Source source, boolean unique)
+  public DTM getDTM(javax.xml.transform.Source source, boolean unique, 
+                    DTMWSFilter wsfilter)
   {
-    return m_dtmManager.getDTM(source, unique);
+    return m_dtmManager.getDTM(source, unique, wsfilter);
   }
                              
   /**

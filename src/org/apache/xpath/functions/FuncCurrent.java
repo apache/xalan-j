@@ -129,6 +129,6 @@ public class FuncCurrent extends Function
         currentNode = DTM.NULL;
     }
 
-    return new XNodeSet(currentNode);
+    return new XNodeSet(currentNode, xctxt.getDTMManager());
   }
 }

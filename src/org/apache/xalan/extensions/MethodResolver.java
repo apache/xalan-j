@@ -732,14 +732,14 @@ public class MethodResolver
           {
             return ((XRTreeFrag) xobj).asNodeIterator();
           }
-          // %TBD%
+          // %DTBD%
 //          else if (javaClass == NodeList.class)
 //          {
 //            return ((XRTreeFrag) xobj).convertToNodeset();
 //          }
           // Same comment as above
           // else if(Node.class.isAssignableFrom(javaClass))
-          // %TBD%
+          // %DTBD%
 //          else if(javaClass == Node.class)
 //          {
 //            return xobj.rtree().getFirstChild();
@@ -756,7 +756,7 @@ public class MethodResolver
           {
             return convertDoubleToNumber(xobj.num(), javaClass);
           }
-          // %TBD%
+          // %DTBD%
 //          else
 //          {
 //            Node child = xobj.rtree().getFirstChild();
@@ -793,7 +793,7 @@ public class MethodResolver
           {
             // Xalan ensures that nodeset() always returns an
             // iterator positioned at the beginning.
-            // %TBD%
+            // %DTBD%
 //            NodeIterator ni = xobj.nodeset();
 //            return ni.nextNode(); // may be null.
           }
@@ -809,7 +809,7 @@ public class MethodResolver
           {
             return convertDoubleToNumber(xobj.num(), javaClass);
           }
-          // %TBD%
+          // %DTBD%
 //          else
 //          {
 //            Node child = xobj.nodeset().nextNode();

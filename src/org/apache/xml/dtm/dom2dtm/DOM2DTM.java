@@ -59,9 +59,12 @@ package org.apache.xml.dtm.dom2dtm;
 import org.apache.xml.dtm.*;
 import org.apache.xml.utils.IntVector;
 import org.apache.xml.utils.IntStack;
+import org.apache.xml.utils.BoolStack;
 import org.apache.xml.utils.StringBufferPool;
 import org.apache.xml.utils.FastStringBuffer;
 import org.apache.xml.utils.TreeWalker;
+import org.apache.xml.utils.QName;
+import org.apache.xml.utils.XMLCharacterRecognizer;
 
 import org.w3c.dom.*;
 
@@ -69,6 +72,8 @@ import java.util.Vector;
 
 import javax.xml.transform.dom.DOMSource;
 import org.xml.sax.ContentHandler;
+
+import org.apache.xml.utils.NodeVector;
 
 /**
  * The <code>DOM2DTM</code> class serves up a DOM via a DTM API.
@@ -136,19 +141,36 @@ public class DOM2DTM implements DTM
   protected int m_dtmIdent;
 
   /** %TBD% Doc */
+  protected int m_dtmRoot;
+
+  /** %TBD% Doc */
   protected int m_mask;
 
   /** %TBD% Doc */
   protected String m_documentBaseURI;
+  
+  /**
+   * The whitespace filter that enables elements to strip whitespace or not.
+   */
+  protected DTMWSFilter m_wsfilter;
+  
+  /** Flag indicating whether to strip whitespace nodes          */
+  private boolean m_shouldStripWS = false;
+
+  /** Stack of flags indicating whether to strip whitespace nodes          */
+  private BoolStack m_shouldStripWhitespaceStack;
 
   /**
    * Construct a DOM2DTM object from a DOM node.
    *
-   * NEEDSDOC @param mgr
-   * NEEDSDOC @param node
-   * NEEDSDOC @param domSource
+   * @param mgr The DTMManager who owns this DTM.
+   * @param domSource the DOM source that this DTM will wrap.
+   * @param dtmIdentity The DTM identity ID for this DTM.
+   * @param whiteSpaceFilter The white space filter for this DTM, which may 
+   *                         be null.
    */
-  public DOM2DTM(DTMManager mgr, DOMSource domSource, int dtmIdentity)
+  public DOM2DTM(DTMManager mgr, DOMSource domSource, 
+                 int dtmIdentity, DTMWSFilter whiteSpaceFilter)
   {
 
     m_mgr = mgr;
@@ -158,34 +180,39 @@ public class DOM2DTM implements DTM
     m_nodesAreProcessed = false;
     m_dtmIdent = dtmIdentity;
     m_mask = mgr.getNodeIdentityMask();
-
+    m_wsfilter = whiteSpaceFilter;
+    if(null != whiteSpaceFilter)
+    {
+      m_shouldStripWhitespaceStack = new BoolStack();
+      pushShouldStripWhitespace(false);
+    }
     addNode(m_root, 0, DTM.NULL, DTM.NULL);
   }
 
   /**
    * Construct the node map from the node.
    *
-   * NEEDSDOC @param node
-   * NEEDSDOC @param level
-   * NEEDSDOC @param parentIndex
-   * NEEDSDOC @param previousSibling
+   * @param node The node that is to be added to the DTM.
+   * @param level The current level in the tree.
+   * @param parentIndex The current parent index.
+   * @param previousSibling The previous sibling index.
    *
-   * NEEDSDOC ($objectName$) @return
+   * @return The index identity of the node that was added.
    */
   protected int addNode(Node node, int level, int parentIndex,
                         int previousSibling)
   {
 
     int nodeIndex = m_nodes.size();
-
+    
+    int type = node.getNodeType();
+    
     m_nodes.addElement(node);
 
     int startInfo = nodeIndex * NODEINFOBLOCKSIZE;
 
     m_info.addElements(NODEINFOBLOCKSIZE);
     m_info.setElementAt(level, startInfo + OFFSET_LEVEL);
-
-    int type = node.getNodeType();
 
     if (Node.ATTRIBUTE_NODE == type)
     {
@@ -215,7 +242,7 @@ public class DOM2DTM implements DTM
     String nsURI = node.getNamespaceURI();
     String localName = node.getLocalName();
     int expandedNameID 
-        = m_mgr.getExpandedNameTable(this).getExpandedNameID(nsURI, localName);
+        = m_mgr.getExpandedNameTable(this).getExpandedNameID(nsURI, localName, type);
     m_info.setElementAt(expandedNameID, startInfo + OFFSET_EXPANDEDNAMEID);    
 
     if (DTM.NULL != previousSibling)
@@ -274,139 +301,179 @@ public class DOM2DTM implements DTM
    * Each call to this method adds a new node to the table, unless the end
    * is reached, in which case it returns null.
    *
-   * NEEDSDOC ($objectName$) @return
+   * @return The next node in the tree, in document order, or null if 
+   *         there are no more nodes.
    */
   protected Node nextNode()
   {
+    // Non-recursive one-fetch-at-a-time depth-first traversal with 
+    // attribute/namespace nodes and white-space stripping.
+    // Yippee!  Not for the faint of heart.  I would be glad for 
+    // constructive suggestions on how to make this cleaner.
 
     if (m_nodesAreProcessed)
     {
-      // return null;
+      return null;
     }
 
     Node top = m_root;  // tells us when to stop.
     Node pos = (null == m_pos) ? m_root : m_pos;
 
-    // non-recursive depth-first traversal.
-    // while (null != pos)
+    Node nextNode;
+    int type = pos.getNodeType();
+
+    int currentIndexHandle = m_nodes.size()-1;
+    int posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+    
+    boolean shouldPushLevel = true;
+    if (Node.ELEMENT_NODE == type)
     {
+      m_attrs = pos.getAttributes();
+      m_attrsPos = 0;
 
-      // %TBD% Process attributes!
-      Node nextNode;
-      int type = pos.getNodeType();
-
-      int currentIndexHandle = m_nodes.size()-1;
-      int posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
-      
-      boolean shouldPushLevel = true;
-      if (Node.ELEMENT_NODE == type)
+      if (null != m_attrs)
       {
-        m_attrs = pos.getAttributes();
-        m_attrsPos = 0;
-
-        if (null != m_attrs)
-        {
-          if (m_attrsPos < m_attrs.getLength())
-          {
-            m_elementForAttrs = pos;
-            m_elementForAttrsIndex = currentIndexHandle;
-            nextNode = m_attrs.item(m_attrsPos);
-          }
-          else
-            nextNode = pos.getFirstChild();
-        }
-        else
-          nextNode = pos.getFirstChild();
-      }
-      else if (Node.ATTRIBUTE_NODE == type)
-      {
-        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
-        m_attrsPos++;
-
         if (m_attrsPos < m_attrs.getLength())
         {
+          m_elementForAttrs = pos;
+          m_elementForAttrsIndex = currentIndexHandle;
           nextNode = m_attrs.item(m_attrsPos);
-          shouldPushLevel = false;
         }
         else
-        {
-          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
-          pos = m_elementForAttrs;
-          currentIndexHandle = m_elementForAttrsIndex;
-          posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
           nextNode = pos.getFirstChild();
-
-          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
-        }
       }
       else
-        nextNode = pos.getFirstChild();        
-
-      if (shouldPushLevel && (null != nextNode))
       {
-        m_levelInfo.push(currentIndexHandle); // parent
-        m_levelInfo.push(DTM.NULL); // previous sibling
-      }
-
-      while (null == nextNode)
-      {
-        if(m_info.elementAt(posInfo + OFFSET_FIRSTCHILD) == NOTPROCESSED)
-        {
-          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
-        }
-        
-        if (top.equals(pos))
-        {
-          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
-          break;
-        }
-
-        nextNode = pos.getNextSibling();
-
-        if (null == nextNode)
-        {
-          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
-
-          currentIndexHandle = m_info.elementAt(posInfo + OFFSET_PARENT);
-          posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
-          
-          m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
-          pos = pos.getParentNode();
-
-          if ((null == pos) || (top.equals(pos)))
-          {
-            m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
-            nextNode = null;
-            break;
-          }
-
-          
-        }
-      }
-
-      pos = nextNode;
-
-      if (null != pos)
-      {
-        int level = m_levelInfo.size() / LEVELINFO_NPERLEVEL;
-
-        int newIndexHandle = 
-              addNode(pos, level, m_levelInfo.peek(LEVELINFO_PARENT),
-                  m_levelInfo.peek(LEVELINFO_PREVSIB));
-
-        m_pos = pos;
-
-        int sz = m_levelInfo.size();
-
-        m_levelInfo.setElementAt(newIndexHandle,
-                                 sz - (1 + LEVELINFO_PREVSIB));
-
-        return pos;
+        nextNode = pos.getFirstChild();
       }
     }
+    else if (Node.ATTRIBUTE_NODE == type)
+    {
+      m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
+      m_attrsPos++;
+
+      if (m_attrsPos < m_attrs.getLength())
+      {
+        nextNode = m_attrs.item(m_attrsPos);
+        shouldPushLevel = false;
+      }
+      else
+      {
+        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING); 
+        pos = m_elementForAttrs;
+        currentIndexHandle = m_elementForAttrsIndex;
+        posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+        nextNode = pos.getFirstChild();
+        m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
+      }
+    }
+    else
+      nextNode = pos.getFirstChild();  
+     
+    // %TBD% Text node coalition.
+    if((null != m_wsfilter) && (null != nextNode) && getShouldStripWhitespace())
+    {
+      int t = nextNode.getNodeType();
+      
+      if((Node.CDATA_SECTION_NODE == t) || (Node.TEXT_NODE == t))
+      {
+        String data = nextNode.getNodeValue();
+        if(XMLCharacterRecognizer.isWhiteSpace(data))
+        {
+          nextNode = nextNode.getNextSibling();
+        }
+      }
+    }
+    if (shouldPushLevel && (null != nextNode))
+    {
+      m_levelInfo.push(currentIndexHandle); // parent
+      m_levelInfo.push(DTM.NULL); // previous sibling
+    }
+
+    while (null == nextNode)
+    {
+      if(m_info.elementAt(posInfo + OFFSET_FIRSTCHILD) == NOTPROCESSED)
+      {
+        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_FIRSTCHILD);
+      }
+      
+      if (top.equals(pos))
+      {
+        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+        break;
+      }
+      
+      nextNode = pos.getNextSibling();
+      
+      // %TBD% Text node coalition.
+      if((null != nextNode) && (null != m_wsfilter) && getShouldStripWhitespace())
+      {
+        int t = nextNode.getNodeType();
+        
+        if((Node.CDATA_SECTION_NODE == t) || (Node.TEXT_NODE == t))
+        {
+          String data = nextNode.getNodeValue();
+          if(XMLCharacterRecognizer.isWhiteSpace(data))
+          {
+            nextNode = nextNode.getNextSibling();
+          }
+        }
+      }
+      if(Node.ELEMENT_NODE == pos.getNodeType())
+      {
+        // I think this only has to be popped here, and not at getParent,
+        // oddly enough at first glance.
+        popShouldStripWhitespace();
+      }
+      
+      if (null == nextNode)
+      {
+        m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+
+        currentIndexHandle = m_info.elementAt(posInfo + OFFSET_PARENT);
+        posInfo = currentIndexHandle * NODEINFOBLOCKSIZE;
+        m_levelInfo.quickPop(LEVELINFO_NPERLEVEL);
+        pos = pos.getParentNode();
+
+        if ((null == pos) || (top.equals(pos)))
+        {
+          m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
+          nextNode = null;
+          break;
+        }
+      }
+      
+    } // end while (null == nextNode) [for next sibling, parent]
+
+    pos = nextNode;
+
+    if (null != pos)
+    {
+      int level = m_levelInfo.size() / LEVELINFO_NPERLEVEL;
+      int newIndexHandle = 
+            addNode(pos, level, m_levelInfo.peek(LEVELINFO_PARENT),
+                m_levelInfo.peek(LEVELINFO_PREVSIB));
+
+      m_pos = pos;
+
+      int sz = m_levelInfo.size();
+
+      m_levelInfo.setElementAt(newIndexHandle,
+                               sz - (1 + LEVELINFO_PREVSIB));
+                               
+      if((null != m_wsfilter) && (Node.ELEMENT_NODE == pos.getNodeType()))
+      {
+        short wsv = m_wsfilter.getShouldStripSpace(newIndexHandle);
+        boolean shouldStrip = (DTMWSFilter.INHERIT == wsv) ? 
+                  getShouldStripWhitespace() : (DTMWSFilter.STRIP == wsv);
+        pushShouldStripWhitespace(shouldStrip);
+      }
+      return pos;
+    }
+
 
     m_nodesAreProcessed = true;
-
+    m_pos = null;
     return null;
   }
 
@@ -688,48 +755,6 @@ public class DOM2DTM implements DTM
   }
 
   /**
-   * Given a node handle, get the index of the node's first child.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again
-   *
-   * @param nodeHandle handle to node, which should probably be an element
-   *                   node, but need not be.
-   *
-   * @param inScope    true if all namespaces in scope should be returned,
-   *                   false if only the namespace declarations should be
-   *                   returned.
-   * @return handle of first namespace, or DTM.NULL to indicate none exists.
-   */
-  public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
-  {
-
-    int type = getNodeType(nodeHandle);
-
-    if (DTM.ELEMENT_NODE == type)
-    {
-
-      // Assume that attributes and namespaces immediately follow the element.
-      int identity = nodeHandle & m_mask;
-
-      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
-      {
-        type = getNodeType(identity);
-
-        if (type == DTM.NAMESPACE_NODE)
-        {
-          return identity | m_dtmIdent;
-        }
-        else if (DTM.ATTRIBUTE_NODE != type)
-        {
-          break;
-        }
-      }
-    }
-
-    return DTM.NULL;
-  }
-
-  /**
    * Given a node handle, advance to its next sibling.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
@@ -801,38 +826,177 @@ public class DOM2DTM implements DTM
 
     return DTM.NULL;
   }
+  
+  private Vector m_namespaceLists = null; // on demand
+  
+  private NodeVector getNamespaceList(int baseHandle)
+  {
+    if(null == m_namespaceLists)
+      m_namespaceLists = new Vector();
+    else
+    {
+      int n = m_namespaceLists.size();
+      for (int i = (n-1); i >= 0; i--) 
+      {
+        NodeVector ivec = (NodeVector)m_namespaceLists.elementAt(i);
+        if(ivec.elementAt(0) == baseHandle)
+          return ivec;
+      }
+    }
+    NodeVector ivec = buildNamespaceList(baseHandle);
+    m_namespaceLists.addElement(ivec);
+    return ivec;
+  }
+  
+  private NodeVector buildNamespaceList(int baseHandle)
+  {
+    NodeVector ivec = new NodeVector(7);
+    ivec.addElement(-1);  // for base handle.
+    
+    int nodeHandle = baseHandle;
+    int type = getNodeType(baseHandle);
 
+    int namespaceHandle = DTM.NULL;
+
+    if (DTM.ELEMENT_NODE == type)
+    {
+      // We have to return in document order, so we actually want to find the 
+      // first namespace decl of the last element that has a namespace decl.
+
+      // Assume that attributes and namespaces immediately follow the element.
+      int identity = nodeHandle & m_mask;
+      
+      while (DTM.NULL != identity)
+      {
+        identity = getNextNodeIdentity(identity);
+        
+        type = (DTM.NULL == identity) ? -1 : getNodeType(identity);
+
+        if (type == DTM.NAMESPACE_NODE)
+        {
+          namespaceHandle = identity | m_dtmIdent;
+          ivec.insertInOrder(namespaceHandle);
+        }
+        else if (DTM.ATTRIBUTE_NODE != type)
+        {
+          if(identity > 0)
+          {
+            nodeHandle = getParent(nodeHandle);
+            // System.out.println("parent: "+nodeHandle);
+            if(nodeHandle == DTM.NULL)
+              break;
+            identity = nodeHandle & m_mask;
+            if(identity == 0)
+              break;
+          }
+          else
+            break;
+        }
+      }
+    }
+    ivec.setElementAt(baseHandle, 0);
+    return ivec;
+  }
+
+  
   /**
-   * Given a namespace handle, advance to the next namespace.
+   * Given a node handle, get the index of the node's first child.
+   * If not yet resolved, waits for more nodes to be added to the document and
+   * tries again
    *
-   * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
+   * @param nodeHandle handle to node, which should probably be an element
+   *                   node, but need not be.
    *
-   * NEEDSDOC @param nodeHandle
-   * NEEDSDOC @param inScope
-   * @return handle of next namespace, or DTM.NULL to indicate none exists.
+   * @param inScope    true if all namespaces in scope should be returned,
+   *                   false if only the namespace declarations should be
+   *                   returned.
+   * @return handle of first namespace, or DTM.NULL to indicate none exists.
    */
-  public int getNextNamespaceNode(int nodeHandle, boolean inScope)
+  public int getFirstNamespaceNode(int nodeHandle, boolean inScope)
   {
 
     int type = getNodeType(nodeHandle);
 
+    if (DTM.ELEMENT_NODE == type)
+    {
+      if(inScope)
+      {
+        NodeVector namespaces = getNamespaceList(nodeHandle);
+        int n = namespaces.size();
+        if(n > 1)
+          return namespaces.elementAt(1);
+      }
+      else
+      {
+        // Assume that attributes and namespaces immediately follow the element.
+        int identity = nodeHandle & m_mask;
+  
+        while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+        {
+          // Assume this can not be null.
+          type = getNodeType(identity);
+  
+          if (type == DTM.NAMESPACE_NODE)
+          {
+            return identity | m_dtmIdent;
+          }
+          else if (DTM.ATTRIBUTE_NODE != type)
+          {
+            break;
+          }
+        }
+      }
+    }
+
+    return DTM.NULL;
+  }
+
+
+  /**
+   * Given a namespace handle, advance to the next namespace.
+   *
+   * @param baseHandle handle to original node from where the first child 
+   * was relative to (needed to return nodes in document order).
+   * @param namespaceHandle handle to node which must be of type
+   * NAMESPACE_NODE.
+   * @return handle of next namespace, or DTM.NULL to indicate none exists.
+   */
+  public int getNextNamespaceNode(int baseHandle, int nodeHandle, boolean inScope)
+  {
+    int type = getNodeType(nodeHandle);
+
     if (DTM.NAMESPACE_NODE == type)
     {
-
-      // Assume that attributes and namespace nodes immediately follow the element.
-      int identity = nodeHandle & m_mask;
-
-      while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+      if(inScope)
       {
-        type = getNodeType(identity);
-
-        if (type == DTM.NAMESPACE_NODE)
+        NodeVector namespaces = getNamespaceList(baseHandle);
+        int n = namespaces.size();
+        for (int i = 1; i < n; i++) // start from 1 on purpose 
         {
-          return identity | m_dtmIdent;
+          if(nodeHandle == namespaces.elementAt(i))
+          {
+            if(i+1 < n)
+              return namespaces.elementAt(i+1);
+          }
         }
-        else if (type != DTM.ATTRIBUTE_NODE)
+      }
+      else
+      {
+        // Assume that attributes and namespace nodes immediately follow the element.
+        int identity = nodeHandle & m_mask;
+  
+        while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
         {
-          break;
+          type = getNodeType(identity);
+  
+          if (type == DTM.NAMESPACE_NODE)
+          {
+            return identity | m_dtmIdent;
+          }
+          else if (type != DTM.ATTRIBUTE_NODE)
+          {
+            break;
+          }
         }
       }
     }
@@ -900,9 +1064,15 @@ public class DOM2DTM implements DTM
   {
 
     int identity = nodeHandle & m_mask;
-    int firstChild = getNodeInfo(identity, OFFSET_PARENT);
-
-    return nodeHandle | m_dtmIdent;
+    // System.out.println("identity: "+identity);
+    if(identity > 0)
+    {
+      int parent = getNodeInfo(identity, OFFSET_PARENT);
+  
+      return parent | m_dtmIdent;
+    }
+    else
+      return DTM.NULL;
   }
 
   /**
@@ -913,7 +1083,7 @@ public class DOM2DTM implements DTM
    */
   public int getDocument()
   {
-    return 0 | m_dtmIdent;
+    return m_dtmIdent;
   }
 
   /**
@@ -1098,12 +1268,12 @@ public class DOM2DTM implements DTM
    *
    * @return the expanded-name id of the node.
    */
-  public int getExpandedNameID(String namespace, String localName)
+  public int getExpandedNameID(String namespace, String localName, int type)
   {
 
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    return ent.getExpandedNameID(namespace, localName);
+    return ent.getExpandedNameID(namespace, localName, type);
   }
 
   /**
@@ -1116,7 +1286,7 @@ public class DOM2DTM implements DTM
   {
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    return ent.getLocalNameFromExpandedNameID(ExpandedNameID);
+    return ent.getLocalName(ExpandedNameID);
   }
 
   /**
@@ -1130,7 +1300,7 @@ public class DOM2DTM implements DTM
   {
     ExpandedNameTable ent = m_mgr.getExpandedNameTable(this);
 
-    return ent.getNamespaceFromExpandedNameID(ExpandedNameID);
+    return ent.getNamespace(ExpandedNameID);
   }
 
   /**
@@ -1167,10 +1337,25 @@ public class DOM2DTM implements DTM
 
     switch (type)
     {
+    case DTM.NAMESPACE_NODE :
+    {
+      Node node = getNode(nodeHandle);
+
+      // assume not null.
+      name = node.getNodeName();
+      if(name.startsWith("xmlns:"))
+      {
+        name = QName.getLocalPart(name);
+      }
+      else if(name.equals("xmlns"))
+      {
+        name = "";
+      }
+    }
+    break;
     case DTM.ATTRIBUTE_NODE :
     case DTM.ELEMENT_NODE :
     case DTM.ENTITY_REFERENCE_NODE :
-    case DTM.NAMESPACE_NODE :
     case DTM.PROCESSING_INSTRUCTION_NODE :
     {
       Node node = getNode(nodeHandle);
@@ -1366,7 +1551,8 @@ public class DOM2DTM implements DTM
 
     int identity = nodeHandle & m_mask;
 
-    return (short) getNodeInfo(identity, OFFSET_LEVEL);
+    // Apparently, the axis walker stuff requires levels to count from 1.
+    return (short) (getNodeInfo(identity, OFFSET_LEVEL)+1);
   }
 
   // ============== Document query functions ============== 
@@ -1831,15 +2017,17 @@ public class DOM2DTM implements DTM
       }
     }
     break;
+    case Node.PROCESSING_INSTRUCTION_NODE : // %REVIEW%
+    case Node.COMMENT_NODE :
     case Node.TEXT_NODE :
     case Node.CDATA_SECTION_NODE :
     case Node.ATTRIBUTE_NODE :
       String str = node.getNodeValue();
       ch.characters(str.toCharArray(), 0, str.length());
       break;
-    case Node.PROCESSING_INSTRUCTION_NODE :
-      // warning(XPATHErrorResources.WG_PARSING_AND_PREPARING);        
-      break;
+//    case Node.PROCESSING_INSTRUCTION_NODE :
+//      // warning(XPATHErrorResources.WG_PARSING_AND_PREPARING);        
+//      break;
     default :
       // ignore
       break;
@@ -1912,5 +2100,57 @@ public class DOM2DTM implements DTM
   protected void error(String msg)
   {
     throw new DTMException(msg);
+  }
+  
+    /**
+   * Find out whether or not to strip whispace nodes.  
+   *
+   *
+   * @return whether or not to strip whispace nodes.
+   */
+  protected boolean getShouldStripWhitespace()
+  {
+    return m_shouldStripWS;
+  }
+
+  /**
+   * Set whether to strip whitespaces and push in current value of   
+   * m_shouldStripWS in m_shouldStripWhitespaceStack.
+   *
+   * @param shouldStrip Flag indicating whether to strip whitespace nodes
+   */
+  protected void pushShouldStripWhitespace(boolean shouldStrip)
+  {
+
+    m_shouldStripWS = shouldStrip;
+
+    if(null != m_shouldStripWhitespaceStack)
+      m_shouldStripWhitespaceStack.push(shouldStrip);
+  }
+
+  /**
+   * Set whether to strip whitespaces at this point by popping out  
+   * m_shouldStripWhitespaceStack. 
+   *
+   */
+  protected void popShouldStripWhitespace()
+  {
+    if(null != m_shouldStripWhitespaceStack)
+      m_shouldStripWS = m_shouldStripWhitespaceStack.popAndTop();
+  }
+
+  /**
+   * Set whether to strip whitespaces and set the top of the stack to 
+   * the current value of m_shouldStripWS.  
+   *
+   *
+   * @param shouldStrip Flag indicating whether to strip whitespace nodes
+   */
+  protected void setShouldStripWhitespace(boolean shouldStrip)
+  {
+    
+    m_shouldStripWS = shouldStrip;
+    if(null != m_shouldStripWhitespaceStack)
+      m_shouldStripWhitespaceStack.setTop(shouldStrip);
   }
 }

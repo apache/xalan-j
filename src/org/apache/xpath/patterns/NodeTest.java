@@ -91,10 +91,6 @@ public class NodeTest extends Expression
    */
   protected int m_whatToShow;
 
-  /** This bit specifies a namespace, and extends the SHOW_XXX stuff 
-   *  in {@link org.w3c.dom.traversal.NodeFilter}. */
-  public static final int SHOW_NAMESPACE = 0x00001000;
-
   /**
    * Special bitmap for match patterns starting with a function.
    * Make sure this does not conflict with {@link org.w3c.dom.traversal.NodeFilter}.
@@ -458,32 +454,13 @@ public class NodeTest extends Expression
     // namespace declarations. The node test will be true for any node 
     // of the principal type whose expanded name has the URI to which 
     // the prefix expands, regardless of the local part of the name."
-    case DTMFilter.SHOW_ATTRIBUTE :
+    case DTMFilter.SHOW_NAMESPACE :
     {
-      int isNamespace = (m_whatToShow & SHOW_NAMESPACE);
+      String ns = dtm.getNodeValue(context);
 
-      if (0 == isNamespace)
-      {
-        if (!(DTM.NAMESPACE_NODE == dtm.getNodeType(context)))
-          return (m_isTotallyWild || (subPartMatchNS(dtm.getNamespaceURI(context), 
-                  m_namespace) && 
-                  subPartMatch(dtm.getLocalName(context), m_name)))
-                 ? m_score : SCORE_NONE;
-        else
-          return SCORE_NONE;
-      }
-      else
-      {
-        if (DTM.NAMESPACE_NODE == dtm.getNodeType(context))
-        {
-          String ns = dtm.getNodeValue(context);
-
-          return (subPartMatch(ns, m_name)) ? m_score : SCORE_NONE;
-        }
-        else
-          return SCORE_NONE;
-      }
+      return (subPartMatch(ns, m_name)) ? m_score : SCORE_NONE;
     }
+    case DTMFilter.SHOW_ATTRIBUTE :
     case DTMFilter.SHOW_ELEMENT :
     {
       return (m_isTotallyWild || (subPartMatchNS(dtm.getNamespaceURI(context), m_namespace) 
@@ -511,8 +488,6 @@ public class NodeTest extends Expression
   public XObject execute(XPathContext xctxt)
           throws javax.xml.transform.TransformerException
   {
-    // %TBD%
-//    return execute(xctxt, xctxt.getCurrentNode());
-    return null;
+    return execute(xctxt, xctxt.getCurrentNode());
   }
 }

@@ -515,7 +515,7 @@ public class UnionPathIterator extends Expression
   }
 
   /** The last node that was fetched, usually by nextNode. */
-  transient int m_lastFetched;
+  transient int m_lastFetched = DTM.NULL;
 
   /**
    *  Returns the next node in the set and advances the position of the
@@ -644,11 +644,10 @@ public class UnionPathIterator extends Expression
   public int getLength()
   {
 
-    // %TBD%
-    return 0;
+    // %TBD% ??
 //    resetToCachedList();
-//
-//    return m_cachedNodes.getLength();
+
+    return m_cachedNodes.getLength();
   }
 
   /**
@@ -662,11 +661,27 @@ public class UnionPathIterator extends Expression
    */
   public int item(int index)
   {
-    // %TBD%
-    return DTM.NULL;
-//    resetToCachedList();
-//
-//    return m_cachedNodes.item(index);
+    // resetToCachedList(); %TBD% ??
+
+    return m_cachedNodes.item(index);
+  }
+  
+  /**
+   * Sets the node at the specified index of this vector to be the
+   * specified node. The previous component at that position is discarded.
+   *
+   * <p>The index must be a value greater than or equal to 0 and less
+   * than the current size of the vector.  
+   * The iterator must be in cached mode.</p>
+   * 
+   * <p>Meant to be used for sorted iterators.</p>
+   *
+   * @param node Node to set
+   * @param index Index of where to set the node
+   */
+  public void setItem(int node, int index)
+  {
+    m_cachedNodes.setElementAt(node, index);
   }
   
   /**
@@ -732,13 +747,13 @@ public class UnionPathIterator extends Expression
   /**
    * The node context for the expression.
    */
-  transient protected int m_context;
+  transient protected int m_context = DTM.NULL;
 
   /**
    * The node context from where the Location Path is being
    * executed from (i.e. for current() support).
    */
-  transient protected int m_currentContextNode;
+  transient protected int m_currentContextNode = DTM.NULL;
   
   /**
    * Get an instance of a DTM that "owns" a node handle.  Since a node 
