@@ -217,7 +217,12 @@ public class DTMManagerDefault extends DTMManager
         {
           // This is a strange way to start the parse.
           Object gotMore = coParser.doParse(xmlSource, appCoroutine);
-          if (gotMore != Boolean.TRUE)
+          if( gotMore instanceof Exception)
+          {
+            dtm.clearCoRoutine();
+            throw ((Exception)gotMore);
+          }
+          else if (gotMore != Boolean.TRUE)
           {
       
             dtm.clearCoRoutine();
@@ -310,6 +315,15 @@ public class DTMManagerDefault extends DTMManager
       {
         reader.setFeature("http://xml.org/sax/features/namespace-prefixes",
                           true);
+      }
+      catch (org.xml.sax.SAXException se)
+      {
+
+        // What can we do?
+        // TODO: User diagnostics.
+      }
+      try
+      {
         reader.setFeature("http://apache.org/xml/features/validation/dynamic",
                           true);
       }
