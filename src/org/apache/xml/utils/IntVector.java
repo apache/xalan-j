@@ -133,6 +133,55 @@ public class IntVector
 
     m_firstFree++;
   }
+  
+  /**
+   * Append several int values onto the vector.
+   *
+   * @param value Int to add to the list 
+   */
+  public final void addElements(int value, int numberOfElements)
+  {
+
+    if ((m_firstFree + numberOfElements) >= m_mapSize)
+    {
+      m_mapSize += (m_blocksize+numberOfElements);
+
+      int newMap[] = new int[m_mapSize];
+
+      System.arraycopy(m_map, 0, newMap, 0, m_firstFree + 1);
+
+      m_map = newMap;
+    }
+
+    for (int i = 0; i < numberOfElements; i++) 
+    {
+      m_map[m_firstFree] = value;
+      m_firstFree++;
+    }
+  }
+  
+  /**
+   * Append several slots onto the vector, but do not set the values.
+   *
+   * @param value Int to add to the list 
+   */
+  public final void addElements(int numberOfElements)
+  {
+
+    if ((m_firstFree + numberOfElements) >= m_mapSize)
+    {
+      m_mapSize += (m_blocksize+numberOfElements);
+
+      int newMap[] = new int[m_mapSize];
+
+      System.arraycopy(m_map, 0, newMap, 0, m_firstFree + 1);
+
+      m_map = newMap;
+    }
+    
+    m_firstFree += numberOfElements;
+  }
+  
 
   /**
    * Inserts the specified node in this vector at the specified index.
@@ -245,9 +294,9 @@ public class IntVector
    * @param node object to set
    * @param index Index of where to set the object
    */
-  public final void setElementAt(int node, int index)
+  public final void setElementAt(int value, int index)
   {
-    m_map[index] = node;
+    m_map[index] = value;
   }
 
   /**
