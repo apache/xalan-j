@@ -233,7 +233,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
     super(mgr, source, dtmIdentity, whiteSpaceFilter, 
           xstringfactory, doIndexing);
           
-    m_data = new IntVector(doIndexing ? (1024*4) : 512);
+    m_data = new IntVector(doIndexing ? (1024*2) : 512, 1024);
 
     m_dataOrQName = new int[m_initialblocksize];
 
@@ -467,7 +467,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   {
 
     int identity = nodeHandle & m_mask;
-    int type = getNodeType(identity);
+    int type = _type(identity);
 
     if (isTextType(type))
     {
@@ -931,14 +931,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
    */
   public String getLocalName(int nodeHandle)
   {
-
-    int expandedTypeID = getExpandedTypeID(nodeHandle);
-    String name = m_expandedNameTable.getLocalName(expandedTypeID);
-
-    if (name == null)
-      return "";
-    else
-      return name;
+    return m_expandedNameTable.getLocalName(_exptype(nodeHandle & m_mask));
   }
 
   /**
@@ -1134,9 +1127,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
   public String getNamespaceURI(int nodeHandle)
   {
 
-    int expandedTypeID = getExpandedTypeID(nodeHandle);
-
-    return m_expandedNameTable.getNamespace(expandedTypeID);
+    return m_expandedNameTable.getNamespace(_exptype(nodeHandle & m_mask));
   }
 
   /**
@@ -1243,7 +1234,7 @@ public class SAX2DTM extends DTMDefaultBaseIterators
       intObj = (Integer) m_idAttributes.get(elementId);
 
       if (null != intObj)
-        return intObj.intValue();
+        return intObj.intValue() | m_dtmIdent;
 
       if (!isMore || m_endDocumentOccured)
         break;
