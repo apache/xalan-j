@@ -130,7 +130,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       traverser = new DescendantTraverser();
       break;
     case Axis.DESCENDANTORSELF :
-      traverser = new DescendantTraverser();
+      traverser = new DescendantOrSelfTraverser();
       break;
     case Axis.FOLLOWING :
       traverser = new FollowingTraverser();
@@ -157,13 +157,13 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       traverser = new SelfTraverser();
       break;
     case Axis.ALL :
-      traverser = new AllTraverser();
+      traverser = new AllFromRootTraverser();
       break;
     case Axis.ALLFROMNODE :
       traverser = new AllFromNodeTraverser();
       break;
     case Axis.DESCENDANTSFROMROOT :
-      traverser = new AllFromRootTraverser();
+      traverser = new DescendantFromRootTraverser();
       break;
     case Axis.ROOT :
       traverser = new RootTraverser();
@@ -979,84 +979,11 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     }
   }
 
-  /**
-   * A non-xpath axis, returns all nodes in the tree from and including the
-   * root.
-   */
-  private class AllTraverser extends DTMAxisTraverser
-  {
-
-    /**
-     * Return the root node.
-     *
-     * @param context The context node of this traversal.
-     *
-     * @return the first node in the traversal, which is the root node in the
-     * DTM.
-     */
-    public int first(int context)
-    {
-      return getDocument();  // context is ignored.
-    }
-
-    /**
-     * Traverse to the next node after the current node.
-     *
-     * @param context The context node of this iteration.
-     * @param current The current node of the iteration.
-     *
-     * @return the next node in the iteration, or DTM.NULL.
-     */
-    public int next(int context, int current)
-    {
-
-      int subtreeRootIdent = context & m_mask;
-
-      for (current = (current & m_mask) + 1; ; current++)
-      {
-        int type = _type(current);  // may call nextNode()
-
-        if (NULL == type)
-          return NULL;
-
-        return (current | m_dtmIdent);  // make handle.
-      }
-    }
-
-    /**
-     * Traverse to the next node after the current node that is matched
-     * by the extended type ID.
-     *
-     * @param context The context node of this iteration.
-     * @param current The current node of the iteration.
-     * @param extendedTypeID The extended type ID that must match.
-     *
-     * @return the next node in the iteration, or DTM.NULL.
-     */
-    public int next(int context, int current, int extendedTypeID)
-    {
-
-      int subtreeRootIdent = context & m_mask;
-
-      for (current = (current & m_mask) + 1; ; current++)
-      {
-        int exptype = _exptype(current);  // may call nextNode()
-
-        if (NULL == exptype)
-          return NULL;
-
-        if (exptype != extendedTypeID)
-          continue;
-
-        return (current | m_dtmIdent);  // make handle.
-      }
-    }
-  }
 
   /**
    * Implements traversal of the Ancestor access, in reverse document order.
    */
-  private class AllFromRootTraverser extends AllTraverser
+  private class AllFromRootTraverser extends AllFromNodeTraverser
   {
 
     /**
@@ -1083,6 +1010,57 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
     {
       return (m_exptype[getDocument() & m_mask] == extendedTypeID)
              ? context : next(context, context, extendedTypeID);
+    }
+    
+    /**
+     * Traverse to the next node after the current node.
+     *
+     * @param context The context node of this iteration.
+     * @param current The current node of the iteration.
+     *
+     * @return the next node in the iteration, or DTM.NULL.
+     */
+    public int next(int context, int current)
+    {
+
+      int subtreeRootIdent = context & m_mask;
+
+      for (current = (current & m_mask) + 1; ; current++)
+      {
+        int type = _type(current);  // may call nextNode()
+        if(type == NULL)
+          return NULL;
+
+        return (current | m_dtmIdent);  // make handle.
+      }
+    }
+
+    /**
+     * Traverse to the next node after the current node that is matched
+     * by the extended type ID.
+     *
+     * @param context The context node of this iteration.
+     * @param current The current node of the iteration.
+     * @param extendedTypeID The extended type ID that must match.
+     *
+     * @return the next node in the iteration, or DTM.NULL.
+     */
+    public int next(int context, int current, int extendedTypeID)
+    {
+
+      int subtreeRootIdent = context & m_mask;
+
+      for (current = (current & m_mask) + 1; ; current++)
+      {
+        int exptype = _exptype(current);  // may call nextNode()
+        if(exptype == NULL)
+          return NULL;
+
+        if (exptype != extendedTypeID)
+          continue;
+
+        return (current | m_dtmIdent);  // make handle.
+      }
     }
   }
 
@@ -1125,9 +1103,35 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
    * A non-xpath axis, returns all nodes that aren't namespaces or attributes,
    * from and including the root.
    */
-  private class DescendantFromRootTraverser extends AllFromRootTraverser
+  private class DescendantFromRootTraverser extends DescendantTraverser
   {
 
+    /**
+     * Return the root.
+     *
+     * @param context The context node of this traversal.
+     *
+     * @return the first node in the traversal.
+     */
+    public int first(int context)
+    {
+      return getDocument();
+    }
+
+    /**
+     * Return the root if it matches the extended type ID.
+     *
+     * @param context The context node of this traversal.
+     * @param extendedTypeID The extended type ID that must match.
+     *
+     * @return the first node in the traversal.
+     */
+    public int first(int context, int extendedTypeID)
+    {
+      return (m_exptype[getDocument() & m_mask] == extendedTypeID)
+             ? context : next(context, context, extendedTypeID);
+    }
+    
     /**
      * Traverse to the next node after the current node.
      *
@@ -1144,8 +1148,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) + 1; ; current++)
       {
         int type = _type(current);  // may call nextNode()
-
-        if (NULL == type)
+        if(type == NULL)
           return NULL;
 
         if (ATTRIBUTE_NODE == type || NAMESPACE_NODE == type)
@@ -1173,8 +1176,7 @@ public abstract class DTMDefaultBaseTraversers extends DTMDefaultBase
       for (current = (current & m_mask) + 1; ; current++)
       {
         int exptype = _exptype(current);  // may call nextNode()
-
-        if (NULL == exptype)
+        if(exptype == NULL)
           return NULL;
 
         if (exptype != extendedTypeID)
