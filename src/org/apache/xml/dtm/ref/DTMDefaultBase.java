@@ -143,7 +143,7 @@ public abstract class DTMDefaultBase implements DTM
   protected int m_dtmIdent;
 
   /** The mask for the identity.  %REVIEW% static constant? */
-  protected int m_mask;
+  protected final static int m_mask = DTMManager.IDENT_NODE_DEFAULT;
 
   /** The base URI for this document. */
   protected String m_documentBaseURI;
@@ -201,7 +201,7 @@ public abstract class DTMDefaultBase implements DTM
     m_mgr = mgr;
     m_documentBaseURI = (null != source) ? source.getSystemId() : null;
     m_dtmIdent = dtmIdentity;
-    m_mask = mgr.getNodeIdentityMask();
+    // m_mask = mgr.getNodeIdentityMask();
     m_wsfilter = whiteSpaceFilter;
     m_xstrf = xstringfactory;
     m_indexing = doIndexing;
@@ -432,6 +432,7 @@ public abstract class DTMDefaultBase implements DTM
     if (capacity <= index)
     {
       int newcapacity = capacity + m_blocksize;
+      // System.out.println("resizing to new capacity: "+newcapacity);
 
       // %OPT% Compilers might be happier if we operated on one array
       // at a time, though the parallel code might be a trifle less
@@ -459,6 +460,8 @@ public abstract class DTMDefaultBase implements DTM
 
       // %REVIEW%
       m_blocksize = m_blocksize + m_blocksize;
+      if(m_blocksize >= (1024*8))
+        m_blocksize = 1024*8;
     }
   }
 
@@ -910,10 +913,7 @@ public abstract class DTMDefaultBase implements DTM
   public int getNextSibling(int nodeHandle)
   {
 
-    int identity = nodeHandle & m_mask;
-    int nextSibling = _nextsib(identity);
-
-    return nextSibling | m_dtmIdent;
+    return _nextsib(nodeHandle & m_mask) | m_dtmIdent;
   }
 
   /**
@@ -1305,10 +1305,7 @@ public abstract class DTMDefaultBase implements DTM
   public int getExpandedTypeID(int nodeHandle)
   {
 
-    int identity = nodeHandle & m_mask;
-    int expandedNameID = _exptype(identity);
-
-    return expandedNameID;
+    return _exptype(nodeHandle & m_mask);
   }
 
   /**
@@ -1342,12 +1339,9 @@ public abstract class DTMDefaultBase implements DTM
    * @param ExpandedNameID an ID that represents an expanded-name.
    * @return String Local name of this node.
    */
-  public String getLocalNameFromExpandedNameID(int ExpandedNameID)
+  public String getLocalNameFromExpandedNameID(int expandedNameID)
   {
-
-    ExpandedNameTable ent = m_expandedNameTable;
-
-    return ent.getLocalName(ExpandedNameID);
+    return m_expandedNameTable.getLocalName(expandedNameID);
   }
 
   /**
@@ -1357,9 +1351,9 @@ public abstract class DTMDefaultBase implements DTM
    * @return String URI value of this node's namespace, or null if no
    * namespace was resolved.
    */
-  public String getNamespaceFromExpandedNameID(int ExpandedNameID)
+  public String getNamespaceFromExpandedNameID(int expandedNameID)
   {
-    return m_expandedNameTable.getNamespace(ExpandedNameID);
+    return m_expandedNameTable.getNamespace(expandedNameID);
   }
 
   /**
