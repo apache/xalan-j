@@ -107,7 +107,7 @@ public interface DTMIterator
    * @param environment The environment object.
    */
   public void setEnvironment(Object environment);
-  
+
   /**
    * Get an instance of a DTM that "owns" a node handle.  Since a node 
    * iterator may be passed without a DTMManager, this allows the 
@@ -127,7 +127,6 @@ public interface DTMIterator
    * @return a non-null DTMManager reference.
    */
   public DTMManager getDTMManager();
-
 
   /**
    * The root node of the <code>DTMIterator</code>, as specified when it

@@ -87,7 +87,8 @@ public abstract class DTMManager
   protected DTMManager(){}
 
   /**
-   * Get an instance of a DTM.  If the unique flag is true, a new instance will
+   * Get an instance of a DTM, loaded with the content from the
+   * specified source.  If the unique flag is true, a new instance will
    * always be returned.  Otherwise it is up to the DTMManager to return a
    * new instance or an instance that it already created and may be being used
    * by someone else.
@@ -104,16 +105,16 @@ public abstract class DTMManager
                              boolean unique);
                              
   /**
-   * Get an instance of a DTM that "owns" a node handle.
+   * Get the instance of DTM that "owns" a node handle.
    *
    * @param nodeHandle the nodeHandle.
    *
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(int nodeHandle);
-  
+
   /**
-   * Creates an empty <code>DocumentFragment</code> object. 
+   * Creates a DTM representing an empty <code>DocumentFragment</code> object. 
    * @return a non-null DTM reference.
    */
   public abstract DTM createDocumentFragment();
@@ -128,7 +129,10 @@ public abstract class DTMManager
    * @return true if the DTM was removed, false if it was put back in a lru pool.
    */
   public abstract boolean release(DTM dtm, boolean shouldHardDelete);
-  
+   
+
+
+
 
   /**
    * Create a new <code>DTMIterator</code> based on an XPath
@@ -180,7 +184,7 @@ public abstract class DTMManager
    */
   public abstract DTMIterator createDTMIterator(int whatToShow,
           DTMFilter filter, boolean entityReferenceExpansion);
-          
+
   /**
    * Create a new <code>DTMIterator</code> that holds exactly one node.
    *

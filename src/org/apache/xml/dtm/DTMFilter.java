@@ -57,7 +57,7 @@
 package org.apache.xml.dtm;
 
 /**
- * Simple filter for doing node tests.  Note the semantics of this are somewhat
+ * Simple filter for doing node tests.  Note the semantics of this are somewhat 
  * different that the DOM's NodeFilter.
  */
 public interface DTMFilter
@@ -145,45 +145,62 @@ public interface DTMFilter
    * not appear when traversing over the document tree.
    */
   public static final int SHOW_NOTATION = 0x00000800;
-
+  
   /**
    * This bit specifies a namespace, and extends the SHOW_XXX stuff
-   *  in {@link org.w3c.dom.traversal.NodeFilter}. 
+   *  in {@link org.w3c.dom.traversal.NodeFilter}.
+   * Make sure this does not conflict with those values.
    */
   public static final int SHOW_NAMESPACE = 0x00001000;
 
   /**
    * Special bitmap for match patterns starting with a function.
-   * Make sure this does not conflict with {@link org.w3c.dom.traversal.NodeFilter}.
+   * This extends the SHOW_XXX stuff
+   *  in {@link org.w3c.dom.traversal.NodeFilter}.
+   * Make sure this does not conflict with those values.
    */
   public static final int SHOW_BYFUNCTION = 0x00010000;
 
   /**
    * Test whether a specified node is visible in the logical view of a
    * <code>DTMIterator</code>. Normally, this function
-   * will be called by the implementation of <code>DTMIterator</code>;
+   * will be called by the implementation of <code>DTMIterator</code>; 
    * it is not normally called directly from
    * user code.
-   *
+   * 
    * @param nodeHandle int Handle of the node.
    * @param whatToShow one of SHOW_XXX values.
    * @return one of FILTER_ACCEPT, FILTER_REJECT, or FILTER_SKIP.
    */
   public short acceptNode(int nodeHandle, int whatToShow);
-
+  
   /**
    * Test whether a specified node is visible in the logical view of a
    * <code>DTMIterator</code>. Normally, this function
-   * will be called by the implementation of <code>DTMIterator</code>;
+   * will be called by the implementation of <code>DTMIterator</code>; 
    * it is not normally called directly from
    * user code.
-   *
+   * 
+   * <p>%REVIEW% Under what circumstances will this be used? The cases
+   * I've considered are just as easy and just about as efficient if
+   * the name test is performed in the DTMIterator... -- Joe</p>
+   * 
+   * <p>%REVIEW% Should that 0xFFFF have a mnemonic assigned to it?
+   * Also: This representation is assuming the expanded name is indeed
+   * split into high/low 16-bit halfwords. If we ever change the
+   * balance between namespace and localname bits (eg because we
+   * decide there are many more localnames than namespaces, which is
+   * fairly likely), this is going to break. It might be safer to
+   * encapsulate the details with a makeExpandedName method and make
+   * that responsible for setting up the wildcard version as well.</p>
+   * 
    * @param nodeHandle int Handle of the node.
    * @param whatToShow one of SHOW_XXX values.
-   * @param expandedName a value defining the exanded name as defined in
-   *                     the DTM interface.  Wild cards will be defined
+   * @param expandedName a value defining the exanded name as defined in 
+   *                     the DTM interface.  Wild cards will be defined 
    *                     by 0xFFFF in the high word and/or in the low word.
    * @return one of FILTER_ACCEPT, FILTER_REJECT, or FILTER_SKIP.
    */
   public short acceptNode(int nodeHandle, int whatToShow, int expandedName);
+ 
 }

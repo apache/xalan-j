@@ -62,22 +62,26 @@ package org.apache.xml.dtm;
  * has very little object creation.
  * 
  * <p>Nodes in the DTM are identified by integer "handles".  A handle must 
- * be unique within a process, an carries both node identification and 
- * document identification.  It must be possible to compare two handles 
- * for identity with "==".</p>
+ * be unique within a process, and identifies a specific node and its
+ * specific document.  It must be possible to compare two handles 
+ * for node identity with "==".</p>
  * 
- * <p>Namespace URLs, local-names, and expanded-names can all be represented 
- * by integer ID values.  An expanded name is made of a combination of the URL 
- * ID, and the local-name ID.</p>
+ * <p>Namespace URLs, local-names, and expanded-names can all be
+ * represented by and tested as integer ID values.  An expanded name
+ * represents (and may or may not directly contain) a combination of
+ * the URL ID, and the local-name ID.  Note that the namespace URL id
+ * can be 0, which should have the meaning that the namespace is null.
+ * For consistancy, zero should not be used for a local-name index
+ * either. </p>
  * 
- * <p>The model of the tree, as well as the general navigation model, is 
- * that of XPath 1.0, for the moment.  The model will eventually be adapted to 
- * match the XPath 2.0 data model, XML Schema, and InfoSet.</p>
+ * <p>The model of the tree, as well as the general navigation model,
+ * is that of XPath 1.0, for the moment.  The model will eventually be
+ * adapted to match the XPath 2.0 data model, XML Schema, and
+ * InfoSet.</p>
  * 
  * <p>DTM does _not_ directly support the W3C's Document Object Model. However,
  * it attempts to come close enough that an implementation of DTM can be created 
  * that wraps a DOM.</p>
- * 
  * <p>State: In progress!!</p>
  */
 public interface DTM
@@ -87,7 +91,8 @@ public interface DTM
    */
   public static final int NULL = -1;
 
-  // These are the same as the DOM on purpose.
+  // These nodeType mnemonics and values are deliberately the same as those
+  // used by the DOM, for convenient mapping
   /**
    * The node is an <code>Element</code>.
    */
@@ -153,65 +158,78 @@ public interface DTM
 
   /**
    * Set an implementation dependent feature.
+   * <p>
+   * %REVIEW% Do we really expect to set features on DTMs?
    *
    * @param featureId A feature URL.
    * @param state true if this feature should be on, false otherwise.
    */
   public void setFeature(String featureId, boolean state);
   
+
   // ========= Document Navigation Functions =========
 
-  /**
-   * Given a node handle, tell if it has child nodes.
+  /** Given a node handle, test if it has child nodes.
+   * <p> %REVIEW% This is obviously useful at the DOM layer, where it
+   * would permit testing this without having to create a proxy
+   * node. It's less useful in the DTM API, where
+   * (dtm.getFirstChild(nodeHandle)!=DTM.NULL) is just as fast and
+   * almost as self-evident. But it's a convenience, and eases porting
+   * of DOM code to DTM.  </p>
    * 
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int true if the given node has child nodes.
    */
   public boolean hasChildNodes(int nodeHandle);
-
+ 
   /**
    * Given a node handle, get the handle of the node's first child.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
    * 
-   * @param nodeHandle int Handle of the node..
-   * @return int DTM node-number of first child, or -1 to indicate none exists.
+   * @param nodeHandle int Handle of the node.
+   * @return int DTM node-number of first child, or DTM.NULL to indicate none exists.
    */
   public int getFirstChild(int nodeHandle);
 
-  /**
+   /**
    * Given a node handle, advance to its last child.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
    * 
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int Node-number of last child,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getLastChild(int nodeHandle);
 
-    /**
-     * Retrieves an attribute node by name.
-     * <br>To retrieve an attribute node by qualified name and namespace URI, 
-     * use the <code>getAttributeNodeNS</code> method.
-     * @param name The namespace URI of the attribute to 
-     *   retrieve, or null.
-     * @param name The local name of the attribute to 
-     *   retrieve.
-     * @return The attribute node handle with the specified name (
-     *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
-     *   attribute.
-     */
-    public int getAttributeNode(String namespaceURI, String name);
+  /**
+   * Retrieves an attribute node by name.
+   * <br>To retrieve an attribute node by qualified name and namespace URI, 
+   * use the <code>getAttributeNodeNS</code> method.
+   *
+   * <p> %REVIEW% The API described here actually _is_
+   * <code>getAttributeNodeNS</code>, since it takes a
+   * namespaceURI. Fix the function name, or fix the parameters?</p>
+   *
+   * @param name The namespace URI of the attribute to 
+   *   retrieve, or null.
+   * @param name The local name of the attribute to 
+   *   retrieve.
+   * @return The attribute node handle with the specified name (
+   *   <code>nodeName</code>) or <code>DTM.NULL</code> if there is no such 
+   *   attribute.
+   */
+  public int getAttributeNode(String namespaceURI, String name);
 
   /**
    * Given a node handle, get the index of the node's first attribute.
    * 
-   * @param nodeHandle int Handle of the node..
-   * @return Handle of first attribute, or -1 to indicate none exists.
+   * @param nodeHandle int Handle of the node.
+   * @return Handle of first attribute, or DTM.NULL to indicate none exists.
    */
   public int getFirstAttribute(int nodeHandle);
-  
+
   /**
    * Given a node handle, get the index of the node's first child.
    * If not yet resolved, waits for more nodes to be added to the document and
@@ -223,7 +241,7 @@ public interface DTM
    * @param inScope    true if all namespaces in scope should be returned, 
    *                   false if only the namespace declarations should be 
    *                   returned.
-   * @return handle of first namespace, or -1 to indicate none exists.
+   * @return handle of first namespace, or DTM.NULL to indicate none exists.
    */
   public int getFirstNamespaceNode(int nodeHandle, boolean inScope);
 
@@ -231,9 +249,9 @@ public interface DTM
    * Given a node handle, advance to its next sibling.
    * If not yet resolved, waits for more nodes to be added to the document and
    * tries again.
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int Node-number of next sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextSibling(int nodeHandle);
   
@@ -241,11 +259,10 @@ public interface DTM
    * Given a node handle, find its preceeding sibling.
    * WARNING: DTM is asymmetric; this operation is resolved by search, and is
    * relatively expensive.
-   * @param postition int Handle of the node..
    *
    * @param nodeHandle the id of the node.
    * @return int Node-number of the previous sib,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getPreviousSibling(int nodeHandle);
 
@@ -254,9 +271,9 @@ public interface DTM
    * element, we advance to its first attribute; if an attr, we advance to
    * the next attr on the same node.
    * 
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return int DTM node-number of the resolved attr,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextAttribute(int nodeHandle);
 
@@ -264,7 +281,7 @@ public interface DTM
    * Given a namespace handle, advance to the next namespace.
    * 
    * @param namespaceHandle handle to node which must be of type NAMESPACE_NODE.
-   * @return handle of next namespace, or -1 to indicate none exists.
+   * @return handle of next namespace, or DTM.NULL to indicate none exists.
    */
   public int getNextNamespaceNode(int namespaceHandle, boolean inScope);
 
@@ -274,9 +291,9 @@ public interface DTM
    * tries again.
    *
    * @param subtreeRootNodeHandle
-   * @param nodeHandle int Handle of the node..
+   * @param nodeHandle int Handle of the node.
    * @return handle of next descendant,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextDescendant(int subtreeRootHandle, int nodeHandle);
 
@@ -286,7 +303,7 @@ public interface DTM
    * @param axisContextHandle the start of the axis that is being traversed.
    * @param nodeHandle
    * @return handle of next sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextFollowing(int axisContextHandle, int nodeHandle);
   
@@ -296,7 +313,7 @@ public interface DTM
    * @param axisContextHandle the start of the axis that is being traversed.
    * @param nodeHandle the id of the node.
    * @return int Node-number of preceding sibling,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getNextPreceding(int axisContextHandle, int nodeHandle);
 
@@ -305,28 +322,33 @@ public interface DTM
    *
    * @param nodeHandle the id of the node.
    * @return int Node-number of parent,
-   * or -1 to indicate none exists.
+   * or DTM.NULL to indicate none exists.
    */
   public int getParent(int nodeHandle);
 
   /**
-   * Given a node handle, find the owning document node.
-   *
-   * @param nodeHandle the id of the node.
-   * @return int Node handle of document, which should always be valid.
-   */
-  public int getDocument();
-  
-  /**
-   * Given a node handle, find the owning document node.  This has the exact 
-   * same semantics as the DOM Document method of the same name, in that if 
-   * the nodeHandle is a document node, it will return NULL.
-   *
-   * @param nodeHandle the id of the node.
-   * @return int Node handle of owning document, or -1 if the nodeHandle is 
-   *             a document.
-   */
-  public int getOwnerDocument(int nodeHandle);
+    * Given a node handle, find the owning document node.
+    *
+    * @param nodeHandle the id of the node.
+    * @return int Node handle of document, which should always be valid.
+    */
+   public int getDocument();
+   
+   /**
+    * Given a node handle, find the owning document node.  This has the exact 
+    * same semantics as the DOM Document method of the same name, in that if 
+    * the nodeHandle is a document node, it will return NULL.
+    *
+    * <p>%REVIEW% Since this is DOM-specific, it may belong at the DOM
+    * binding layer. Included here as a convenience function and to
+    * aid porting of DOM code to DTM.</p>
+    *
+    * @param nodeHandle the id of the node.
+    * @return int Node handle of owning document, or -1 if the nodeHandle is 
+    *             a document.
+    */
+   public int getOwnerDocument(int nodeHandle);
+ 
 
   /**
    * Get the string-value of a node as a String object
@@ -408,22 +430,24 @@ public interface DTM
   public String getNamespaceFromExpandedNameID(int ExpandedNameID);
 
   /**
-   * Given a node handle, return its DOM-style node name.
+   * Given a node handle, return its DOM-style node name. This will
+   * include names such as #text or #document.
    *
    * @param nodeHandle the id of the node.
    * @return String Name of this node, which may be an empty string.
+   * %REVIEW% Document when empty string is possible...
    */
   public String getNodeName(int nodeHandle);
-  
+
   /**
-   * Given a node handle, the node name.  This should be 
-   * the name as described by the XPath data model, NOT the DOM style name.
+   * Given a node handle, return the XPath node name.  This should be
+   * the name as described by the XPath data model, NOT the DOM-style
+   * name. 
    *
    * @param nodeHandle the id of the node.
    * @return String Name of this node.
    */
   public String getNodeNameX(int nodeHandle);
-  
 
   /**
    * Given a node handle, return its DOM-style localname.
@@ -439,9 +463,8 @@ public interface DTM
    * Given a namespace handle, return the prefix that the namespace decl is 
    * mapping.
    * Given a node handle, return the prefix used to map to the namespace.
-   * (As defined in Namespaces, this is the portion of the name before any
-   * colon character).
-   * @param postition int Handle of the node..
+   *
+   * <p> %REVIEW% Are you sure you want "" for no prefix?  </p>
    *
    * @param nodeHandle the id of the node.
    * @return String prefix of this node's name, or "" if no explicit
@@ -453,7 +476,6 @@ public interface DTM
    * Given a node handle, return its DOM-style namespace URI
    * (As defined in Namespaces, this is the declared URI which this node's
    * prefix -- or default in lieu thereof -- was mapped to.)
-   * @param postition int Handle of the node..
    *
    * @param nodeHandle the id of the node.
    * @return String URI value of this node's namespace, or null if no
@@ -465,7 +487,6 @@ public interface DTM
    * Given a node handle, return its node value. This is mostly
    * as defined by the DOM, but may ignore some conveniences.
    * <p>
-   * @param postition int Handle of the node..
    *
    * @param nodeHandle The node id.
    * @return String Value of this node, or null if not
@@ -475,7 +496,8 @@ public interface DTM
 
   /**
    * Given a node handle, return its DOM-style node type.
-   * @param postition int Handle of the node..
+   * <p>
+   * %REVIEW% Generally, returning short is false economy. Return int?
    *
    * @param nodeHandle The node id.
    * @return int Node type, as per the DOM's Node._NODE constants.
@@ -491,10 +513,13 @@ public interface DTM
    * @return the number of ancestors, plus one
    */
   public short getLevel(int nodeHandle);
-    
+  
+  // ============== Document query functions ============== 
+     
   /**
    * Tests whether DTM DOM implementation implements a specific feature and 
    * that feature is supported by this node.
+   *
    * @param feature The name of the feature to test.
    * @param versionThis is the version number of the feature to test.
    *   If the version is not 
@@ -504,10 +529,8 @@ public interface DTM
    *   supported on this node, <code>false</code> otherwise.
    */
   public boolean isSupported(String feature, 
-                             String version);
-  
-  // ============== Document query functions ============== 
-  
+			     String version);
+
   /**
    * Return the base URI of the document entity. If it is not known
    * (because the document was parsed from a socket connection or from
@@ -593,21 +616,26 @@ public interface DTM
    * @return the public identifier String object, or null if there is none.
    */
   public int getDocumentTypeDeclarationPublicIdentifier();
+
+  /**
+   * Returns the <code>Element</code> whose <code>ID</code> is given by 
+   * <code>elementId</code>. If no such element exists, returns 
+   * <code>DTM.NULL</code>. Behavior is not defined if more than one element 
+   * has this <code>ID</code>. Attributes (including those
+   * with the name "ID") are not of type ID unless so defined by DTD/Schema
+   * information available to the DTM implementation. 
+   * Implementations that do not know whether attributes are of type ID or 
+   * not are expected to return <code>DTM.NULL</code>.
+   *
+   * <p>%REVIEW% Presumably IDs are still scoped to a single document,
+   * and this operation searches only within a single document, right?
+   * Wouldn't want collisions between DTMs in the same process.</p>
+   *
+   * @param elementId The unique <code>id</code> value for an element.
+   * @return The handle of the matching element.
+   */
+  public int getElementById(String elementId);
   
-    /**
-     * Returns the <code>Element</code> whose <code>ID</code> is given by 
-     * <code>elementId</code>. If no such element exists, returns 
-     * <code>DTM.NULL</code>. Behavior is not defined if more than one element 
-     * has this <code>ID</code>. The DTM implementation must have 
-     * information that says which attributes are of type ID. Attributes 
-     * with the name "ID" are not of type ID unless so defined. 
-     * Implementations that do not know whether attributes are of type ID or 
-     * not are expected to return <code>DTM.NULL</code>.
-     * @param elementId The unique <code>id</code> value for an element.
-     * @return The matching element.
-     */
-    public int getElementById(String elementId);
-    
   /**
    * The getUnparsedEntityURI function returns the URI of the unparsed
    * entity with the specified name in the same document as the context
@@ -627,7 +655,7 @@ public interface DTM
    * reference, XML expects it to be resolved in terms of the base URI 
    * of the document. The DOM doesn't do that for us, and it isn't 
    * entirely clear whether that should be done here; currently that's
-   * pushed up to a higher levelof our application. (Note that DOM Level 
+   * pushed up to a higher level of our application. (Note that DOM Level 
    * 1 didn't store the document's base URI.)
    * TODO: Consider resolving Relative URIs.
    * <p>
@@ -644,14 +672,18 @@ public interface DTM
    */
   public String getUnparsedEntityURI(String name);
 
+
   // ============== Boolean methods ================
   
   /**
    * Return true if the xsl:strip-space or xsl:preserve-space was processed 
-   * at the construction level.
+   * during construction of the DTM document.
+   *
+   * <p>%REVEIW% Presumes a 1:1 mapping from DTM to Document, since
+   * we aren't saying which Document to query...?</p>
    */
   boolean supportsPreStripping();
-  
+
   /**
    * Figure out whether nodeHandle2 should be considered as being later
    * in the document than nodeHandle1, in Document Order as defined
@@ -718,8 +750,7 @@ public interface DTM
    *         <code>false</code> if it was defaulted.
    */
   public boolean isAttributeSpecified(int attributeHandle);
-  
-  
+
   // ========== Direct SAX Dispatch, for optimization purposes ========
   
   /**
@@ -747,15 +778,19 @@ public interface DTM
    *
    * @throws org.xml.sax.SAXException
    */
+
   public void dispatchToEvents(
     int nodeHandle, org.xml.sax.ContentHandler ch)
-      throws org.xml.sax.SAXException;
-      
+       throws org.xml.sax.SAXException;
+       
   // ==== Construction methods (may not be supported by some implementations!) =====
-  
+      
   /**
    * Append a child to the end of the document. Please note that the node 
    * is always cloned if it is owned by another document.
+   * 
+   * <p>%REVIEW% "End of the document" needs to be defined more clearly.
+   * Does it become the last child of the Document? Of the root element?</p>
    * 
    * @param newChild Must be a valid new node handle.
    * @param clone true if the child should be cloned into the document.
@@ -764,12 +799,17 @@ public interface DTM
    */
   public void appendChild(int newChild, boolean clone, boolean cloneDepth);
 
+
   /**
    * Append a text node child that will be constructed from a string, 
    * to the end of the document.
    * 
+   * <p>%REVIEW% "End of the document" needs to be defined more clearly.
+   * Does it become the last child of the Document? Of the root element?</p>
+   * 
    * @param str Non-null reverence to a string.
    */
   public void appendTextChild(String str);
-
 }
+       
+ 
