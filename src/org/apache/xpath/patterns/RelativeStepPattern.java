@@ -103,7 +103,7 @@ public class RelativeStepPattern extends StepPattern
   /**
    * Static calc of match score.
    */
-  protected final void calcScore()
+  public void calcScore()
   {
 
     m_score = SCORE_OTHER;
