@@ -569,9 +569,8 @@ public class SAX2DTM extends DTMDefaultBase
 
     while (identity >= m_size)
     {
-      if (m_coroutineParser == null)
+      if(null == m_coroutineParser)
         return DTM.NULL;
-
       nextNode();
     }
 
@@ -1117,16 +1116,18 @@ public class SAX2DTM extends DTMDefaultBase
   {
 
     Integer intObj;
-    
+    boolean isMore = true;
     do
     {
       intObj = (Integer) m_idAttributes.get(elementId);
   
       if (null != intObj)
         return intObj.intValue();
-      
-      if(false == nextNode())
+        
+      if(!isMore || m_endDocumentOccured)
         break;
+      
+      isMore = nextNode();
     }
       while(null == intObj);
     
