@@ -130,11 +130,14 @@ public class FuncDocument extends Function2Args
         int baseNode = arg2.iter().nextNode();
 
         if (baseNode == DTM.NULL)
-          warn(xctxt, XSLTErrorResources.WG_EMPTY_SECOND_ARG, null);
-        
-        DTM baseDTM = xctxt.getDTM(baseNode);
-        base = baseDTM.getDocumentBaseURI();
-
+        {
+          	warn(xctxt, XSLTErrorResources.WG_EMPTY_SECOND_ARG, null);
+          	XNodeSet nodes = new XNodeSet(xctxt.getDTMManager());
+   	        return nodes;
+        }else{
+	        DTM baseDTM = xctxt.getDTM(baseNode);
+    	    base = baseDTM.getDocumentBaseURI();
+        }
         // %REVIEW% This doesn't seem to be a problem with the conformance
         // suite, but maybe it's just not doing a good test?
 //        int baseDoc = baseDTM.getDocument();
