@@ -79,7 +79,7 @@ public class XSLProcessorVersion
    * Version String like <CODE>"<B>Xalan</B>i v.r[.dd| <B>D</B>nn]"</CODE>.
    * <P>Semantics of the version string are identical to the Xerces project.</P>
    */
-  public static String S_VERSION = "2.0.1";
+  public static String S_VERSION = "2.2.0d1";
 
   /**
    * Constant name of product.
@@ -112,7 +112,7 @@ public class XSLProcessorVersion
    *            -  API or behaviour change.
    *            -  its designated as a reference release.
    */
-  public static int RELEASE = 0;
+  public static int RELEASE = 2;
 
   /**
    * Maintenance Drop Number.
@@ -123,7 +123,7 @@ public class XSLProcessorVersion
    *          When missing, it designates the final and complete
    *          development drop for a release.
    */
-  public static int MAINTENANCE = 1;
+  public static int MAINTENANCE = 0;
 
   /**
    * Development Drop Number.
@@ -142,5 +142,5 @@ public class XSLProcessorVersion
    *          well as defect fixes. 'D' drops may not be as stable as
    *          the final releases.
    */
-  public static int DEVELOPMENT = 0;
+  public static int DEVELOPMENT = 1;
 }

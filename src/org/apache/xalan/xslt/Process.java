@@ -570,9 +570,9 @@ public class Process
           }
           else
           {
-            System.out.println("Calling newTemplates: "+xslFileName);
+            // System.out.println("Calling newTemplates: "+xslFileName);
             stylesheet = tfactory.newTemplates(new StreamSource(xslFileName));
-            System.out.println("Done calling newTemplates: "+xslFileName);
+            // System.out.println("Done calling newTemplates: "+xslFileName);
           }
         }
 
@@ -690,7 +690,7 @@ public class Process
             }
             else if (flavor.equals("th"))
             {
-              System.out.println("Testing the TransformerHandler...");
+              // System.out.println("Testing the TransformerHandler...");
 
               // ===============
               XMLReader reader = null;
@@ -832,10 +832,10 @@ public class Process
               }
               else
               {
-                System.out.println("Starting transform");
+                // System.out.println("Starting transform");
                 transformer.transform(new StreamSource(inFileName),
                                       strResult);
-                System.out.println("Done with transform");
+                // System.out.println("Done with transform");
               }
             }
           }
