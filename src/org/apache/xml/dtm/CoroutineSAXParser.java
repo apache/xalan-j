@@ -78,8 +78,6 @@ import org.apache.xml.dtm.CoroutineManager;
  * <p>For a brief usage example, see the unit-test main() method.</p>
  *
  * <p>Status: Passes simple main() unit-test</p>
- *
- * %TBD% Javadoc needs lots of work.
  * */
 public class CoroutineSAXParser
 implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
@@ -104,7 +102,32 @@ implements CoroutineParser, Runnable, ContentHandler, LexicalHandler  {
   // Constructors
   //
 
-  /** Wrap a SAX2 parser.
+  /** Create a CoroutineSAXParser which is not yet bound to a specific
+   * SAX event source. This can be used for situations where we will want
+   * to bind to that source after we've bound a listener to the
+   * CoroutineSAXParser, or where we're going to want to issue the
+   * parse() request (to start events flowing) in the main thread
+   * rather than in the coroutine's thread.
+   *
+   * %TBD% I'm concerned about making sure we properly announce endDocument
+   * to the application coroutine. I'm also concerned about launching this
+   * thread, given that existing code starts by waiting for an InputSource.
+   * This may need a significant redesign so CoroutineSAXParser _only_
+   * provides a "throttle" on a separately configured and launched
+   * XMLReader... or become a separate CoroutineSAXThrottle which is
+   * subclassed to provide today's CoroutineSAXParser.
+   * 
+   * Status: NONFUNCTIONAL.
+   * 
+   * @see setXMLReader (required to support this approach, not yet written)
+   * */
+  public CoroutineSAXParser(CoroutineManager co, int appCoroutineID)
+  {
+    // %TBD%
+  }
+
+  /** Wrap a SAX2 XMLReader (parser or other event source)
+   * in a CoroutineSAXParser.
    * %TBD% whether we should consider supporting SAX1
    */
   public CoroutineSAXParser(CoroutineManager co, int appCoroutineID,
