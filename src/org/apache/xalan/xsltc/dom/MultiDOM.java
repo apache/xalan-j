@@ -89,6 +89,7 @@ public final class MultiDOM implements DOM {
     private DOM[] _adapters;
     private int _free;
     private int _size;
+    private XSLTCDTMManager _dtmManager;
 
     private Hashtable _documents = new Hashtable();
 
@@ -280,7 +281,9 @@ public final class MultiDOM implements DOM {
         // %HZ% %REVISIT% encountered, and that method ends up returning the
         // %HZ% %REVISIT% mask of the main document, when what we really what
         // %HZ% %REVISIT% is to read the stylesheet itself!
-        addDOMAdapter((DOMAdapter) main, false);
+        DOMAdapter adapter = (DOMAdapter)main;
+        addDOMAdapter(adapter, false);
+        _dtmManager = (XSLTCDTMManager)((DTMDefaultBase)adapter.getDOMImpl()).m_mgr;
     }
 
     public int nextMask() {
@@ -592,9 +595,7 @@ public final class MultiDOM implements DOM {
     
     public int getDTMId(int nodeHandle)
     {
-        DTMManager dtmManager =
-              ((DTMDefaultBase)((DOMAdapter)_adapters[0]).getDOMImpl()).m_mgr;
-        int id = dtmManager.getDTMIdentity(dtmManager.getDTM(nodeHandle))
+        int id = _dtmManager.getDTMIdentity(_dtmManager.getDTM(nodeHandle))
                        >>> DTMManager.IDENT_DTM_NODE_BITS;
         return (id == -1 ? 0 : id);
     }
