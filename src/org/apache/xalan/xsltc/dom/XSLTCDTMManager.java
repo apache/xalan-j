@@ -323,10 +323,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
         SAXImpl dtm;
         if (size <= 0) {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            xstringFactory, doIndexing);
+                            null, doIndexing);
         } else {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            xstringFactory, doIndexing, size);
+                            null, doIndexing, size);
         }
 
         // Go ahead and add the DTM to the lookup table.  This needs to be

@@ -303,9 +303,14 @@ public final class MultiDOM implements DOM {
              dtmManager.getDTMIdentity((DTM)((DOMAdapter)dom).getDOMImpl())
                    >>> DTMManager.IDENT_DTM_NODE_BITS;
   
-        if (domNo == _size) {
-            final DOMAdapter[] newArray = new DOMAdapter[_size *= 2];
-            System.arraycopy(_adapters, 0, newArray, 0, domNo);
+        if (domNo >= _size) {
+            int oldSize = _size;
+            do {
+            	_size *= 2;
+            } while (_size <= domNo);
+            
+            final DOMAdapter[] newArray = new DOMAdapter[_size];
+            System.arraycopy(_adapters, 0, newArray, 0, oldSize);
             _adapters = newArray;
         }
         _adapters[domNo] = dom;

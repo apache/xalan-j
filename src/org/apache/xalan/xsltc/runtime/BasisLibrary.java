@@ -1171,13 +1171,13 @@ public final class BasisLibrary implements Operators {
         copyNodes(nodeList, doc, topElementNode);
 
         // w3cDOM -> DTM -> DOMImpl
-	DTMManager dtmManager = XSLTCDTMManager.newInstance();
-
-	DOMImpl idom = (DOMImpl)dtmManager.getDTM(new DOMSource(doc), false,
-                                                  null, true, false);
-
 	if (dom instanceof MultiDOM) {
             final MultiDOM multiDOM = (MultiDOM) dom;
+
+	    DTMDefaultBase dtm = (DTMDefaultBase)((DOMAdapter)multiDOM.getMain()).getDOMImpl();
+	    DTMManager dtmManager = dtm.getManager();
+	    DOMImpl idom = (DOMImpl)dtmManager.getDTM(new DOMSource(doc), false,
+						      null, true, false);
 
 	    // Create DOMAdapter and register with MultiDOM
 	    DOMAdapter domAdapter = new DOMAdapter(idom, 
@@ -1185,8 +1185,8 @@ public final class BasisLibrary implements Operators {
 		translet.getNamespaceArray());
             multiDOM.addDOMAdapter(domAdapter);
 
-	    DTMAxisIterator iter1 = multiDOM.getAxisIterator(Axis.CHILD);
-	    DTMAxisIterator iter2 = multiDOM.getAxisIterator(Axis.CHILD);
+	    DTMAxisIterator iter1 = idom.getAxisIterator(Axis.CHILD);
+	    DTMAxisIterator iter2 = idom.getAxisIterator(Axis.CHILD);
             DTMAxisIterator iter = new AbsoluteIterator(
                 new StepIterator(iter1, iter2));
 
