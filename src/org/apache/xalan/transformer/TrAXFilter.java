@@ -95,6 +95,14 @@ public class TrAXFilter extends XMLFilterImpl
     m_templates = templates;
     m_transformer = (TransformerImpl)templates.newTransformer();
   }
+
+  /**
+   * Return the Transformer object used for this XML filter.
+   */
+  public TransformerImpl getTransformer()
+  {
+    return m_transformer;
+  }
   
   /** Set the parent reader.
    *
