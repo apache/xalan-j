@@ -253,6 +253,9 @@ public interface DTM
    * subtreeRootHandle.
    * <p>
    * One application would be as a subroutine for DTMIterators.
+   * <p>
+   * TODO: Joe would like to rename this to walkNextDescendent
+   * to distinguish it more strongly from getFirstChild
    *
    * @param subtreeRootHandle int Handle of the root of the subtree
    * being walked. Sets an outer limit that we will not walk past.
@@ -260,8 +263,6 @@ public interface DTM
    * @return handle of the next node within the subtree, in document order.
    * or DTM.NULL to indicate none exists.  */
   public int getNextDescendant(int subtreeRootHandle, int nodeHandle);
-  // TODO: Joe would like to rename this to walkNextDescendent
-  // to distinguish it more strongly from getFirstChild
 
   /** Lightweight tree-walker. Given a node handle, find the next
    * node in document order. The walk stops (returning DTM.NULL) when
@@ -269,6 +270,10 @@ public interface DTM
    * <p>
    * Note that this is roughly equivalent to getNextDescendent() with
    * subtreeRootHandle set to the Document node (or maybe the root element).
+   * <p>
+   * TODO: Joe would like to rename this to walkNextFollowing
+   * (or perhaps just walkFollowing?)
+   * to distinguish it more strongly from getNextSibling.
    *
    * @param axisContextHandle the start of the axis that is being traversed.
    * TODO: As far as Joe can tell, this parameter is unnecessary...?
@@ -277,14 +282,15 @@ public interface DTM
    * or DTM.NULL to indicate none exists.
    */
   public int getNextFollowing(int axisContextHandle, int nodeHandle);
-  // TODO: Joe would like to rename this to walkNextFollowing
-  // (or perhaps just walkFollowing?)
-  // to distinguish it more strongly from getNextSibling.
   
   /** Lightweight tree-walker. Given a node handle, find the next
    * node in reverse document order. (Postorder right-to-left traversal).  The
    * walk stops (returning DTM.NULL) when it would otherwise run off the
    * beginning of the document.
+   * <p>
+   * TODO: Joe would like to rename this to walkNextPreceeding
+   * (or perhaps just walkPreceeding?)
+   * to distinguish it more strongly from getPreviousSibling.
    *
    * @param axisContextHandle the start of the axis that is being traversed.
    * TODO: As far as Joe can tell, this parameter is unnecessary...?
@@ -293,9 +299,6 @@ public interface DTM
    * or DTM.NULL to indicate none exists.
    */
   public int getNextPreceding(int axisContextHandle, int nodeHandle);
-  // TODO: Joe would like to rename this to walkNextPreceeding
-  // (or perhaps just walkPreceeding?)
-  // to distinguish it more strongly from getPreviousSibling.
 
   /**
    * Given a node handle, find its parent node.
@@ -612,21 +615,31 @@ public interface DTM
    * <code>(firstNode.documentOrderPosition &lt;= secondNode.documentOrderPosition)</code>.  */
   public boolean isNodeAfter(int firstNodeHandle,int secondNodeHandle);
 
-  /**
-   *     2. [element content whitespace] A boolean indicating whether the
-   *        character is white space appearing within element content (see [XML],
-   *        2.10 "White Space Handling"). Note that validating XML processors are
-   *        required by XML 1.0 to provide this information. If there is no
-   *        declaration for the containing element, this property has no value for
-   *        white space characters. If no declaration has been read, but the [all
-   *        declarations processed] property of the document information item is
-   *        false (so there may be an unread declaration), then the value of this
-   *        property is unknown for white space characters. It is always false for
-   *        characters that are not white space.
+  /** 2. [element content whitespace] A boolean indicating whether a
+   * text node represents white space appearing within element content
+   * (see [XML], 2.10 "White Space Handling").  Note that validating
+   * XML processors are required by XML 1.0 to provide this
+   * information... but that DOM Level 2 did not support it, since it
+   * depends on knowledge of the DTD which DOM2 could not guarantee
+   * would be available.
+   * <p>
+   * If there is no declaration for the containing element, an XML
+   * processor must assume that the whitespace could be meaningful and
+   * return false. If no declaration has been read, but the [all
+   * declarations processed] property of the document information item
+   * is false (so there may be an unread declaration), then the value
+   * of this property is indeterminate for white space characters and
+   * should probably be reported as false. It is always false for text
+   * nodes that contain anything other than (or in addition to) white
+   * space.
+   * <p>
+   * Note too that it always returns false for non-Text nodes.
+   * <p>
+   * TODO: Joe wants to rename this isWhitespaceInElementContent() for clarity
    *
    * @param nodeHandle the node ID.
-   * @return <code>true</code> if the character data is whitespace;
-   *         <code>false</code> otherwise.
+   * @return <code>true</code> if the node definitely represents whitespace in
+   * element content; <code>false</code> otherwise.
    */
   public boolean isCharacterElementContentWhitespace(int nodeHandle);
 
@@ -637,6 +650,7 @@ public interface DTM
    *        boolean. If it is false, then certain properties (indicated in their
    *        descriptions below) may be unknown. If it is true, those properties
    *        are never unknown.
+
    *
    * @param the document handle
    *
@@ -649,13 +663,14 @@ public interface DTM
   /**
    *     5. [specified] A flag indicating whether this attribute was actually
    *        specified in the start-tag of its element, or was defaulted from the
-   *        DTD.
+   *        DTD (or schema).
    *
    * @param the attribute handle
    *
    * NEEDSDOC @param attributeHandle
    * @return <code>true</code> if the attribute was specified;
-   *         <code>false</code> if it was defaulted.
+   *         <code>false</code> if it was defaulted or the handle doesn't
+   *		refer to an attribute node.
    */
   public boolean isAttributeSpecified(int attributeHandle);
   
@@ -680,7 +695,8 @@ public interface DTM
       throws org.xml.sax.SAXException;
 
   /**
-   * Directly create SAX parser events from a subtree.
+   * Directly create SAX parser events representing the XML content of
+   * a DTM subtree. This is a "serialize" operation.
    *
    * @param nodeHandle The node ID.
    * @param ch A non-null reference to a ContentHandler.
@@ -692,6 +708,8 @@ public interface DTM
       throws org.xml.sax.SAXException;
       
   // ==== Construction methods (may not be supported by some implementations!) =====
+      // TODO: What response occurs if not supported?
+      // TODO: I suspect we need element and attribute factories, maybe others.
   
   /**
    * Append a child to the end of the document. Please note that the node 
@@ -706,10 +724,14 @@ public interface DTM
 
   /**
    * Append a text node child that will be constructed from a string, 
-   * to the end of the document.
+   * to the end of the document. Behavior is otherwise like appendChild().
    * 
    * @param str Non-null reverence to a string.
    */
   public void appendTextChild(String str);
 
 }
+
+
+
+
