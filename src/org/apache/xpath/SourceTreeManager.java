@@ -240,7 +240,6 @@ public class SourceTreeManager
       return DTM.NULL;
 
     int n = m_sourceTree.size();
-    ;
 
     // System.out.println("getNode: "+n);
     for (int i = 0; i < n; i++)
@@ -337,9 +336,13 @@ public class SourceTreeManager
   {
 
     try
-    {
-      // %TBD% I think I need a TransformerImpl here?
-      DTM dtm = xctxt.getDTM(source, false, null);
+    {      
+      Object xowner = xctxt.getOwnerObject();
+      DTM dtm;
+      if(null != xowner && xowner instanceof org.apache.xml.dtm.DTMWSFilter)
+        dtm = xctxt.getDTM(source, false, (org.apache.xml.dtm.DTMWSFilter)xowner);
+      else
+        dtm = xctxt.getDTM(source, false, null);
       return dtm.getDocument();
     }
     catch (Exception e)
@@ -365,7 +368,7 @@ public class SourceTreeManager
    *
    * @throws TransformerException if the reader can not be created.
    */
-  public XMLReader getXMLReader(Source inputSource, SourceLocator locator)
+  public static XMLReader getXMLReader(Source inputSource, SourceLocator locator)
           throws TransformerException
   {
 

@@ -64,6 +64,7 @@ import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
 
 import org.apache.xpath.DOMHelper;
+import org.apache.xpath.XPathContext;
 
 /**
  * <meta name="usage" content="general"/>
@@ -72,16 +73,36 @@ import org.apache.xpath.DOMHelper;
  */
 public class XRTreeFrag extends XObject
 {
+  DTM m_dtm;
+  int m_dtmRoot;
+  XPathContext m_xctxt;
 
+//  /**
+//   * Create an XRTreeFrag Object.
+//   *
+//   * @param frag Document fragment this will wrap
+//   */
+//  public XRTreeFrag(DTMIterator frag)
+//  {
+//    super(frag);
+//    
+//    // Obviously, this constructor should be avoided when possible.
+//    m_dtmRoot = frag.cloneWithReset().nextNode();
+//  }
+  
   /**
    * Create an XRTreeFrag Object.
-   * %REVIEW%
    *
    * @param frag Document fragment this will wrap
    */
-  public XRTreeFrag(DTMIterator frag)
+  public XRTreeFrag(int root, XPathContext xctxt)
   {
-    super(frag);
+    super(null);
+    
+    // Obviously, this constructor should be avoided when possible.
+    m_dtmRoot = root;
+    m_xctxt = xctxt;
+    m_dtm = xctxt.getDTM(root);
   }
 
   /**
@@ -117,8 +138,7 @@ public class XRTreeFrag extends XObject
 //      java.text.NumberFormat.getNumberInstance();
     double result;
     
-    int node = ((DTMIterator)m_obj).nextNode();
-    String s = ((DTMIterator)m_obj).getDTM(node).getStringValue(node);
+    String s = m_dtm.getStringValue(m_dtmRoot);
 
     if (null != s)
     {
@@ -164,8 +184,7 @@ public class XRTreeFrag extends XObject
    */
   public String str()
   {
-    int node = ((DTMIterator)m_obj).nextNode();
-    String str = ((DTMIterator)m_obj).getDTM(node).getStringValue(node);
+    String str = m_dtm.getStringValue(m_dtmRoot);
 
     return (null == str) ? "" : str;
   }
@@ -175,9 +194,9 @@ public class XRTreeFrag extends XObject
    *
    * @return The document fragment this wraps
    */
-  public DTMIterator rtree()
+  public int rtree()
   {
-    return (DTMIterator) m_obj;
+    return m_dtmRoot;
   }
 
   /**
@@ -187,7 +206,7 @@ public class XRTreeFrag extends XObject
    */
   public DTMIterator asNodeIterator()
   {
-    return (DTMIterator) m_obj;
+    return m_xctxt.createDTMIterator(m_dtmRoot);
   }
 
   // %TBD%

@@ -154,6 +154,36 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
     m_shouldCheckWhitespace =
       transformer.getStylesheet().shouldCheckWhitespace();
   }
+  
+  /**
+   * Create a SourceTreeHandler that will start a transformation as
+   * soon as a startDocument occurs.
+   *
+   * @param transformer The transformer this will use to transform a
+   * source tree into a result tree.
+   */
+  public SourceTreeHandler(TransformerImpl transformer, DTMManager dtm, boolean doFragment)
+  {
+//    m_id = m_idCount++;
+    m_transformer = transformer;
+
+    XPathContext xctxt = transformer.getXPathContext();
+    xctxt.setDOMHelper(new StreeDOMHelper());
+    
+     if(doFragment)
+    {
+      m_root = new DocumentFragmentImpl(1024);
+      m_docFrag = (DocumentFragmentImpl)m_root;
+    }
+    else
+    {
+      m_root = new DocumentImpl(this);
+    }
+
+    m_initedRoot = false;
+    m_shouldCheckWhitespace =
+      transformer.getStylesheet().shouldCheckWhitespace();
+  }
 
   /**
    * Create a SourceTreeHandler.
@@ -187,6 +217,12 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
   public int getDTMRoot()
   {
     return m_DTMroot;
+  }
+
+  /** Set the DTM root for the DTM2DOM **/
+  public void setDTMRoot(int root)
+  {
+    root = m_DTMroot;
   }
 
   /** If this is non-null, the fragment where the nodes will be added. */

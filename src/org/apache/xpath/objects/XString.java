@@ -203,12 +203,12 @@ public class XString extends XObject
    *
    * @return A document fragment with this string as a child node
    */
-  public DTMIterator rtree(XPathContext support)
+  public int rtree(XPathContext support)
   {
     DTM frag = support.createDocumentFragment();
     frag.appendTextChild(str());
     
-    return support.createDTMIterator(frag.getDocument());
+    return frag.getDocument();
   }
 
   /**

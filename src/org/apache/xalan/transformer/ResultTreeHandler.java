@@ -794,11 +794,9 @@ public class ResultTreeHandler extends QueuedEvents
   public void outputResultTreeFragment(XObject obj, XPathContext support)
           throws org.xml.sax.SAXException
   {
-
-    DTMIterator docFrag = obj.rtree(support);
-    int doc = docFrag.nextNode();
-    DTM dtm = docFrag.getDTM(doc);
-
+    int doc = obj.rtree();
+    DTM dtm = support.getDTM(doc);
+  
     for (int n = dtm.getFirstChild(doc); DTM.NULL != n; n = dtm.getNextSibling(n))
     {
       flushPending(EVT_NODE);  // I think.

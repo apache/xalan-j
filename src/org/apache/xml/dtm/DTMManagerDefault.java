@@ -75,7 +75,7 @@ import org.w3c.dom.Node;
  */
 public class DTMManagerDefault extends DTMManager
 {
-  Vector m_dtms = new Vector();
+  protected Vector m_dtms = new Vector();
 
   /**
    * Constructor DTMManagerDefault
@@ -105,7 +105,8 @@ public class DTMManagerDefault extends DTMManager
 
     if(source instanceof DOMSource)
     {
-      DTM dtm = new DOM2DTM(this, (DOMSource)source, m_dtms.size(), whiteSpaceFilter);
+      int documentID = m_dtms.size() << 20;
+      DTM dtm = new DOM2DTM(this, (DOMSource)source, documentID, whiteSpaceFilter);
       m_dtms.add(dtm);
       return dtm;
     }

@@ -331,6 +331,32 @@ public class LocPathIterator extends PredicatedNodeTest
       this.m_varStackContext = vars.getContextPos();
     }
   }
+  
+  /**
+   * Initialize the context values for this expression
+   * after it is cloned.
+   *
+   * @param execContext The XPath runtime context for this
+   * transformation.
+   */
+  public void initContext(XPathContext execContext, int context)
+  {
+
+    this.m_context = context;
+    m_cdtm = execContext.getDTM(m_context);
+    this.m_currentContextNode = context;
+    this.m_execContext = execContext;
+    this.m_prefixResolver = execContext.getNamespaceContext();
+    this.m_dhelper = execContext.getDOMHelper();
+
+    if (m_isTopLevel)
+    {
+      VariableStack vars = execContext.getVarStack();
+
+      this.m_varStackPos = vars.getSearchStartOrTop();
+      this.m_varStackContext = vars.getContextPos();
+    }
+  }
 
   /**
    * Set the next position index of this iterator.
@@ -379,6 +405,18 @@ public class LocPathIterator extends PredicatedNodeTest
     else
       m_cachedNodes = null;
   }
+  
+  /**
+   * Tells if this iterator can have nodes added to it or set via 
+   * the <code>setItem(int node, int index)</code> method.
+   * 
+   * @return True if the nodelist can be mutated.
+   */
+  public boolean isMutable()
+  {
+    return (m_cachedNodes != null);
+  }
+
 
   /**
    * Get cached nodes.

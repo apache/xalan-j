@@ -141,9 +141,6 @@ public class DOM2DTM implements DTM
   protected int m_dtmIdent;
 
   /** %TBD% Doc */
-  protected int m_dtmRoot;
-
-  /** %TBD% Doc */
   protected int m_mask;
 
   /** %TBD% Doc */
@@ -1126,7 +1123,9 @@ public class DOM2DTM implements DTM
 
     int type = getNodeType(nodeHandle);
     Node node = getNode(nodeHandle);
-    if(DTM.ELEMENT_NODE == type || DTM.DOCUMENT_NODE == type)
+    // %REVIEW%
+    if(DTM.ELEMENT_NODE == type || DTM.DOCUMENT_NODE == type 
+    || DTM.DOCUMENT_FRAGMENT_NODE == type)
     {
       FastStringBuffer buf = StringBufferPool.get();
       String s;

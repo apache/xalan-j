@@ -123,6 +123,10 @@ public class NodeSorter
     // QuickSort2(v, 0, v.size() - 1 );
     int n = v.getLength();
 
+    // %OPT% Change mergesort to just take a DTMIterator?
+    // We would also have to adapt DTMIterator to have the function 
+    // of NodeCompareElem.
+    
     // Create a vector of node compare elements
     // based on the input vector of nodes
     Vector nodes = new Vector();

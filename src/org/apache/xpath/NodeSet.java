@@ -1163,6 +1163,16 @@ public class NodeSet extends NodeVector
     m_mutable = true;
   }
   
+  /**
+   * Tells if this iterator can have nodes added to it or set via 
+   * the <code>setItem(int node, int index)</code> method.
+   * 
+   * @return True if the nodelist can be mutated.
+   */
+  public boolean isMutable()
+  {
+    return m_mutable;
+  }
   
   transient private int m_last = 0;
   

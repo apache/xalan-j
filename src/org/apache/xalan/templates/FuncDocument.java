@@ -182,7 +182,7 @@ public class FuncDocument extends Function2Args
     }
 
     XNodeSet nodes = new XNodeSet(xctxt.getDTMManager());
-//    NodeSet mnl = nodes.mutableNodeset();
+    NodeSet mnl = nodes.mutableNodeset();
     DTMIterator iterator = (XObject.CLASS_NODESET == arg.getType())
                             ? arg.nodeset() : null;
     int pos = DTM.NULL;
@@ -222,11 +222,11 @@ public class FuncDocument extends Function2Args
       // nodes.mutableNodeset().addNode(newDoc);  
       if (DTM.NULL != newDoc)
       {
-
         // TODO: mnl.addNodeInDocOrder(newDoc, true, xctxt); ??
-        // %TBD%
-//        if (!mnl.contains(newDoc))
-//          mnl.addElement(newDoc);
+        if (!mnl.contains(newDoc))
+        {
+          mnl.addElement(newDoc);
+        }
       }
 
       if (null == iterator || newDoc == DTM.NULL)
@@ -379,7 +379,7 @@ public class FuncDocument extends Function2Args
     }
     else
     {
-
+      // %REVIEW%
       // TBD: What to do about XLocator?
       // xctxt.getSourceTreeManager().associateXLocatorToNode(newDoc, url, null);
     }

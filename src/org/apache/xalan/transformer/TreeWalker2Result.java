@@ -125,10 +125,10 @@ public class TreeWalker2Result extends DTMTreeWalker
   protected void startNode(int node) throws org.xml.sax.SAXException
   {
 
-//    try
+    try
     {
       
-      if ((DTM.ELEMENT_NODE == m_dtm.getNodeType(node)) && (m_startNode == node))
+      if (DTM.ELEMENT_NODE == m_dtm.getNodeType(node))
       {
         String elemName = m_dtm.getNodeName(node);
         String localName = m_dtm.getLocalName(node);
@@ -136,78 +136,29 @@ public class TreeWalker2Result extends DTMTreeWalker
 
         m_handler.startElement(namespace, localName, elemName, null);
 
-        // %TBD% But, the code below is strange...
-//        for (int parent = node; parent != null;
-//             parent = m_dtm.getParentNode(parent))
-//        {
-//          if (Node.ELEMENT_NODE != parent.getNodeType())
-//            continue;
-//
-//          NamedNodeMap atts = ((Element) parent).getAttributes();
-//          int n = atts.getLength();
-//
-//          for (int attr = m_dtm.getFirstAttribute(parent); 
-//               DTM.NULL != attr; attr = m_dtm.getNextAttribute(attr))
-//          {
-//            String nsDeclPrefix = null;
-//            
-//            String name = m_dtm.getNodeName(attr);
-//            String value = m_dtm.getStringValue(attr);
-//
-//            /*
-//            else if(nsDeclPrefix != null)
-//            {
-//            String desturi = m_processor.getURI(nsDeclPrefix);
-//            // Look for an alias for this URI. If one is found, use it as the result URI
-//            String aliasURI = m_elem.m_stylesheet.lookForAlias(value);
-//            if(aliasURI.equals(desturi)) // TODO: Check for extension namespaces
-//            {
-//            continue;
-//            }
-//            }
-//            */
-//            m_handler.addAttribute(dhelper.getNamespaceOfNode(attr),
-//                                   dhelper.getLocalNameOfNode(attr), name,
-//                                   "CDATA", value);
-//
-//            // Make sure namespace is not in the excluded list then
-//            // add to result tree
-//
-//            /*
-//            if(!m_handler.getPendingAttributes().contains(name))
-//            {
-//            if(nsDeclPrefix == null)
-//            {
-//            m_handler.addAttribute(name, "CDATA", value);
-//            }
-//            else
-//            {
-//            String desturi
-//            = m_handler.getURI(nsDeclPrefix);
-//            if(null == desturi)
-//            {
-//            m_handler.addAttribute(name, "CDATA", value);
-//            }
-//            else if(!desturi.equals(value))
-//            {
-//            m_handler.addAttribute(name, "CDATA", value);
-//            }
-//            }
-//            }
-//            */
-//          }
-//        }
+        if (DTM.ELEMENT_NODE == m_dtm.getNodeType(node))
+        {
+          for (int attr = m_dtm.getFirstAttribute(node); 
+               DTM.NULL != attr; attr = m_dtm.getNextAttribute(node))
+          {
+            String name = m_dtm.getNodeName(attr);
+            String value = m_dtm.getStringValue(attr);
 
-        // m_handler.processResultNS(m_elem);           
+            m_handler.addAttribute(m_dtm.getNamespaceURI(attr),
+                                   m_dtm.getLocalName(attr), name,
+                                   "CDATA", value);
+
+          }
+        }
       }
       else
       {
         super.startNode(node);
       }
     }
-//    catch(javax.xml.transform.TransformerException te)
-//    {
-//      throw new org.xml.sax.SAXException(te);
-//    }
+    catch(javax.xml.transform.TransformerException te)
+    {
+      throw new org.xml.sax.SAXException(te);
+    }
   }
 }

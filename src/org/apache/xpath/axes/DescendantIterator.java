@@ -132,6 +132,25 @@ public class DescendantIterator extends LocPathIterator
   }
   
   /**
+   * Create a DescendantIterator object.
+   *
+   * @param compiler A reference to the Compiler that contains the op map.
+   * @param opPos The position within the op map, which contains the
+   * location path expression for this itterator.
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  public DescendantIterator()
+  {
+    super(null);
+    m_orSelf = true;
+    m_fromRoot = true;
+    int whatToShow = DTMFilter.SHOW_ALL;
+    initNodeTest(whatToShow);
+  }
+
+  
+  /**
    *  Get a cloned Iterator that is reset to the beginning
    *  of the query.
    * 

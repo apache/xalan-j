@@ -141,7 +141,6 @@ public class ClonerToResultTree
 
           if (shouldCloneAttributes)
           {
-            // %TBD%
             m_rth.addAttributes(node);
             m_rth.processNSDecls(node);
           }

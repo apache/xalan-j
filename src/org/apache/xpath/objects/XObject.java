@@ -272,18 +272,18 @@ public class XObject extends Expression implements Serializable
    *
    * @return the objec as a result tree fragment.
    */
-  public DTMIterator rtree(XPathContext support)
+  public int rtree(XPathContext support)
   {
 
-    DTMIterator result = rtree();
+    int result = rtree();
 
-    if (null == result)
+    if (DTM.NULL == result)
     {
       DTM frag = support.createDocumentFragment();
       
       // %OPT%
       frag.appendTextChild(str());
-      support.createDTMIterator(frag.getDocument());
+      result = frag.getDocument();
     }
 
     return result;
@@ -294,9 +294,9 @@ public class XObject extends Expression implements Serializable
    *
    * @return null
    */
-  public DTMIterator rtree()
+  public int rtree()
   {
-    return null;
+    return DTM.NULL;
   }
 
   /**

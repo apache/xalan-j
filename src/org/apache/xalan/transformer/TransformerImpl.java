@@ -1634,7 +1634,7 @@ public class TransformerImpl extends Transformer
        // %REVIEW% Make sure current node is pushed.
         int df = transformToRTF(xslParamElement);
 
-        var = new XRTreeFrag(xctxt.createDTMIterator(df));
+        var = new XRTreeFrag(df, xctxt);
       }
 
       vars.setSearchStart(paramReferenceContext);
@@ -1810,6 +1810,7 @@ public class TransformerImpl extends Transformer
     ContentHandler rtfHandler;
     int resultFragment = DTM.NULL;
     
+    // %TODO% Use SAX2DTM here (I think)
     rtfHandler = new SourceTreeHandler(this, true);
     ((SourceTreeHandler)rtfHandler).setUseMultiThreading(false);
     ((SourceTreeHandler)rtfHandler).setShouldTransformAtEnd(false);
@@ -2870,6 +2871,18 @@ public class TransformerImpl extends Transformer
   }
 
   /**
+   * Set the exception thrown by the secondary thread (normally 
+   * the transform thread).
+   *
+   * @param e The thrown exception, or null if no exception was 
+   * thrown.
+   */
+  public void setExceptionThrown(Exception e)
+  {
+    m_exceptionThrown = e;
+  }
+
+  /**
    * This is just a way to set the document for run().
    *
    * @param doc A non-null reference to the root of the 
@@ -2878,6 +2891,18 @@ public class TransformerImpl extends Transformer
   public void setSourceTreeDocForThread(int doc)
   {
     m_doc = doc;
+  }
+  
+  
+  /** Set the input source for the source tree, which is needed if the 
+   * parse thread is not the main thread, in order for the parse 
+   * thread's run method to get to the input source.  
+   * 
+   * @param source The input source for the source tree.
+   */
+  public void setXMLSource(Source source)
+  {
+    m_xmlSource = source;
   }
 
   /**
@@ -2891,6 +2916,20 @@ public class TransformerImpl extends Transformer
     synchronized(this)
     {
       return m_isTransformDone;
+    }
+  }
+
+  /**
+   * Set if the transform method is completed.
+   *
+   * @param done True if transformNode has completed, or 
+   * an exception was thrown.
+   */
+  public void setIsTransformDone(boolean done)
+  {
+    synchronized(this)
+    {
+      m_isTransformDone = done;
     }
   }
 

@@ -212,6 +212,17 @@ public class UnionPathIterator extends Expression
     else
       m_cachedNodes = null;
   }
+  
+  /**
+   * Tells if this iterator can have nodes added to it or set via 
+   * the <code>setItem(int node, int index)</code> method.
+   * 
+   * @return True if the nodelist can be mutated.
+   */
+  public boolean isMutable()
+  {
+    return (m_cachedNodes != null);
+  }
 
   /**
    * Set the current position in the node set.

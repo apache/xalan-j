@@ -97,7 +97,8 @@ public class XNodeSet extends XObject
   }
 
   /**
-   * Construct an empty XNodeSet object.
+   * Construct an empty XNodeSet object.  This is used to create a mutable 
+   * nodeset to which random nodes may be added.
    */
   public XNodeSet(DTMManager dtmMgr)
   {
@@ -216,27 +217,28 @@ public class XNodeSet extends XObject
     return (node != DTM.NULL) ? getStringFromNode(node) : "";
   }
 
-  /**
-   * Cast result object to a result tree fragment.
-   *
-   * @param support The XPath context to use for the conversion 
-   *
-   * @return the nodeset as a result tree fragment.
-   */
-  public DTMIterator rtree(XPathContext support)
-  {
-    DTM frag = support.createDocumentFragment();
-
-    DTMIterator nl = nodeset();
-    int node;
-
-    while (DTM.NULL != (node = nl.nextNode()))
-    {
-      frag.appendChild(node, true, true);
-    }
-
-    return support.createDTMIterator(frag.getDocument());
-  }
+  // %REVIEW%
+//  /**
+//   * Cast result object to a result tree fragment.
+//   *
+//   * @param support The XPath context to use for the conversion 
+//   *
+//   * @return the nodeset as a result tree fragment.
+//   */
+//  public DTMIterator rtree(XPathContext support)
+//  {
+//    DTM frag = support.createDocumentFragment();
+//
+//    DTMIterator nl = nodeset();
+//    int node;
+//
+//    while (DTM.NULL != (node = nl.nextNode()))
+//    {
+//      frag.appendChild(node, true, true);
+//    }
+//
+//    return support.createDTMIterator(frag.getDocument());
+//  }
   
   /**
    * Cast result object to a nodelist.
@@ -249,33 +251,21 @@ public class XNodeSet extends XObject
     // System.out.println("In XNodeSet.nodeset()");
     DTMIterator ns = (DTMIterator) m_obj;
 
-    // System.out.println("Got NodeIterator");
-    // %TBD% !!!
-//    if (ns instanceof ContextNodeList)
-//    {
-//
-//      // System.out.println("Is a ContextNodeList: "+ns);
-//      if (((ContextNodeList) ns).isFresh())  // bit of a hack...
-//      {
-//        return ns;
-//      }
-//      else
-//      {
-//        try
-//        {
-//          return ((ContextNodeList) ns).cloneWithReset();
-//        }
-//        catch (CloneNotSupportedException cnse)
-//        {
-//          throw new RuntimeException(cnse.getMessage());
-//        }
-//      }
-//    }
-//    else
+    // System.out.println("Is a ContextNodeList: "+ns);
+    if (ns.isFresh())  // bit of a hack...
     {
-
-      // System.out.println("Returning node iterator");
       return ns;
+    }
+    else
+    {
+      try
+      {
+        return ns.cloneWithReset();
+      }
+      catch (CloneNotSupportedException cnse)
+      {
+        throw new RuntimeException(cnse.getMessage());
+      }
     }
   }
 
@@ -289,7 +279,7 @@ public class XNodeSet extends XObject
 
     NodeSet mnl;
 
-    if (m_obj instanceof NodeSet)
+    if(m_obj instanceof NodeSet)
     {
       mnl = (NodeSet) m_obj;
     }

@@ -393,33 +393,6 @@ public class NodeTest extends Expression
     DTM dtm = xctxt.getDTM(context);
     short nodeType = dtm.getNodeType(context);
 
-    // Yuck!  Blech!  -sb
-    if((DTM.TEXT_NODE == nodeType || DTM.CDATA_SECTION_NODE == nodeType) 
-        && !dtm.supportsPreStripping())
-    {
-      int parent = dtm.getParent(context);
-      if(DTM.NULL != parent && DTM.ELEMENT_NODE == dtm.getNodeType(parent))
-      {
-        String data = dtm.getNodeValue(context);
-        
-        if(org.apache.xml.utils.XMLCharacterRecognizer.isWhiteSpace(data))
-        {
-          // Ugly trick for now.
-          PrefixResolver resolver = xctxt.getNamespaceContext();
-          if(resolver instanceof WhitespaceStrippingElementMatcher)
-          {
-            WhitespaceStrippingElementMatcher wsem = 
-               (WhitespaceStrippingElementMatcher)resolver;
-            // %TBD%
-//            if(wsem.shouldStripWhiteSpace(xctxt, (org.w3c.dom.Element)parent))
-//            {
-//              return SCORE_NONE;
-//            }
-          }
-        }
-      }
-    }
-
     if (m_whatToShow == DTMFilter.SHOW_ALL)
       return m_score;
 

@@ -126,8 +126,7 @@ public class FunctionPattern extends StepPattern
     int context = xctxt.getCurrentNode();
     XObject obj = m_functionExpr.execute(xctxt);
     
-    // %TBD%
-    DTMIterator nl =  null; /* obj.nodeset(); */
+    DTMIterator nl =  obj.nodeset();
     
     XNumber score = SCORE_NONE;
 

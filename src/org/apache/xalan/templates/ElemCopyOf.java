@@ -193,7 +193,7 @@ public class ElemCopyOf extends ElemTemplateElement
 
           while (DTM.NULL != (pos = nl.nextNode()))
           {
-            DTM dtm = nl.getDTM(pos);
+            DTM dtm = xctxt.getDTMManager().getDTM(pos);
             short t = dtm.getNodeType(pos);
 
             // If we just copy the whole document, a startDoc and endDoc get 

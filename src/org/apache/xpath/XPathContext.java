@@ -109,6 +109,8 @@ import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMWSFilter;
 
+import org.apache.xpath.axes.DescendantIterator;
+
 /**
  * <meta name="usage" content="advanced"/>
  * Default class for the runtime execution context for XPath.
@@ -266,7 +268,10 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    */
   public DTMIterator createDTMIterator(int node)
   {
-    return m_dtmManager.createDTMIterator(node);
+    DescendantIterator iter = new DescendantIterator();
+    iter.initContext(this, node);
+    return iter;
+    // return m_dtmManager.createDTMIterator(node);
   }
 
   /**
@@ -853,27 +858,4 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     }
   }
 
-  /**
-   * Get the value of a node as a number.
-   * @param n Node to be converted to a number.  May be null.
-   * @return value of n as a number.
-   */
-  public final double toNumber(int n)
-  {
-    // %TBD%
-//    return XNodeSet.getNumberFromNode(n);
-    return 0;
-  }
-
-  /**
-   * Get the value of a node as a string.
-   * @param n Node to be converted to a string.  May be null.
-   * @return value of n as a string, or an empty string if n is null.
-   */
-  public final String toString(int n)
-  {
-    // %TBD%
-//    return XNodeSet.getStringFromNode(n);
-    return null;
-  }
 }

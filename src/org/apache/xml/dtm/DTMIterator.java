@@ -269,6 +269,14 @@ public interface DTMIterator
    * @param b true if the nodes should be cached.
    */
   public void setShouldCacheNodes(boolean b);
+  
+  /**
+   * Tells if this iterator can have nodes added to it or set via 
+   * the <code>setItem(int node, int index)</code> method.
+   * 
+   * @return True if the nodelist can be mutated.
+   */
+  public boolean isMutable();
 
   /** Get the current position within the cached list, which is one
    * less than the next nextNode() call will retrieve.  i.e. if you
