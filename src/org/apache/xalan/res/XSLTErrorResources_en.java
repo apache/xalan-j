@@ -54,14 +54,14 @@
  * information on the Apache Software Foundation, please see
  * <http://www.apache.org/>.
  */
-package org.apache.xpath.res;
+package org.apache.xalan.res;
 
 
 /**
  * <meta name="usage" content="advanced"/>
- * Default implementation of XPATHErrorResources.  This is just
+ * Default implementation of XSLTErrorResources.  This is just
  * an empty class.
  */
-public class XPATHErrorResources_en extends XPATHErrorResources
+public class XSLTErrorResources_en extends XSLTErrorResources
 {
 }
