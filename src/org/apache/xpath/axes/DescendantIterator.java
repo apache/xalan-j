@@ -99,24 +99,19 @@ public class DescendantIterator extends LocPathIterator
     int ops[] = compiler.getOpMap();
     int firstStepPos = compiler.getFirstChildPos(opPos);
     int stepType = ops[firstStepPos];
-		/** Bit is on if any of the walkers contain a child step. */
-    final int BIT_CHILD = (0x00001000 << 4); 
 
-    if (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType)
-      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
+    m_orSelf = (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType);
     if (OpCodes.FROM_SELF == stepType)
     {
-      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
+      m_orSelf = true;
       firstStepPos += 8;
     }
     else if(OpCodes.FROM_ROOT == stepType)
     {
       m_fromRoot = true;
-      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
+      m_orSelf = true;
       firstStepPos += 8;
     }
-    else
-      m_orSelf = false;
 
     int whatToShow = compiler.getWhatToShow(firstStepPos);
 
