@@ -467,22 +467,21 @@ public class SAX2DTM2 extends SAX2DTM
       }
 
       int node = _currentNode;
-      int eType;
       final int nodeType = _nodeType;
 
-      final int blocksize = m_blocksize;
       if (nodeType >= DTM.NTYPES) {
-        do {
-          node = _nextsib2(node);
-        } while (node != DTM.NULL && _exptype2(node) != nodeType);
-     } else {
+        node = getTypedFollowingSibling(node, nodeType);
+      } 
+      else {
+        int eType;
         while ((node = _nextsib2(node)) != DTM.NULL) {
           eType = _exptype2(node);
           if (eType < DTM.NTYPES) {
             if (eType == nodeType) {
               break;
             }
-          } else if (m_extendedTypes[eType].getNodeType() == nodeType) {
+          }
+          else if (m_extendedTypes[eType].getNodeType() == nodeType) {
             break;
           }
         }
@@ -490,9 +489,9 @@ public class SAX2DTM2 extends SAX2DTM
 
       _currentNode = node;
 
-      return (_currentNode == DTM.NULL)
+      return (node == DTM.NULL)
                       ? DTM.NULL
-                      : returnNode(makeNodeHandle(_currentNode));
+                      : returnNode(makeNodeHandle(node));
     }
   }  // end of TypedFollowingSiblingIterator
 
@@ -1769,6 +1768,28 @@ public class SAX2DTM2 extends SAX2DTM
       return m_extendedTypes[eType].getNodeType();
     else
       return NULL;
+  }
+
+  /**
+   * Given a node identity and an expanded type, return a node in the
+   * following-sibling axis of the given node whose expanded type is
+   * the given value. This is one of the low-level accessor methods
+   * which have access to the SuballocatedIntVector internal arrays to
+   * achieve the best performance.
+   */
+  public final int getTypedFollowingSibling(int node, int nodeType)
+  {
+    /*
+    do {
+      node = _nextsib2(node);
+    } while (node != DTM.NULL && _exptype2(node) != nodeType);
+    */
+    do {
+      node = (node < m_blocksize) ? m_nextsib_map0[node]
+             : m_nextsib_map[node>>>m_SHIFT][node&m_MASK];
+    } while (node != DTM.NULL && ((node < m_blocksize) ? m_exptype_map0[node] 
+             : m_exptype_map[node>>>m_SHIFT][node&m_MASK]) != nodeType);
+    return node;
   }
     
   /**
