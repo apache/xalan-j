@@ -57,36 +57,27 @@
 package org.apache.xml.utils;
 
 /**
- * <meta name="usage" content="internal"/>
  * <code>DTM</code> is an XML document model expressed as a table rather than
  * an object tree. It attempts to provide an interface to a parse tree that 
  * has very little object creation.
  * 
  * <p>Nodes in the DTM are identified by integer "handles".  A handle must 
- * be unique within a document.  A processing application must be careful, 
- * because a handle is not unique within a process... you can have two 
- * handles that belong to different documents.  It is up to the calling 
- * application to keep track of the association of a document with it's 
- * handle.</p>
+ * be unique within a process, an carries both node identification and 
+ * document identification.  It must be possible to compare two handles 
+ * for identity with "==".</p>
  * 
  * <p>Namespace URLs, local-names, and expanded-names can all be represented 
  * by integer ID values.  An expanded name is made of a combination of the URL 
- * ID in the high two bytes, and the local-name ID is held in the low two 
- * bytes.  Thus a comparison of an expanded name can be quickly made in a 
- * single operation.  Also, the symbol space for URLs and local-names must 
- * be limited to 32K each (if you are to only use positive values for index 
- * lookup), which means that these should not be part of a general string 
- * pool mechanism.  Note that the namespace URL id can be 0, which should have 
- * the meaning that the namespace is null.  Zero should also not be used for 
- * a local-name index.</p>
+ * ID, and the local-name ID.</p>
  * 
  * <p>The model of the tree, as well as the general navigation model, is 
- * that of XPath 1.0, for the moment.  The model will be adapted to match
- * the XPath 2.0 data model, XML Schema, and InfoSet.</p>
+ * that of XPath 1.0, for the moment.  The model will eventually be adapted to 
+ * match the XPath 2.0 data model, XML Schema, and InfoSet.</p>
  * 
  * <p>DTM does _not_ directly support the W3C's Document Object Model. However,
  * it attempts to come close enough that an implementation of DTM can be created 
  * that wraps a DOM.</p>
+ * 
  * <p>State: In progress!!</p>
  */
 public interface DTM
