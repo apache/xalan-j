@@ -109,20 +109,11 @@ import org.apache.xpath.SourceTreeManager;
 import org.apache.xpath.compiler.XPathParser;
 import org.apache.xpath.axes.ContextNodeList;
 
-// Back support for liaisons
-import org.apache.xpath.DOM2Helper;
-
 // Serializer Imports
 import org.apache.xalan.serialize.Serializer;
 import org.apache.xalan.serialize.SerializerFactory;
 import org.apache.xalan.serialize.Method;
 
-// DOM Imports
-//import org.w3c.dom.Attr;
-//import org.w3c.dom.DocumentFragment;
-//import org.w3c.dom.Document;
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.Node;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMManager;
@@ -954,7 +945,7 @@ public class TransformerImpl extends Transformer
       }
       else
       {
-        doc = getXPathContext().getDOMHelper().createDocument();
+        doc = org.apache.xpath.DOMHelper.createDocument();
         outputNode = doc;
         type = outputNode.getNodeType();
         ((DOMResult)outputTarget).setNode(outputNode);

@@ -69,16 +69,9 @@ import org.apache.xml.utils.QName;
 import org.apache.xml.utils.TreeWalker;
 import org.apache.xml.utils.ObjectPool;
 import org.apache.xml.utils.XMLCharacterRecognizer;
-import org.apache.xpath.DOMHelper;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPathContext;
 
-//import org.w3c.dom.Node;
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.Attr;
-//import org.w3c.dom.DocumentFragment;
-//import org.w3c.dom.NodeList;
-//import org.w3c.dom.NamedNodeMap;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;

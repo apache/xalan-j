@@ -57,17 +57,13 @@
 package org.apache.xpath.patterns;
 
 import org.apache.xpath.XPath;
-import org.apache.xpath.DOMHelper;
 import org.apache.xpath.Expression;
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.objects.XNumber;
 import org.apache.xpath.objects.XObject;
-
-//import org.w3c.dom.Node;
-//import org.w3c.dom.traversal.NodeIterator;
-
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
+import org.apache.xml.dtm.Axis;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -77,16 +73,18 @@ public class FunctionPattern extends StepPattern
 {
 
   /**
-   * Construct a FunctionPattern from a 
+   * Construct a FunctionPattern from a
    * {@link org.apache.xpath.functions.Function expression}.
    *
    *
    * @param a should be a {@link org.apache.xpath.functions.Function expression}.
+   *
+   * NEEDSDOC @param expr
    */
-  public FunctionPattern(Expression expr)
+  public FunctionPattern(Expression expr, int axis, int predaxis)
   {
 
-    super(0, null, null);
+    super(0, null, null, axis, predaxis);
 
     m_functionExpr = expr;
   }
@@ -103,8 +101,10 @@ public class FunctionPattern extends StepPattern
       calcTargetString();
   }
 
-  /** Should be a {@link org.apache.xpath.functions.Function expression}.
-   *  @serial   */
+  /**
+   * Should be a {@link org.apache.xpath.functions.Function expression}.
+   *  @serial   
+   */
   Expression m_functionExpr;
 
   /**
@@ -112,22 +112,21 @@ public class FunctionPattern extends StepPattern
    *
    * @param xctxt XPath runtime context.
    *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
+  public XObject execute(XPathContext xctxt)
+          throws javax.xml.transform.TransformerException
   {
 
     int context = xctxt.getCurrentNode();
     XObject obj = m_functionExpr.execute(xctxt);
-    
-    DTMIterator nl =  obj.nodeset();
-    
+    DTMIterator nl = obj.nodeset();
     XNumber score = SCORE_NONE;
 
     if (null != nl)
@@ -145,6 +144,7 @@ public class FunctionPattern extends StepPattern
           break;
         }
       }
+
       // nl.detach();
     }
 

@@ -62,7 +62,6 @@ import org.apache.xpath.Expression;
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.VariableStack;
 import org.apache.xpath.objects.XObject;
-import org.apache.xpath.DOMHelper;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.compiler.OpCodes;

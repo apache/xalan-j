@@ -121,7 +121,6 @@ public class KeyRefIterator extends LocPathIterator
     m_name = ki.getName();
     m_lookupKey = ref;
     this.m_execContext = ki.getXPathContext();
-    this.m_dhelper = ki.getDOMHelper();
   }
 
   /**

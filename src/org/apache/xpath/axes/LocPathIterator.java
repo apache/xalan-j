@@ -60,14 +60,6 @@ package org.apache.xpath.axes;
 import java.util.Vector;
 import java.util.Stack;
 
-// DOM imports
-//import org.w3c.dom.traversal.NodeIterator;
-//import org.w3c.dom.traversal.TreeWalker;
-//import org.w3c.dom.traversal.NodeFilter;
-//import org.w3c.dom.Node;
-//import org.w3c.dom.NamedNodeMap;
-//import org.w3c.dom.DOMException;
-//import org.w3c.dom.NodeList;
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMIterator;
 import org.apache.xml.dtm.DTMFilter;
@@ -78,7 +70,6 @@ import org.apache.xpath.res.XPATHErrorResources;
 import org.apache.xpath.XPath;
 import org.apache.xpath.compiler.OpMap;
 import org.apache.xpath.compiler.Compiler;
-import org.apache.xpath.DOMHelper;
 import org.apache.xpath.compiler.OpCodes;
 import org.apache.xpath.compiler.PsuedoNames;
 import org.apache.xpath.NodeSet;
@@ -321,7 +312,6 @@ public class LocPathIterator extends PredicatedNodeTest
     this.m_currentContextNode = execContext.getCurrentExpressionNode();
     this.m_execContext = execContext;
     this.m_prefixResolver = execContext.getNamespaceContext();
-    this.m_dhelper = execContext.getDOMHelper();
 
     if (m_isTopLevel)
     {
@@ -347,7 +337,6 @@ public class LocPathIterator extends PredicatedNodeTest
     this.m_currentContextNode = context;
     this.m_execContext = execContext;
     this.m_prefixResolver = execContext.getNamespaceContext();
-    this.m_dhelper = execContext.getDOMHelper();
 
     if (m_isTopLevel)
     {
@@ -647,7 +636,6 @@ public class LocPathIterator extends PredicatedNodeTest
     m_cdtm = null;
     this.m_execContext = null;
     this.m_prefixResolver = null;
-    this.m_dhelper = null;
     this.m_varStackPos = -1;
     this.m_varStackContext = 0;
 
@@ -964,17 +952,6 @@ public class LocPathIterator extends PredicatedNodeTest
   }
 
   /**
-   * The DOM helper for the given context;
-   *
-   * @return The DOMHelper that should be used,
-   * or null if initContext has not been called.
-   */
-  public final DOMHelper getDOMHelper()
-  {
-    return m_dhelper;
-  }
-
-  /**
    * The node context for the iterator.
    *
    * @return The node context, same as getRoot().
@@ -1193,12 +1170,6 @@ public class LocPathIterator extends PredicatedNodeTest
 
   /** This is true if nextNode returns null. */
   transient protected boolean m_foundLast = false;
-
-  /**
-   * Quicker access to the DOM helper than going through the
-   * XPathContext object.
-   */
-  transient protected DOMHelper m_dhelper;
 
   /**
    * The context node for this iterator, which doesn't change through

@@ -61,7 +61,6 @@ import java.util.Stack;
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xpath.XPath;
 import org.apache.xpath.XPathContext;
-import org.apache.xpath.DOMHelper;
 
 //import org.w3c.dom.Node;
 import org.apache.xml.dtm.DTM;

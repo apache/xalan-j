@@ -61,41 +61,43 @@ import org.apache.xpath.objects.XObject;
 import org.apache.xpath.XPathContext;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xpath.axes.LocPathIterator;
-
-//import org.w3c.dom.Node;
-//import org.w3c.dom.traversal.NodeIterator;
-
 import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.DTMAxisTraverser;
+import org.apache.xml.dtm.Axis;
 
 /**
  * <meta name="usage" content="advanced"/>
  * Implements a match pattern step that tests an ancestor.
  */
-public class AncestorStepPattern extends StepPattern
+public class RelativeStepPattern extends StepPattern
 {
 
   /**
-   * Construct an AncestorStepPattern that tests for namespaces and node names.
+   * Construct an RelativeStepPattern that tests for namespaces and node names.
    *
    *
    * @param whatToShow Bit set defined mainly by {@link org.w3c.dom.traversal.NodeFilter}.
    * @param namespace The namespace to be tested.
    * @param name The local name to be tested.
    */
-  public AncestorStepPattern(int whatToShow, String namespace, String name)
+  public RelativeStepPattern(int whatToShow, String namespace, String name,
+                     int axis, int axisForPredicate)
   {
-    super(whatToShow, namespace, name);
+    super(whatToShow, namespace, name, axis, axisForPredicate);
+//    m_axis = Axis.ANCESTOR;
   }
 
   /**
-   * Construct an AncestorStepPattern that doesn't test for node names.
+   * Construct an RelativeStepPattern that doesn't test for node names.
    *
    *
    * @param whatToShow Bit set defined mainly by {@link org.w3c.dom.traversal.NodeFilter}.
    */
-  public AncestorStepPattern(int whatToShow)
+  public RelativeStepPattern(int whatToShow,
+                     int axis, int axisForPredicate)
   {
-    super(whatToShow);
+    super(whatToShow, axis, axisForPredicate);
+//    m_axis = Axis.ANCESTOR;
   }
 
   /**
@@ -112,19 +114,20 @@ public class AncestorStepPattern extends StepPattern
 
   /**
    * Overide the super method so that we can handle
-   * match patterns starting with a function such as id()/
+   * match patterns starting with a function such as id()
    *
    * @param xctxt XPath runtime context.
    *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
+  public XObject execute(XPathContext xctxt)
+          throws javax.xml.transform.TransformerException
   {
 
     int whatToShow = getWhatToShow();
@@ -144,52 +147,4 @@ public class AncestorStepPattern extends StepPattern
       return super.execute(xctxt);
   }
 
-  /**
-   * Execute the match pattern step relative to another step.
-   *
-   *
-   * @param xctxt The XPath runtime context.
-   *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
-   *
-   * @throws javax.xml.transform.TransformerException
-   */
-  public XObject executeRelativePathPattern(XPathContext xctxt)
-          throws javax.xml.transform.TransformerException
-  {
-
-    XObject score = NodeTest.SCORE_NONE;
-    int parent = xctxt.getCurrentNode();
-    DTM dtm = xctxt.getDTM(parent);
-    
-    if(null != dtm)
-    {
-      while (DTM.NULL != (parent = dtm.getParent(parent)))
-      {
-        try
-        {
-          xctxt.pushCurrentNode(parent);
-  
-          score = execute(xctxt);
-  
-          if (score != NodeTest.SCORE_NONE)
-          {
-            score = SCORE_OTHER;
-  
-            break;
-          }
-        }
-        finally
-        {
-          xctxt.popCurrentNode();
-        }
-      }
-    }
-
-    return score;
-  }
 }

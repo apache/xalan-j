@@ -448,36 +448,6 @@ public class XPathContext extends DTMManager // implements ExpressionContext
     return getVarStack().getVariable(this, qname);
   }
 
-  // ================ DOMHelper ===================
-
-  /** The basic DOM helper for the root source tree.
-   *  Note that I have some worry about different source tree types 
-   *  being mixed, so this may not be a perfect place for this.
-   *  Right now, I think all the DOM helpers can handle a DOM that 
-   *  they don't know about.  */
-  private DOMHelper m_domHelper = new DOM2Helper();
-
-  /**
-   * Get the DOMHelper associated with this execution context.
-   *
-   * @return non-null reference to a DOM helper.
-   */
-  public final DOMHelper getDOMHelper()
-  {
-    return m_domHelper;
-  }
-
-  /**
-   * Set the DOMHelper associated with this execution context.
-   *
-   * @param helper reference to a dom helper to be associated with this 
-   *               execution context.
-   */
-  public void setDOMHelper(DOMHelper helper)
-  {
-    m_domHelper = helper;
-  }
-
   // ================ SourceTreeManager ===================
 
   /** The source tree manager, which associates Source objects to source 
@@ -749,6 +719,35 @@ public class XPathContext extends DTMManager // implements ExpressionContext
   {
     m_currentNodes.popQuick();
   }
+  
+  /**
+   * Set the current context node.
+   *
+   * @param n the <a href="http://www.w3.org/TR/xslt#dt-current-node">current node</a>.
+   */
+  public final void pushPredicateRoot(int n)
+  {
+    m_predicateRoots.push(n);
+  }
+
+  /**
+   * Pop the current context node.
+   */
+  public final void popPredicateRoot()
+  {
+    m_predicateRoots.popQuick();
+  }
+
+  /**
+   * Pop the current context node.
+   */
+  public final int getPredicateRoot()
+  {
+    return m_predicateRoots.peepOrNull();
+  }
+  
+  /** A stack of the current sub-expression nodes.  */
+  private NodeVector m_predicateRoots = new NodeVector();
 
   /** A stack of the current sub-expression nodes.  */
   private NodeVector m_currentExpressionNodes = new NodeVector();

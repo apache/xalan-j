@@ -65,7 +65,6 @@ import org.apache.xml.utils.PrefixResolver;
 import org.apache.xpath.axes.SubContextList;
 import org.apache.xpath.compiler.Compiler;
 import org.apache.xpath.compiler.OpCodes;
-import org.apache.xpath.DOMHelper;
 import org.apache.xpath.Expression;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.patterns.NodeTestFilter;
@@ -894,7 +893,6 @@ public abstract class AxesWalker extends PredicatedNodeTest
   private AxesWalker getEarliestWaiting()
   {
 
-    DOMHelper dh = m_lpi.getDOMHelper();
     AxesWalker first = null;
     int nWaiting = m_lpi.getWaitingCount();
 

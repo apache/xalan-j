@@ -62,13 +62,10 @@ import org.apache.xpath.XPathContext;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xpath.axes.SubContextList;
 import org.apache.xpath.compiler.PsuedoNames;
-
-// import org.w3c.dom.traversal.NodeFilter;
-// import org.w3c.dom.Node;
-// import org.w3c.dom.traversal.NodeIterator;
-
 import org.apache.xml.dtm.DTM;
 import org.apache.xml.dtm.DTMFilter;
+import org.apache.xml.dtm.DTMAxisTraverser;
+import org.apache.xml.dtm.Axis;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -76,6 +73,12 @@ import org.apache.xml.dtm.DTMFilter;
  */
 public class StepPattern extends NodeTest implements SubContextList
 {
+
+  /** NEEDSDOC Field m_axisForPredicate */
+  protected int m_axisForPredicate;
+
+  /** NEEDSDOC Field m_axis */
+  protected int m_axis;
 
   /**
    * Construct a StepPattern that tests for namespaces and node names.
@@ -85,10 +88,17 @@ public class StepPattern extends NodeTest implements SubContextList
    * @param namespace The namespace to be tested.
    * @param name The local name to be tested.
    */
-  public StepPattern(int whatToShow, String namespace, String name)
+  public StepPattern(int whatToShow, String namespace, String name,
+                     int axis, int axisForPredicate)
   {
 
     super(whatToShow, namespace, name);
+
+    m_axis = axis;
+    m_axisForPredicate = axisForPredicate;
+
+//    m_axis = Axis.PARENT;
+//    m_axisForPredicate = Axis.CHILD;
   }
 
   /**
@@ -97,17 +107,27 @@ public class StepPattern extends NodeTest implements SubContextList
    *
    * @param whatToShow Bit set defined mainly by {@link org.w3c.dom.traversal.NodeFilter}.
    */
-  public StepPattern(int whatToShow)
+  public StepPattern(int whatToShow,
+                     int axis, int axisForPredicate)
   {
+
     super(whatToShow);
+    
+    m_axis = axis;
+    m_axisForPredicate = axisForPredicate;
+
+//    m_axis = Axis.PARENT;
+//    m_axisForPredicate = Axis.CHILD;
   }
 
-  /** The target local name or psuedo name, for hash table lookup optimization.
-   *  @serial  */
-  String m_targetString;  // only calculate on head
-  
   /**
-   * Calculate the local name or psuedo name of the node that this pattern will test, 
+   * The target local name or psuedo name, for hash table lookup optimization.
+   *  @serial
+   */
+  String m_targetString;  // only calculate on head
+
+  /**
+   * Calculate the local name or psuedo name of the node that this pattern will test,
    * for hash table lookup optimization.
    *
    * @see org.apache.xpath.compiler.PsuedoNames
@@ -124,7 +144,7 @@ public class StepPattern extends NodeTest implements SubContextList
       break;
     case DTMFilter.SHOW_TEXT :
     case DTMFilter.SHOW_CDATA_SECTION :
-    case (DTMFilter.SHOW_TEXT | DTMFilter.SHOW_CDATA_SECTION):
+    case (DTMFilter.SHOW_TEXT | DTMFilter.SHOW_CDATA_SECTION) :
       m_targetString = PsuedoNames.PSEUDONAME_TEXT;
       break;
     case DTMFilter.SHOW_ALL :
@@ -147,7 +167,7 @@ public class StepPattern extends NodeTest implements SubContextList
   }
 
   /**
-   * Get the local name or psuedo name of the node that this pattern will test, 
+   * Get the local name or psuedo name of the node that this pattern will test,
    * for hash table lookup optimization.
    *
    *
@@ -177,34 +197,38 @@ public class StepPattern extends NodeTest implements SubContextList
   {
 
     m_relativePathPattern = expr;
-
+    
     calcScore();
   }
 
-  /** The list of predicate expressions for this pattern step.
-   *  @serial   */
-  Expression[] m_predicates;
-  
   /**
-   * Tell if this expression or it's subexpressions can traverse outside 
+   * The list of predicate expressions for this pattern step.
+   *  @serial
+   */
+  Expression[] m_predicates;
+
+  /**
+   * Tell if this expression or it's subexpressions can traverse outside
    * the current subtree.
-   * 
-   * NOTE: Ancestors tests with predicates are problematic, and will require 
+   *
+   * NOTE: Ancestors tests with predicates are problematic, and will require
    * special treatment.
-   * 
+   *
    * @return true if traversal outside the context node's subtree can occur.
    */
-   public boolean canTraverseOutsideSubtree()
-   {
+  public boolean canTraverseOutsideSubtree()
+  {
+
     int n = getPredicateCount();
-    for (int i = 0; i < n; i++) 
+
+    for (int i = 0; i < n; i++)
     {
-      if(getPredicate(i).canTraverseOutsideSubtree())
+      if (getPredicate(i).canTraverseOutsideSubtree())
         return true;
     }
-    
+
     return false;
-   }
+  }
 
   /**
    * Get a predicate expression.
@@ -234,7 +258,7 @@ public class StepPattern extends NodeTest implements SubContextList
    * Set the predicates for this match pattern step.
    *
    *
-   * @param predicates An array of expressions that define predicates 
+   * @param predicates An array of expressions that define predicates
    *                   for this step.
    */
   public void setPredicates(Expression[] predicates)
@@ -266,144 +290,108 @@ public class StepPattern extends NodeTest implements SubContextList
    *
    * @param xctxt XPath runtime context.
    *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public XObject executeStep(XPathContext xctxt)
+  public XObject execute(XPathContext xctxt)
           throws javax.xml.transform.TransformerException
   {
 
-    XObject score;
-
-    score = super.execute(xctxt);
+    XObject score = super.execute(xctxt);
 
     if (score == NodeTest.SCORE_NONE)
-    {
-
-      // System.out.println("executeStep: "+this.m_name+" = "+score);
-      return score;
-    }
-
-    int n = getPredicateCount();
-
-    if (n == 0)
       return score;
 
-    // xctxt.setNamespaceContext(m_lpi.getPrefixResolver());
-    // xctxt.pushCurrentNode(context);
-    try
+    else if (null != m_relativePathPattern)
     {
-      xctxt.pushSubContextList(this);
-
-      for (int i = 0; i < n; i++)
-      {
-        XObject pred;
-
-        pred = m_predicates[i].execute(xctxt);
-
-        if (XObject.CLASS_NUMBER == pred.getType())
-        {
-          if (this.getProximityPosition(xctxt) != (int) pred.num())
-          {
-            score = NodeTest.SCORE_NONE;
-
-            break;
-          }
-        }
-        else if (!pred.bool())
-        {
-          score = NodeTest.SCORE_NONE;
-
-          break;
-        }
-
-        // countProximityPosition(++m_predicateIndex);
-      }
+      return m_relativePathPattern.executeRelativePathPattern(xctxt, this);
     }
-    finally
+    else
     {
-      xctxt.popSubContextList();
+      // System.out.println("PredicateRoot: "+xctxt.getPredicateRoot());
+      int current = xctxt.getCurrentNode();
+      return score;
+      // int parent = xctxt.getDTM(current).getParent(current);
+      // return executePredicates(xctxt, this, score, current, current);
     }
-
-    // System.out.println("executeStep: "+this.m_name+" = "+score);
-    return score;
   }
 
   /**
-   * Get the proximity position index of the current node based on this 
+   * Get the proximity position index of the current node based on this
    * node test.
    *
    *
    * @param xctxt XPath runtime context.
    *
-   * @return the proximity position index of the current node based on the 
+   * @return the proximity position index of the current node based on the
    *         node test.
    */
   public int getProximityPosition(XPathContext xctxt)
   {
 
     int context = xctxt.getCurrentNode();
-    
     DTM dtm = xctxt.getDTM(context);
 
-    // System.out.println("context: "+context.getNodeName());
-    int parentContext = dtm.getParent(context);
-
-    // System.out.println("parentContext: "+parentContext.getNodeName());
-    try
+    int parentContext = xctxt.getPredicateRoot();    
     {
-      xctxt.pushCurrentNode(parentContext);
 
-      int pos = 0;
-
-      for (int child = dtm.getFirstChild(parentContext); child != DTM.NULL;
-              child = dtm.getNextSibling(child))
+      // System.out.println("parentContext: "+parentContext.getNodeName());
+      try
       {
-        try
+        xctxt.pushCurrentNode(parentContext);
+
+        int pos = 0;
+        DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axisForPredicate);
+
+        for (int child = traverser.first(parentContext); DTM.NULL != child;
+                child = traverser.next(parentContext, child))
         {
-          xctxt.pushCurrentNode(child);
-
-          if (NodeTest.SCORE_NONE != super.execute(xctxt))
+          try
           {
-            pos++;
+            xctxt.pushCurrentNode(child);
 
-            if (child == context)
+            if (NodeTest.SCORE_NONE != super.execute(xctxt))
             {
-              return pos;
+              pos++;
+
+              if (child == context)
+              {
+                return pos;
+              }
             }
           }
-        }
-        finally
-        {
-          xctxt.popCurrentNode();
+          finally
+          {
+            xctxt.popCurrentNode();
+          }
         }
       }
-    }
-    catch (javax.xml.transform.TransformerException se)
-    {
+      catch (javax.xml.transform.TransformerException se)
+      {
 
-      // TODO: should keep throw sax exception...
-      throw new java.lang.RuntimeException(se.getMessage());
-    }
-    finally
-    {
-      xctxt.popCurrentNode();
+        // TODO: should keep throw sax exception...
+        throw new java.lang.RuntimeException(se.getMessage());
+      }
+      finally
+      {
+        xctxt.popCurrentNode();
 
-      // xctxt.popContextNodeList();
+        // xctxt.popContextNodeList();
+      }
     }
 
     return 0;
   }
 
   /**
-   * Get the count of the nodes that match the test, which is the proximity 
-   * position of the last node that can pass this test in the sub context 
-   * selection.  In XSLT 1-based indexing, this count is the index of the last 
+   * Get the count of the nodes that match the test, which is the proximity
+   * position of the last node that can pass this test in the sub context
+   * selection.  In XSLT 1-based indexing, this count is the index of the last
    * node.
    *
    *
@@ -416,44 +404,51 @@ public class StepPattern extends NodeTest implements SubContextList
 
     int context = xctxt.getCurrentNode();
     DTM dtm = xctxt.getDTM(context);
-    int parentContext = dtm.getParent(context);
 
-    try
+    int parentContext = xctxt.getPredicateRoot();    
     {
-      xctxt.pushCurrentNode(parentContext);
 
-      int count = 0;
-
-      for (int child = dtm.getFirstChild(parentContext); child != DTM.NULL;
-              child = dtm.getNextSibling(child))
+      // System.out.println("parentContext: "+parentContext.getNodeName());
+      try
       {
-        try
-        {
-          xctxt.pushCurrentNode(child);
+        xctxt.pushCurrentNode(parentContext);
 
-          if (NodeTest.SCORE_NONE != super.execute(xctxt))
-            count++;
-        }
-        finally
+        int count = 0;
+        DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axisForPredicate);
+
+        for (int child = traverser.first(parentContext); DTM.NULL != child;
+                child = traverser.next(parentContext, child))
         {
-          xctxt.popCurrentNode();
+          try
+          {
+            xctxt.pushCurrentNode(child);
+
+            if (NodeTest.SCORE_NONE != super.execute(xctxt))
+              count++;
+          }
+          finally
+          {
+            xctxt.popCurrentNode();
+          }
         }
+
+        return count;
       }
+      catch (javax.xml.transform.TransformerException se)
+      {
 
-      return count;
-    }
-    catch (javax.xml.transform.TransformerException se)
-    {
+        // TODO: should keep throw sax exception...
+        throw new java.lang.RuntimeException(se.getMessage());
+      }
+      finally
+      {
+        xctxt.popCurrentNode();
 
-      // TODO: should keep throw sax exception...
-      throw new java.lang.RuntimeException(se.getMessage());
+        // xctxt.popContextNodeList();
+      }
     }
-    finally
-    {
-      xctxt.popCurrentNode();
 
-      // xctxt.popContextNodeList();
-    }
+    // return 0;
   }
 
   /**
@@ -461,52 +456,7 @@ public class StepPattern extends NodeTest implements SubContextList
    *
    *
    * @param xctxt The XPath runtime context.
-   *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
-   *
-   * @throws javax.xml.transform.TransformerException
-   */
-  public XObject executeRelativePathPattern(XPathContext xctxt)
-          throws javax.xml.transform.TransformerException
-  {
-
-    XObject score;
-    int currentNode = xctxt.getCurrentNode();
-    DTM dtm = xctxt.getDTM(currentNode);
-    int parent = dtm.getParent(currentNode);
-
-    if (DTM.NULL != parent)
-    {
-      try
-      {
-        xctxt.pushCurrentNode(parent);
-
-        score = execute(xctxt);
-
-        if (score != NodeTest.SCORE_NONE)
-          score = SCORE_OTHER;
-      }
-      finally
-      {
-        xctxt.popCurrentNode();
-      }
-    }
-    else
-      score = NodeTest.SCORE_NONE;
-
-    return score;
-  }
-
-  /**
-   * Test the current node to see if it matches the given node test, and if 
-   * it does, and there is a relative path pattern, execute that to see if it 
-   * matches also.
-   *
-   * @param xctxt XPath runtime context.
+   * NEEDSDOC @param prevStep
    *
    * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
@@ -516,23 +466,109 @@ public class StepPattern extends NodeTest implements SubContextList
    *
    * @throws javax.xml.transform.TransformerException
    */
-  public XObject execute(XPathContext xctxt) throws javax.xml.transform.TransformerException
+  public XObject executeRelativePathPattern(
+          XPathContext xctxt, StepPattern prevStep)
+            throws javax.xml.transform.TransformerException
   {
 
-    XObject score;
+    XObject score = NodeTest.SCORE_NONE;
+    int context = xctxt.getCurrentNode();
+    DTM dtm = xctxt.getDTM(context);
 
-    // int n = getPredicateCount();
-    score = executeStep(xctxt);
-
-    if ((score != NodeTest.SCORE_NONE) && (null != m_relativePathPattern))
+    if (null != dtm)
     {
-      score = m_relativePathPattern.executeRelativePathPattern(xctxt);
+      DTMAxisTraverser traverser = dtm.getAxisTraverser(m_axis);
+      int predContext = xctxt.getCurrentNode();
+
+      for (int relative = traverser.first(context); DTM.NULL != relative;
+              relative = traverser.next(context, relative))
+      {
+        try
+        {
+          xctxt.pushCurrentNode(relative);
+
+          score = execute(xctxt);
+
+          if (score != NodeTest.SCORE_NONE)
+          {
+            score = executePredicates( xctxt, prevStep, SCORE_OTHER, 
+                       predContext, relative);
+
+            if (score != NodeTest.SCORE_NONE)
+              break;
+          }
+        }
+        finally
+        {
+          xctxt.popCurrentNode();
+        }
+      }
     }
 
     return score;
   }
 
-  /** Set to true to send diagnostics about pattern matches to the consol.  */
+  /**
+   * NEEDSDOC Method executePredicates 
+   *
+   *
+   * NEEDSDOC @param xctxt
+   * NEEDSDOC @param prevStep
+   * NEEDSDOC @param score
+   *
+   * NEEDSDOC (executePredicates) @return
+   *
+   * @throws javax.xml.transform.TransformerException
+   */
+  private static XObject executePredicates(
+          XPathContext xctxt, StepPattern prevStep, XObject score, 
+          int context, int predicateRootContext)
+            throws javax.xml.transform.TransformerException
+  {
+
+    int n = prevStep.getPredicateCount();
+
+    if (n != 0)
+    {
+      try
+      {
+        xctxt.pushCurrentNode(context);
+        xctxt.pushSubContextList(prevStep);
+        xctxt.pushPredicateRoot(predicateRootContext);
+
+        for (int i = 0; i < n; i++)
+        {
+          XObject pred = prevStep.m_predicates[i].execute(xctxt);
+
+          if (XObject.CLASS_NUMBER == pred.getType())
+          {
+            if (prevStep.getProximityPosition(xctxt) != (int) pred.num())
+            {
+              score = NodeTest.SCORE_NONE;
+
+              break;
+            }
+          }
+          else if (!pred.bool())
+          {
+            score = NodeTest.SCORE_NONE;
+
+            break;
+          }
+        }
+      }
+      finally
+      {
+        xctxt.popCurrentNode();
+        xctxt.popSubContextList();
+        xctxt.popPredicateRoot();
+      }
+    }
+
+    return score;
+  }
+
+  /** Set to true to send diagnostics about pattern matches to the consol. */
   private static final boolean DEBUG_MATCHES = false;
 
   /**

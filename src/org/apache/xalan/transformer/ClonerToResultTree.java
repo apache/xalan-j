@@ -67,7 +67,6 @@ import javax.xml.transform.TransformerException;
 import org.xml.sax.Attributes;
 
 import org.apache.xpath.XPathContext;
-import org.apache.xpath.DOMHelper;
 import org.apache.xalan.res.XSLTErrorResources;
 
 /**

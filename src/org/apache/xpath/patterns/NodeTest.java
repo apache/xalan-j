@@ -64,24 +64,27 @@ import org.apache.xpath.objects.XNumber;
 import org.apache.xpath.objects.XObject;
 import org.apache.xpath.WhitespaceStrippingElementMatcher;
 import org.apache.xml.utils.PrefixResolver;
-
 import org.apache.xml.dtm.DTMFilter;
 import org.apache.xml.dtm.DTM;
 
 /**
  * <meta name="usage" content="advanced"/>
- * This is the basic node test class for both match patterns and location path 
+ * This is the basic node test class for both match patterns and location path
  * steps.
  */
 public class NodeTest extends Expression
 {
 
-  /** The namespace or local name for node tests with a wildcard.
-   *  @see <a href="http://www.w3.org/TR/xpath#NT-NameTest">the XPath NameTest production.</a> */
+  /**
+   * The namespace or local name for node tests with a wildcard.
+   *  @see <a href="http://www.w3.org/TR/xpath#NT-NameTest">the XPath NameTest production.</a> 
+   */
   public static final String WILD = "*";
-  
-  /** The URL to pass to the Node#supports method, to see if the 
-   * DOM has already been stripped of whitespace nodes. */
+
+  /**
+   * The URL to pass to the Node#supports method, to see if the
+   * DOM has already been stripped of whitespace nodes. 
+   */
   public static final String SUPPORTS_PRE_STRIPPING =
     "http://xml.apache.org/xpath/features/whitespace-pre-stripping";
 
@@ -109,8 +112,10 @@ public class NodeTest extends Expression
     return m_whatToShow;
   }
 
-  /** The namespace to be tested for, which may be null.
-   *  @serial */
+  /**
+   * The namespace to be tested for, which may be null.
+   *  @serial 
+   */
   String m_namespace;
 
   /**
@@ -123,8 +128,10 @@ public class NodeTest extends Expression
     return m_namespace;
   }
 
-  /** The local name to be tested for.
-   *  @serial */
+  /**
+   * The local name to be tested for.
+   *  @serial 
+   */
   String m_name;
 
   /**
@@ -137,42 +144,51 @@ public class NodeTest extends Expression
     return (null == m_name) ? "" : m_name;
   }
 
-  /** Statically calculated score for this test.  One of
-   *  {@link #SCORE_NODETEST}, 
-   *  {@link #SCORE_NONE}, 
-   *  {@link #SCORE_NSWILD}, 
+  /**
+   * Statically calculated score for this test.  One of
+   *  {@link #SCORE_NODETEST},
+   *  {@link #SCORE_NONE},
+   *  {@link #SCORE_NSWILD},
    *  {@link #SCORE_QNAME}, or
    *  {@link #SCORE_OTHER}.
    *  @serial
    */
   XNumber m_score;
 
-  /** 
+  /**
    * The match score if the pattern consists of just a NodeTest.
-   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> */
+   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> 
+   */
   public static final XNumber SCORE_NODETEST =
     new XNumber(XPath.MATCH_SCORE_NODETEST);
 
-  /** 
+  /**
    * The match score if the pattern pattern has the form NCName:*.
-   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> */
-  public static final XNumber SCORE_NSWILD = new XNumber(XPath.MATCH_SCORE_NSWILD);
+   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> 
+   */
+  public static final XNumber SCORE_NSWILD =
+    new XNumber(XPath.MATCH_SCORE_NSWILD);
 
-  /** 
+  /**
    * The match score if the pattern has the form
    * of a QName optionally preceded by an @ character.
-   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> */
-  public static final XNumber SCORE_QNAME = new XNumber(XPath.MATCH_SCORE_QNAME);
+   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> 
+   */
+  public static final XNumber SCORE_QNAME =
+    new XNumber(XPath.MATCH_SCORE_QNAME);
 
-  /** 
+  /**
    * The match score if the pattern consists of something
    * other than just a NodeTest or just a qname.
-   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> */
-  public static final XNumber SCORE_OTHER = new XNumber(XPath.MATCH_SCORE_OTHER);
+   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> 
+   */
+  public static final XNumber SCORE_OTHER =
+    new XNumber(XPath.MATCH_SCORE_OTHER);
 
-  /** 
+  /**
    * The match score if no match is made.
-   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> */
+   *  @see <a href="http://www.w3.org/TR/xslt#conflict">XSLT Specification - 5.5 Conflict Resolution for Template Rules</a> 
+   */
   public static final XNumber SCORE_NONE =
     new XNumber(XPath.MATCH_SCORE_NONE);
 
@@ -206,7 +222,7 @@ public class NodeTest extends Expression
   public NodeTest(){}
 
   /**
-   * Initialize this node test by setting the whatToShow property, and 
+   * Initialize this node test by setting the whatToShow property, and
    * calculating the score that this test will return if a test succeeds.
    *
    *
@@ -221,8 +237,8 @@ public class NodeTest extends Expression
   }
 
   /**
-   * Initialize this node test by setting the whatToShow property and the 
-   * namespace and local name, and 
+   * Initialize this node test by setting the whatToShow property and the
+   * namespace and local name, and
    * calculating the score that this test will return if a test succeeds.
    *
    *
@@ -240,9 +256,29 @@ public class NodeTest extends Expression
     calcScore();
   }
 
-  /** True if this test has a null namespace and a local name of {@link #WILD}.
-   *  @serial */
+  /**
+   * True if this test has a null namespace and a local name of {@link #WILD}.
+   *  @serial 
+   */
   private boolean m_isTotallyWild;
+  
+  /**
+   * Get the static score for this node test.
+   * @return Should be one of the SCORE_XXX constants.
+   */
+  public XNumber getStaticScore()
+  {
+    return m_score;
+  }
+  
+  /**
+   * Set the static score for this node test.
+   * @param score Should be one of the SCORE_XXX constants.
+   */
+  public void setStaticScore(XNumber score)
+  {
+    m_score = score;
+  }
 
   /**
    * Static calc of match score.
@@ -354,12 +390,12 @@ public class NodeTest extends Expression
     // System.out.println("subPartMatch - p: "+p+", t: "+t+", result: "+b);
     return (p == t) || ((null != p) && ((t == WILD) || p.equals(t)));
   }
-  
+
   /**
-   * This is temporary to patch over Xerces issue with representing DOM 
+   * This is temporary to patch over Xerces issue with representing DOM
    * namespaces as "".
    *
-   * @param p part string from the node, which may represent the null namespace 
+   * @param p part string from the node, which may represent the null namespace
    *        as null or as "".
    * @param t target string, which may be {@link #WILD}.
    *
@@ -368,9 +404,11 @@ public class NodeTest extends Expression
   private static final boolean subPartMatchNS(String p, String t)
   {
 
-    return (p == t) || ((null != p) && ((p.length() > 0) ? ((t == WILD) || p.equals(t)) : null == t));
+    return (p == t)
+           || ((null != p)
+               && ((p.length() > 0)
+                   ? ((t == WILD) || p.equals(t)) : null == t));
   }
-
 
   /**
    * Tell what the test score is for the given node.
@@ -379,9 +417,9 @@ public class NodeTest extends Expression
    * @param xctxt XPath runtime context.
    * @param context The node being tested.
    *
-   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE}, 
-   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD}, 
+   * @return {@link org.apache.xpath.patterns.NodeTest#SCORE_NODETEST},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NONE},
+   *         {@link org.apache.xpath.patterns.NodeTest#SCORE_NSWILD},
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_QNAME}, or
    *         {@link org.apache.xpath.patterns.NodeTest#SCORE_OTHER}.
    *
@@ -390,6 +428,7 @@ public class NodeTest extends Expression
   public XObject execute(XPathContext xctxt, int context)
           throws javax.xml.transform.TransformerException
   {
+
     DTM dtm = xctxt.getDTM(context);
     short nodeType = dtm.getNodeType(context);
 
@@ -407,6 +446,7 @@ public class NodeTest extends Expression
       return m_score;
     case DTMFilter.SHOW_CDATA_SECTION :
     case DTMFilter.SHOW_TEXT :
+
       // was: 
       // return (!xctxt.getDOMHelper().shouldStripSourceNode(context))
       //       ? m_score : SCORE_NONE;
@@ -436,8 +476,7 @@ public class NodeTest extends Expression
     case DTMFilter.SHOW_ATTRIBUTE :
     case DTMFilter.SHOW_ELEMENT :
     {
-      return (m_isTotallyWild || (subPartMatchNS(dtm.getNamespaceURI(context), m_namespace) 
-           && subPartMatch(dtm.getLocalName(context), m_name)))
+      return (m_isTotallyWild || (subPartMatchNS(dtm.getNamespaceURI(context), m_namespace) && subPartMatch(dtm.getLocalName(context), m_name)))
              ? m_score : SCORE_NONE;
     }
     default :
