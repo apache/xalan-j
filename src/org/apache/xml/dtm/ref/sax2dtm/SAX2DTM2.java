@@ -65,6 +65,7 @@ import org.apache.xml.res.XMLMessages;
 import org.apache.xml.res.XMLErrorResources;
 
 import javax.xml.transform.Source;
+import java.util.Vector;
 import org.xml.sax.*;
 
 /**
@@ -1724,6 +1725,19 @@ public class SAX2DTM2 extends SAX2DTM
   // %OPT% Cache the array of extended types in this class
   protected ExtendedType[] m_extendedTypes;
   
+  // A Vector which is used to store the values of attribute, namespace, 
+  // comment and PI nodes.
+  //
+  // %OPT% These values are unlikely to be equal. Storing
+  // them in a plain Vector is more efficient than storing in the
+  // DTMStringPool because we can save the cost for hash calculation.
+  //
+  // %REVISIT% Do we need a custom class (e.g. StringVector) here?
+  private Vector m_values;
+  
+  // The current index into the m_values Vector.
+  private int m_valueIndex = 0;
+  
   // Cache the shift and mask values for the SuballocatedIntVectors.
   protected int m_SHIFT;
   protected int m_MASK;
@@ -1771,6 +1785,11 @@ public class SAX2DTM2 extends SAX2DTM
     m_MASK = m_blocksize - 1;
     
     m_buildIdIndex = buildIdIndex;
+    
+    // Some documents do not have attribute nodes. That is why
+    // we set the initial size of this Vector to be small and set
+    // the increment to a bigger number.
+    m_values = new Vector(32, 512);
     
     // Set the map0 values in the constructor.
     m_exptype_map0 = m_exptype.getMap0();
@@ -1934,6 +1953,28 @@ public class SAX2DTM2 extends SAX2DTM
   }
 
   /**
+   * Get a prefix either from the uri mapping, or just make
+   * one up!
+   *
+   * @param uri The namespace URI, which may be null.
+   *
+   * @return The prefix if there is one, or null.
+   */
+  public int getIdForNamespace(String uri)
+  {
+     int index = m_values.indexOf(uri);
+     if (index < 0)
+     {
+       m_values.addElement(uri);
+       return m_valueIndex++;
+     }
+     else
+       return index;
+     
+     //return m_valuesOrPrefixes.stringToIndex(uri);    
+  }
+
+  /**
    * Override SAX2DTM.startElement()
    *
    * Receive notification of the start of an element.
@@ -1989,7 +2030,9 @@ public class SAX2DTM2 extends SAX2DTM
       prefix="xml";
       String declURL = "http://www.w3.org/XML/1998/namespace";
       exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
-      int val = m_valuesOrPrefixes.stringToIndex(declURL);
+      //int val = m_valuesOrPrefixes.stringToIndex(declURL);
+      m_values.addElement(declURL);
+      int val = m_valueIndex++;
       addNode(DTM.NAMESPACE_NODE, exName, elemNode,
                      DTM.NULL, val, false);
       m_pastFirstElement=true;
@@ -2006,7 +2049,9 @@ public class SAX2DTM2 extends SAX2DTM
 
       exName = m_expandedNameTable.getExpandedTypeID(null, prefix, DTM.NAMESPACE_NODE);
 
-      int val = m_valuesOrPrefixes.stringToIndex(declURL);
+      //int val = m_valuesOrPrefixes.stringToIndex(declURL);
+      m_values.addElement(declURL);
+      int val = m_valueIndex++;
 
       addNode(DTM.NAMESPACE_NODE, exName, elemNode,
                      DTM.NULL, val, false);
@@ -2047,7 +2092,9 @@ public class SAX2DTM2 extends SAX2DTM
       if(null == valString)
         valString = "";
 
-      int val = m_valuesOrPrefixes.stringToIndex(valString);
+      //int val = m_valuesOrPrefixes.stringToIndex(valString);
+      m_values.addElement(valString);
+      int val = m_valueIndex++;
 
       if (attrLocalName.length() != attrQName.length())
       {
@@ -2162,9 +2209,14 @@ public class SAX2DTM2 extends SAX2DTM
 
     // For now, treat comments as strings...  I guess we should do a
     // seperate FSB buffer instead.
+    /*
     int dataIndex = m_valuesOrPrefixes.stringToIndex(new String(ch, start,
                       length));
-
+    */
+    // %OPT% Saving the comment string in a Vector has a lower cost than
+    // saving it in DTMStringPool.
+    m_values.addElement(new String(ch, start, length));
+    int dataIndex = m_valueIndex++;
 
     m_previous = addNode(DTM.COMMENT_NODE, DTM.COMMENT_NODE,
                          m_parents.peek(), m_previous, dataIndex, false);
@@ -2347,7 +2399,9 @@ public class SAX2DTM2 extends SAX2DTM
 			 -dataIndex, false);
 
     m_data.addElement(m_valuesOrPrefixes.stringToIndex(target));
-    m_data.addElement(m_valuesOrPrefixes.stringToIndex(data));
+    //m_data.addElement(m_valuesOrPrefixes.stringToIndex(data));
+    m_values.addElement(data);
+    m_data.addElement(m_valueIndex++);
 
   }
 
@@ -2737,7 +2791,8 @@ public class SAX2DTM2 extends SAX2DTM
         dataIndex = -dataIndex;
         dataIndex = m_data.elementAt(dataIndex + 1);
       }
-      return m_valuesOrPrefixes.indexToString(dataIndex);
+      //return m_valuesOrPrefixes.indexToString(dataIndex);
+      return (String)m_values.elementAt(dataIndex);
     }
   }
 
@@ -2845,9 +2900,54 @@ public class SAX2DTM2 extends SAX2DTM
         dataIndex = m_data.elementAt(dataIndex + 1);
       }
       
-      String str = m_valuesOrPrefixes.indexToString(dataIndex);
+      //String str = m_valuesOrPrefixes.indexToString(dataIndex);
+      String str = (String)m_values.elementAt(dataIndex);
       ch.characters(str.toCharArray(), 0, str.length());
     }
   }
+
+  /**
+   * Given a node handle, return its node value. This is mostly
+   * as defined by the DOM, but may ignore some conveniences.
+   * <p>
+   *
+   * @param nodeHandle The node id.
+   * @return String Value of this node, or null if not
+   * meaningful for this node type.
+   */
+  public String getNodeValue(int nodeHandle)
+  {
+
+    int identity = makeNodeIdentity(nodeHandle);
+    int type = _type2(identity);
+
+    if (type == DTM.TEXT_NODE || type == DTM.CDATA_SECTION_NODE)
+    {
+      int dataIndex = _dataOrQName(identity);
+      int offset = m_data.elementAt(dataIndex);
+      int length = m_data.elementAt(dataIndex + 1);
+
+      return m_chars.getString(offset, length);
+    }
+    else if (DTM.ELEMENT_NODE == type || DTM.DOCUMENT_FRAGMENT_NODE == type
+             || DTM.DOCUMENT_NODE == type)
+    {
+      return null;
+    }
+    else
+    {
+      int dataIndex = m_dataOrQName.elementAt(identity);
+
+      if (dataIndex < 0)
+      {
+        dataIndex = -dataIndex;
+        dataIndex = m_data.elementAt(dataIndex + 1);
+      }
+
+      //return m_valuesOrPrefixes.indexToString(dataIndex);
+      return (String)m_values.elementAt(dataIndex);
+    }
+  }
+  
   
 }
