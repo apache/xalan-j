@@ -102,7 +102,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     private int       _sp;
 
     // Temporary structures for attribute nodes
-    private int       _currentAttributeNode = 1;
+    //private int       _currentAttributeNode = 1;
 
     // Namespace prefix-to-uri mapping stuff
     private int       _uriCount     = 0;
@@ -146,12 +146,15 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         };
 
     // Contains the number of nodes and attribute nodes in the tree
-    private int       _treeNodeLimit;
-    private int       _firstAttributeNode;
+    //private int       _treeNodeLimit;
+    //private int       _firstAttributeNode;
 
      // Node-to-type, type-to-name, and name-to-type mappings
-    private int[] _types;
-    private String[]  _namesArray;
+    //private int[] _types;
+    //private String[]  _namesArray;
+    
+    // The number of expanded names
+    private int _namesSize = 0;
 
     // Namespace related stuff
     private Hashtable _nsIndex = new Hashtable();
@@ -237,18 +240,24 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      * Returns 'true' if a specific node is an element (of any type)
      */
     public boolean isElement(final int node) {
+        /*
         return (((node < _firstAttributeNode)
                      && (getExpandedTypeID(node) >= DTM.NTYPES))
                 || getNodeType(node) == DTM.ELEMENT_NODE);
+        */
+        return getNodeType(node) == DTM.ELEMENT_NODE;
     }
 
     /**
      * Returns 'true' if a specific node is an attribute (of any type)
      */
     public boolean isAttribute(final int node) {
+        /*
         return (((node >= _firstAttributeNode)
                      && (getExpandedTypeID(node) >= DTM.NTYPES))
                 || getNodeType(node) == DTM.ATTRIBUTE_NODE);
+        */
+        return getNodeType(node) == DTM.ATTRIBUTE_NODE;
     }
 
     /**
@@ -296,7 +305,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      */
     public Node makeNode(int index) {
         if (_nodes == null) {
-            _nodes = new Node[_namesArray.length + DTM.NTYPES];
+            //_nodes = new Node[_namesArray.length + DTM.NTYPES];
+            _nodes = new Node[_namesSize];
         }
 
         return (_nodes[index] != null)
@@ -317,7 +327,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      */
     public NodeList makeNodeList(int index) {
         if (_nodeLists == null) {
-            _nodeLists = new NodeList[_namesArray.length + DTM.NTYPES];
+            //_nodeLists = new NodeList[_namesArray.length + DTM.NTYPES];
+            _nodeLists = new NodeList[_namesSize];
         }
         return (_nodeLists[index] != null)
                  ? _nodeLists[index]
@@ -346,11 +357,12 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     }
 
     // A single copy (cache) of ElementFilter
-    private DTMFilter _elementFilter;
+    //private DTMFilter _elementFilter;
 
     /**
      * Returns a filter that lets only element nodes through
      */
+    /*
     private DTMFilter getElementFilter() {
         if (_elementFilter == null) {
             _elementFilter = new DTMFilter() {
@@ -370,6 +382,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         }
         return _elementFilter;
     }
+    */
 
     /**
      * Implementation of a filter that only returns nodes of a
@@ -906,7 +919,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       
       for (i = 0; i < namesLength; i++) {
           generalizedTypes[i] = getGeneralizedType(names[i]);
-          if (_types == null && generalizedTypes[i] >= resultLength)
+          if (_namesSize == 0 && generalizedTypes[i] >= resultLength)
               resultLength = generalizedTypes[i] + 1;
       }
       
@@ -922,8 +935,9 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       // actual mapping of caller requested names
       for (i = 0; i < namesLength; i++) {
           int genType = generalizedTypes[i];         
-          if (_types != null) {
-              if (genType < _types.length && genType == _types[genType]) {
+          if (_namesSize > 0) {
+              //if (genType < _types.length && genType == _types[genType]) {
+              if (genType < result.length) {
                   result[genType] = (short)(i + DTM.NTYPES);
               }
           }
@@ -1123,11 +1137,13 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      * Returns the next available attribute node. Increases the
      * various arrays that constitute the attribute if necessary
      */
+  /*  
   private int nextAttributeNode()
   {
     final int index = _currentAttributeNode++;
     return index;
   }
+  */
 
     /**
      * Sets the current parent
@@ -1157,12 +1173,18 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
               //_dontEscape = new BitArray(_whitespace.size());
               _dontEscape = new BitArray(_size);
           }
+          
+          // Resize the _dontEscape BitArray if necessary.
+          if (_textNodeToProcess >= _dontEscape.size())
+              _dontEscape.resize(_dontEscape.size() * 2);
+          
           _dontEscape.setBit(_textNodeToProcess);
           _disableEscaping = false;
       }
       _textNodeToProcess = DTM.NULL;
   }
 
+    /*
     private int makeNamespaceNode(String prefix, String uri)
         throws SAXException
   {
@@ -1172,6 +1194,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
        // storeAttrValRef(node);
         return node;
     }
+    */
 
 
     /****************************************************************/
@@ -1193,12 +1216,12 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      * SAX2: Receive notification of the beginning of a document.
      */
     public void startDocument() throws SAXException
-  {
+    {
 
         super.startDocument();
         _sp             = 0;
         _parentStack[0] = DTMDefaultBase.ROOTNODE;  // root
-        _currentAttributeNode = 1;
+        //_currentAttributeNode = 1;
 
         definePrefixAndUri(EMPTYSTRING, EMPTYSTRING);
         startPrefixMapping(XML_PREFIX, "http://www.w3.org/XML/1998/namespace");
@@ -1208,7 +1231,12 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      * SAX2: Receive notification of the end of a document.
      */
     public void endDocument() throws SAXException
-  {
+    {
+      super.endDocument();
+      handleTextEscaping();
+      _namesSize = m_expandedNameTable.getSize();
+     
+    /*
     final int namesSize = m_expandedNameTable.getSize() - DTM.NTYPES;
     _types = new int[m_expandedNameTable.getSize()];
  
@@ -1249,10 +1277,8 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
                  _firstAttributeNode);
    // appendAttributes();
     //_treeNodeLimit = _currentNode + _currentAttributeNode;
+   */
 
-
-        super.endDocument();
-     handleTextEscaping();
   }
 
     /**
@@ -1325,7 +1351,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         handleTextEscaping();
 
         definePrefixAndUri(prefix, uri);
-        makeNamespaceNode(prefix, uri);
+        //makeNamespaceNode(prefix, uri);
     }
 
     private void definePrefixAndUri(String prefix, String uri) 
@@ -1360,6 +1386,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     
         }
 
+    /*
     private void resizeArrays(final int newSize, int length) {
     if ((length < newSize) && (newSize == getNumberOfNodes()-1))
       length = getNumberOfNodes()-1;
@@ -1371,6 +1398,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         _dontEscape.resize(newSize);
     }
   }
+  */
 
         public boolean setEscaping(boolean value) {
             final boolean temp = _escaping;
@@ -1664,11 +1692,13 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
      */
     public DTMAxisIterator getNthDescendant(int type, int n, boolean includeself)
     {
-      DTMAxisIterator source =
+      DTMAxisIterator source = (DTMAxisIterator) new TypedDescendantIterator(type);
+             /*
              (type == DTM.ELEMENT_NODE)
                    ? (DTMAxisIterator) new FilterIterator(new DescendantIterator(),
                                         getElementFilter())
                    : (DTMAxisIterator) new TypedDescendantIterator(type);
+             */
       // %HZ% Need to do something here???
       //TODO?? if (includeself)
       //  ((NodeIteratorBase)source).includeSelf();
@@ -2037,11 +2067,11 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     
     /**
      * Return the names array
-     */
     public String[] getNamesArray()
     {
         return _namesArray;
     }
+    */
 
     /**
      * Returns a DOMBuilder class wrapped in a SAX adapter.
