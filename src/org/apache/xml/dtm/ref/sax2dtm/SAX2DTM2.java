@@ -1524,26 +1524,41 @@ public class SAX2DTM2 extends SAX2DTM
      */
     public int next()
     {
-      if (_startNode == NULL) {
+      final int startNode = _startNode;
+      if (startNode == NULL) {
         return NULL;
       }
 
-      if (_includeSelf && (_currentNode + 1) == _startNode)
+      if (_includeSelf && (_currentNode + 1) == startNode)
           return returnNode(makeNodeHandle(++_currentNode)); // | m_dtmIdent);
 
       int node = _currentNode;
       int type;
 
-      do {
-        node++;
-        type = _type2(node);
+      if (startNode == ROOTNODE) {
+        do {
+          node++;
+          type = _type2(node);
 
-        if (NULL == type ||!isDescendant(node)) {
-          _currentNode = NULL;
-          return END;
-        }
-      } while(ATTRIBUTE_NODE == type || TEXT_NODE == type
+          if (NULL == type) {
+            _currentNode = NULL;
+            return END;
+          }
+        } while(ATTRIBUTE_NODE == type || TEXT_NODE == type
                  || NAMESPACE_NODE == type);
+      }
+      else {
+        do {
+          node++;
+          type = _type2(node);
+
+          if (NULL == type ||!isDescendant(node)) {
+            _currentNode = NULL;
+            return END;
+          }
+        } while(ATTRIBUTE_NODE == type || TEXT_NODE == type
+                 || NAMESPACE_NODE == type);      
+      }
 
       _currentNode = node;
       return returnNode(makeNodeHandle(node));  // make handle.
