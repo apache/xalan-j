@@ -714,6 +714,14 @@ public interface DTM
   /**
    * Append a child to the end of the document. Please note that the node 
    * is always cloned if it is owned by another document.
+   * <p>
+   * TODO: "End of the document" needs to be defined better. I believe the
+   * intent is equivalent to the DOM sequence
+   *	document.getRootElement().appendChild(document.importNode(newChild)))
+   * but we need to nail that down more explicitly.
+   * <p>
+   * TODO: ISSUE -- In DTM, I believe we must ALWAYS clone the node, since
+   * the base DTM is immutable and nodes never exist in isolation.
    * 
    * @param newChild Must be a valid new node handle.
    * @param clone true if the child should be cloned into the document.
