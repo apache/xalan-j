@@ -73,6 +73,7 @@ import org.apache.xml.utils.QName;
 import org.apache.xml.utils.FastStringBuffer;
 import org.apache.xml.utils.WrappedRuntimeException;
 import org.apache.xalan.serialize.Method;
+import org.apache.xalan.extensions.ExtensionHandler;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.OutputKeys;
@@ -180,23 +181,51 @@ public class OutputProperties extends ElemTemplateElement
   static private Properties loadPropertiesFile(String resourceName, Properties defaults)
     throws IOException
   {
+
+    // This static method should eventually be moved to a thread-specific class
+    // so that we can cache the ContextClassLoader and bottleneck all properties file
+    // loading throughout Xalan.
+
     Properties props = new Properties(defaults);
 
     InputStream is = null;
     BufferedInputStream bis = null;
+
     try {
-      is = OutputProperties.class.getResourceAsStream(resourceName);
+      try {
+        java.lang.reflect.Method getCCL = Thread.class.getMethod("getContextClassLoader", NO_CLASSES);
+        if (getCCL != null) {
+          ClassLoader contextClassLoader = (ClassLoader) getCCL.invoke(Thread.currentThread(), NO_OBJS);
+          is = contextClassLoader.getResourceAsStream("org/apache/xalan/templates/" + resourceName);
+        }
+      }
+      catch (Exception e) {}
+
+      if ( is == null ) {
+        is = OutputProperties.class.getResourceAsStream(resourceName);
+      }
+      
       bis = new BufferedInputStream(is);
-    props.load(bis);
-    } catch (IOException ioe) {
+      props.load(bis);
+    } 
+    catch (IOException ioe) {
       if ( defaults == null ) {
         throw ioe;
       }
-      else
-      {
-        throw new WrappedRuntimeException("Could not load '"+resourceName+"' (check CLASSPATH) using just the defaults ", ioe);
+      else {
+        throw new WrappedRuntimeException("Could not load '"+resourceName+"' (check CLASSPATH), now using just the defaults ", ioe);
       }
-    } finally {
+    }
+    catch (SecurityException se) {
+      // Repeat IOException handling for sandbox/applet case -sc
+      if ( defaults == null ) {
+        throw se;
+      }
+      else {
+        throw new WrappedRuntimeException("Could not load '"+resourceName+"' (check CLASSPATH, applet security), now using just the defaults ", se);
+      }
+    } 
+    finally {
       if ( bis != null ) {
         bis.close();
       }
@@ -215,13 +244,25 @@ public class OutputProperties extends ElemTemplateElement
       // Now check if the given key was specified as a 
       // System property. If so, the system property 
       // overides the default value in the propery file.
-      String value;
-      if ((value = System.getProperty(key)) == null)      
+      String value = null;
+      try {
+        value = System.getProperty(key);
+      }
+      catch (SecurityException se) {
+        // No-op for sandbox/applet case, leave null -sc
+      }
+      if (value == null)      
         value = (String)props.get(key);                       
       
       String newKey = fixupPropertyString(key, true);
-      String newValue;
-      if ((newValue = System.getProperty(newKey)) == null)
+      String newValue = null;
+      try {
+        newValue = System.getProperty(newKey);
+      }
+      catch (SecurityException se) {
+        // No-op for sandbox/applet case, leave null -sc
+      }
+      if (newValue == null)
         newValue = fixupPropertyString(value, false);
       else
         newValue = fixupPropertyString(newValue, false);
@@ -1011,4 +1052,11 @@ public class OutputProperties extends ElemTemplateElement
 
   /** Synchronization object for lazy initialization of the above tables. */
   private static Integer m_synch_object = new Integer(1);
+
+  /** a zero length Class array used in loadPropertiesFile() */
+  private static final Class[] NO_CLASSES = new Class[0];
+
+  /** a zero length Object array used in loadPropertiesFile() */
+  private static final Object[] NO_OBJS = new Object[0];
+
 }

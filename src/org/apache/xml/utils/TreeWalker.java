@@ -60,6 +60,7 @@ import org.w3c.dom.*;
 
 import org.xml.sax.*;
 import org.xml.sax.ext.LexicalHandler;
+import org.xml.sax.helpers.LocatorImpl;
 
 import org.apache.xpath.DOM2Helper;
 import org.apache.xpath.DOMHelper;
@@ -81,6 +82,9 @@ public class TreeWalker
 
   /** DomHelper for this TreeWalker          */
   protected DOMHelper m_dh;
+	
+	/** Locator object for this TreeWalker          */
+	private LocatorImpl m_locator = new LocatorImpl();
 
   /**
    * Get the ContentHandler used for the tree walk.
@@ -101,6 +105,23 @@ public class TreeWalker
   {
     m_contentHandler = ch;
   }
+	
+	/**
+   * Constructor.
+   * @param   contentHandler The implemention of the
+   * @param   systemId System identifier for the document.
+   * contentHandler operation (toXMLString, digest, ...)
+   */
+  public TreeWalker(ContentHandler contentHandler, DOMHelper dh, String systemId)
+  {
+    this.m_contentHandler = contentHandler;
+		m_contentHandler.setDocumentLocator(m_locator);
+		if (systemId != null)
+			m_locator.setSystemId(systemId);
+		else
+			m_locator.setSystemId(System.getProperty("user.dir"));
+    m_dh = dh;
+  }
 
   /**
    * Constructor.
@@ -110,6 +131,8 @@ public class TreeWalker
   public TreeWalker(ContentHandler contentHandler, DOMHelper dh)
   {
     this.m_contentHandler = contentHandler;
+		m_contentHandler.setDocumentLocator(m_locator);
+		m_locator.setSystemId(System.getProperty("user.dir"));
     m_dh = dh;
   }
   
@@ -121,6 +144,9 @@ public class TreeWalker
   public TreeWalker(ContentHandler contentHandler)
   {
     this.m_contentHandler = contentHandler;
+		if (m_contentHandler != null)
+			m_contentHandler.setDocumentLocator(m_locator);
+		m_locator.setSystemId(System.getProperty("user.dir"));
     m_dh = new org.apache.xpath.DOM2Helper();
   }
 
@@ -242,6 +268,20 @@ public class TreeWalker
     {
       ((NodeConsumer) m_contentHandler).setOriginatingNode(node);
     }
+		
+		if (node instanceof Locator)
+		{
+			Locator loc = (Locator)node;
+			m_locator.setColumnNumber(loc.getColumnNumber());
+			m_locator.setLineNumber(loc.getLineNumber());
+			m_locator.setPublicId(loc.getPublicId());
+			m_locator.setSystemId(loc.getSystemId());
+		}
+		else
+		{
+			m_locator.setColumnNumber(0);
+      m_locator.setLineNumber(0);
+		}
 
     switch (node.getNodeType())
     {
@@ -341,7 +381,7 @@ public class TreeWalker
     break;
     case Node.TEXT_NODE :
     {
-      String data = ((Text) node).getData();
+      //String data = ((Text) node).getData();
 
       if (nextIsRaw)
       {

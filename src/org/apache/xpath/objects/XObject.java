@@ -268,7 +268,7 @@ public class XObject extends Expression implements Serializable
    */
   public String str()
   {
-    return m_obj.toString();
+		return (m_obj != null) ? m_obj.toString() : "null";    
   }
 
   /**
@@ -518,7 +518,14 @@ public class XObject extends Expression implements Serializable
     if (obj2.getType() == XObject.CLASS_NODESET)
       return obj2.equals(this);
 
-    return m_obj.equals(obj2.m_obj);
+    if (null != m_obj)
+    {
+      return m_obj.equals(obj2.m_obj);
+    }
+    else
+    {
+      return obj2.m_obj == null;
+    }
   }
 
   /**

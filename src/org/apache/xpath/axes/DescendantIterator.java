@@ -99,19 +99,24 @@ public class DescendantIterator extends LocPathIterator
     int ops[] = compiler.getOpMap();
     int firstStepPos = compiler.getFirstChildPos(opPos);
     int stepType = ops[firstStepPos];
+		/** Bit is on if any of the walkers contain a child step. */
+    final int BIT_CHILD = (0x00001000 << 4); 
 
-    m_orSelf = (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType);
+    if (OpCodes.FROM_DESCENDANTS_OR_SELF == stepType)
+      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
     if (OpCodes.FROM_SELF == stepType)
     {
-      m_orSelf = true;
+      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
       firstStepPos += 8;
     }
     else if(OpCodes.FROM_ROOT == stepType)
     {
       m_fromRoot = true;
-      m_orSelf = true;
+      m_orSelf = (BIT_CHILD == (analysis & BIT_CHILD)) ? false : true;
       firstStepPos += 8;
     }
+    else
+      m_orSelf = false;
 
     int whatToShow = compiler.getWhatToShow(firstStepPos);
 
@@ -210,7 +215,7 @@ public class DescendantIterator extends LocPathIterator
       
       // The start context can either be the location path context node, 
       // or the root node.
-      if (getSelf && m_fromRoot)
+      if (m_fromRoot)
       {
         if(m_cdtm.getNodeType(m_context) == DTM.DOCUMENT_NODE)
           pos = m_context;

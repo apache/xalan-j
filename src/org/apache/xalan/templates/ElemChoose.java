@@ -144,7 +144,7 @@ public class ElemChoose extends ElemTemplateElement
         XPathContext xctxt = transformer.getXPathContext();
         int sourceNode = xctxt.getCurrentNode();
         XObject test = when.getTest().execute(transformer.getXPathContext(),
-                                              sourceNode, this);
+                                              sourceNode, when);
 
         if (TransformerImpl.S_DEBUG)
           transformer.getTraceManager().fireSelectedEvent(sourceNode, when,

@@ -128,6 +128,12 @@ public class TransformerFactoryImpl extends SAXTransformerFactory
     loadPropertyFileToSystem(XSLT_PROPERTIES);
   }
 
+  /** a zero length Class array used in loadPropertyFileToSystem() */
+  private static final Class[] NO_CLASSES = new Class[0];
+
+  /** a zero length Object array used in loadPropertyFileToSystem() */
+  private static final Object[] NO_OBJS = new Object[0];
+
   /**
    * Retrieve a propery bundle from a specified file and load it
    * int the System properties.
@@ -141,13 +147,24 @@ public class TransformerFactoryImpl extends SAXTransformerFactory
     {
       try
       {
-        InputStream is;
+        InputStream is = null;
 
         try
         {
           Properties props = new Properties();
 
-          is = TransformerFactoryImpl.class.getResourceAsStream(file);
+          try {
+            java.lang.reflect.Method getCCL = Thread.class.getMethod("getContextClassLoader", NO_CLASSES);
+            if (getCCL != null) {
+              ClassLoader contextClassLoader = (ClassLoader) getCCL.invoke(Thread.currentThread(), NO_OBJS);
+              is = contextClassLoader.getResourceAsStream("org/apache/xalan/processor/" + file);
+            }
+          }
+          catch (Exception e) {}
+
+          if (is == null) {
+            is = TransformerFactoryImpl.class.getResourceAsStream(file);
+          }
 
           // get a buffered version
           BufferedInputStream bis = new BufferedInputStream(is);
@@ -190,7 +207,7 @@ public javax.xml.transform.Templates processFromNode(Node node)
     try
     {
       TemplatesHandler builder = newTemplatesHandler();
-      TreeWalker walker = new TreeWalker(builder, new org.apache.xpath.DOM2Helper());
+      TreeWalker walker = new TreeWalker(builder, new org.apache.xpath.DOM2Helper(), builder.getSystemId());
 
       walker.traverse(node);
 
@@ -224,11 +241,11 @@ public javax.xml.transform.Templates processFromNode(Node node)
       // Assume it's already been reported to the error listener.
       throw tce;
     }
-    catch (TransformerException tce)
+   /* catch (TransformerException tce)
     {
       // Assume it's already been reported to the error listener.
       throw new TransformerConfigurationException(tce.getMessage(), tce);
-    }
+    }*/
     catch (Exception e)
     {
       if (m_errorListener != null)
@@ -356,7 +373,7 @@ public javax.xml.transform.Templates processFromNode(Node node)
     {
       if (null != node)
       {
-        TreeWalker walker = new TreeWalker(handler, new org.apache.xpath.DOM2Helper());
+        TreeWalker walker = new TreeWalker(handler, new org.apache.xpath.DOM2Helper(), baseID);
 
         walker.traverse(node);
       }
@@ -589,6 +606,7 @@ public javax.xml.transform.Templates processFromNode(Node node)
     try {
       TransformerImpl transformer =
         (TransformerImpl) templates.newTransformer();
+      transformer.setURIResolver(m_uriResolver);
       TransformerHandler th =
         (TransformerHandler) transformer.getInputContentHandler(true);
 
@@ -674,7 +692,9 @@ public javax.xml.transform.Templates processFromNode(Node node)
          that, and returns null.
       */
       if( tmpl==null ) return null;
-      return tmpl.newTransformer();
+      Transformer transformer = tmpl.newTransformer();
+      transformer.setURIResolver(m_uriResolver);
+      return transformer;
     } catch( TransformerConfigurationException ex ) {
       if( m_errorListener != null ) {
         try {

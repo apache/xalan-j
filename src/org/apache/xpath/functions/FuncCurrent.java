@@ -72,6 +72,7 @@ import org.apache.xpath.objects.XNodeSet;
 import org.apache.xpath.axes.PredicatedNodeTest;
 import org.apache.xpath.axes.LocPathIterator;
 import org.apache.xpath.axes.ContextNodeList;
+import org.apache.xpath.axes.SubContextList;
 
 /**
  * <meta name="usage" content="advanced"/>
@@ -92,20 +93,15 @@ public class FuncCurrent extends Function
   {
 
     // If we're in a predicate, then this will return non-null.
-    Object subContextList = xctxt.getSubContextList();
+    //PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
+		SubContextList iter = xctxt.getSubContextList();
     int currentNode;
 
-    // %TBD% Hack city...
-    if (null != subContextList && subContextList instanceof PredicatedNodeTest)
+    if (null != iter && iter instanceof PredicatedNodeTest)
     {
-      PredicatedNodeTest iter = (PredicatedNodeTest) xctxt.getSubContextList();
-      LocPathIterator lpi = iter.getLocPathIterator();
+      LocPathIterator lpi = ((PredicatedNodeTest)iter).getLocPathIterator();
 
       currentNode = lpi.getCurrentContextNode();
-    }
-    else if(xctxt.getIteratorRoot() != DTM.NULL)
-    {
-      currentNode = xctxt.getIteratorRoot();
     }
     else
     {

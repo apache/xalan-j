@@ -116,7 +116,7 @@ public abstract class ExtensionHandler
    * 
    * @param className Name of the class to load
    */
-  static Class getClassForName(String className)
+  public static Class getClassForName(String className)
       throws ClassNotFoundException
   {
     Class result = null;

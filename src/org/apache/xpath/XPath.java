@@ -243,7 +243,7 @@ public class XPath implements Serializable
    * @param contextNode The node that "." expresses.
    * @param namespaceContext The context in which namespaces in the
    * XPath are supposed to be expanded.
-
+   *
    * @return The result of the XPath or null if callbacks are used.
    * @throws TransformerException thrown if
    * the error condition is severe enough to halt processing.

@@ -63,6 +63,8 @@ import org.apache.xpath.XPathContext;
 import org.apache.xpath.objects.*;
 import org.apache.xalan.extensions.ExtensionsTable;
 
+import org.apache.xml.dtm.DTMIterator;
+
 //import org.w3c.dom.Node;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.traversal.NodeIterator;
@@ -164,19 +166,19 @@ public class FuncExtFunction extends Function
         result = ((Boolean) val).booleanValue()
                  ? XBoolean.S_TRUE : XBoolean.S_FALSE;
       }
-      else if (val instanceof Double)
+      else if (val instanceof Number)
       {
-        result = new XNumber(((Double) val).doubleValue());
+        result = new XNumber(((Number) val).doubleValue());
       }
       // %TBD%
-//      else if (val instanceof DocumentFragment)
-//      {
-//        result = new XRTreeFrag((DocumentFragment) val);
-//      }
-//      else if (val instanceof NodeIterator)
-//      {
-//        result = new XNodeSet((NodeIterator) val);
-//      }
+     // else if (val instanceof DocumentFragment)
+     // {
+     //   result = new XRTreeFrag(val, xctxt);
+     // }
+      else if (val instanceof DTMIterator)
+      {
+        result = new XNodeSet((DTMIterator) val);
+      }
       else if (val instanceof org.w3c.dom.Node)
       {
         result = new XNodeSet(xctxt.getDTMHandleFromNode((org.w3c.dom.Node)val), 

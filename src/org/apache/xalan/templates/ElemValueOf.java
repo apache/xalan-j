@@ -234,13 +234,15 @@ public class ElemValueOf extends ElemTemplateElement
             throws TransformerException
   {
 
+		XPathContext xctxt = transformer.getXPathContext();
+		boolean didPushCurrent = false;
     try
     {
       if (TransformerImpl.S_DEBUG)
         transformer.getTraceManager().fireTraceEvent(this);
 
-      XPathContext xctxt = transformer.getXPathContext();
-      int sourceNode = xctxt.getCurrentNode();
+      
+      int sourceNode = xctxt.getCurrentNode();			
       int child;
       XObject value;
       
@@ -271,6 +273,8 @@ public class ElemValueOf extends ElemTemplateElement
       XMLString s;                                                                                             
       if(DTM.NULL != child)
       {
+				xctxt.pushCurrentNode(child);
+				didPushCurrent = true;
         DTM dtm = xctxt.getDTM(child);
         ResultTreeHandler rth = transformer.getResultTreeHandler();
         if (m_disableOutputEscaping)
@@ -306,6 +310,11 @@ public class ElemValueOf extends ElemTemplateElement
     catch(SAXException se)
     {
       throw new TransformerException(se);
+    }
+		finally
+    {
+			if (didPushCurrent) 
+				xctxt.popCurrentNode();
     }
   }
 

@@ -2,8 +2,10 @@ package org.apache.xalan.transformer;
 
 import org.apache.xpath.XPathContext;
 import org.apache.xpath.VariableStack;
+import org.apache.xpath.axes.ContextNodeList;
 import org.apache.xml.utils.NodeVector;
 import org.apache.xml.utils.BoolStack;
+import org.apache.xml.dtm.DTMIterator;
 import java.util.Stack;
 import org.xml.sax.helpers.NamespaceSupport;
 import java.util.Enumeration;
@@ -30,9 +32,14 @@ class TransformSnapshotImpl implements TransformSnapshot
   private NodeVector m_currentExpressionNodes;
 
   /**
-   * The current context node list.
+   * The current context node lists stack.
    */
   private Stack m_contextNodeLists;
+	
+	/**
+   * The current context node list.
+   */
+  private ContextNodeList m_contextNodeList;
 
   /**
    * Stack of AxesIterators.
@@ -125,14 +132,17 @@ class TransformSnapshotImpl implements TransformSnapshot
       m_currentNodes = (NodeVector)xpc.getCurrentNodeStack().clone();
       m_currentExpressionNodes = (NodeVector)xpc.getCurrentExpressionNodeStack().clone();
       m_contextNodeLists = (Stack)xpc.getContextNodeListsStack().clone();
+			if (!m_contextNodeLists.empty())
+				m_contextNodeList = (ContextNodeList)xpc.getContextNodeList().clone();
       m_axesIteratorStack = (Stack)xpc.getAxesIteratorStackStacks().clone();
   
       m_currentTemplateRuleIsNull = (BoolStack)transformer.m_currentTemplateRuleIsNull.clone();
       m_currentTemplateElements = (NodeVector)transformer.m_currentTemplateElements.clone();
       m_currentMatchTemplates = (Stack)transformer.m_currentMatchTemplates.clone();
       m_currentMatchNodes = (NodeVector)transformer.m_currentMatchedNodes.clone();
-      m_countersTable = (CountersTable)transformer.m_countersTable.clone();
-      m_attrSetStack = (Stack)transformer.m_attrSetStack.clone();
+      m_countersTable = (CountersTable)transformer.getCountersTable().clone();
+			if (transformer.m_attrSetStack  != null)
+				m_attrSetStack = (Stack)transformer.m_attrSetStack.clone();
     }
     catch(CloneNotSupportedException cnse)
     {
@@ -148,28 +158,32 @@ class TransformSnapshotImpl implements TransformSnapshot
 
       ResultTreeHandler rtf = transformer.getResultTreeHandler();
       
-      rtf.m_startElement = (QueuedStartElement)m_startElement.clone();
-      rtf.m_startDoc = (QueuedStartDocument)m_startDoc.clone();
-      rtf.m_eventCount = m_eventCount;
-      
-      // yuck.  No clone. Hope this is good enough.
-      rtf.m_nsSupport = new NamespaceSupport();
-      Enumeration prefixes = m_nsSupport.getPrefixes();
-      while(prefixes.hasMoreElements())
-      {
-        String prefix = (String)prefixes.nextElement();
-        String uri = m_nsSupport.getURI(prefix);
-        rtf.m_nsSupport.declarePrefix(prefix, uri);
-      }
-      
-      rtf.m_nsContextPushed = m_nsContextPushed;
-      
+      if (rtf != null)
+			{
+				rtf.m_startElement = (QueuedStartElement)m_startElement.clone();
+				rtf.m_startDoc = (QueuedStartDocument)m_startDoc.clone();
+				rtf.m_eventCount = 1; //1 for start document event! m_eventCount;
+				
+				// yuck.  No clone. Hope this is good enough.
+				rtf.m_nsSupport = new NamespaceSupport();
+				Enumeration prefixes = m_nsSupport.getPrefixes();
+				while(prefixes.hasMoreElements())
+				{
+					String prefix = (String)prefixes.nextElement();
+					String uri = m_nsSupport.getURI(prefix);
+					rtf.m_nsSupport.declarePrefix(prefix, uri);
+				}
+				
+				rtf.m_nsContextPushed = m_nsContextPushed;
+			}
       XPathContext xpc = transformer.getXPathContext();
       
       xpc.setVarStack((VariableStack)m_variableStacks.clone());
       xpc.setCurrentNodeStack((NodeVector)m_currentNodes.clone());
       xpc.setCurrentExpressionNodeStack((NodeVector)m_currentExpressionNodes.clone());
       xpc.setContextNodeListsStack((Stack)m_contextNodeLists.clone());
+			if (m_contextNodeList != null)
+				xpc.pushContextNodeList((DTMIterator)m_contextNodeList.clone());
       xpc.setAxesIteratorStackStacks((Stack)m_axesIteratorStack.clone());
   
       transformer.m_currentTemplateRuleIsNull = (BoolStack)m_currentTemplateRuleIsNull.clone();
@@ -177,7 +191,8 @@ class TransformSnapshotImpl implements TransformSnapshot
       transformer.m_currentMatchTemplates = (Stack)m_currentMatchTemplates.clone();
       transformer.m_currentMatchedNodes = (NodeVector)m_currentMatchNodes.clone();
       transformer.m_countersTable = (CountersTable)m_countersTable.clone();
-      transformer.m_attrSetStack = (Stack)m_attrSetStack.clone();
+      if (m_attrSetStack  != null)
+				transformer.m_attrSetStack = (Stack)m_attrSetStack.clone();
     }
     catch(CloneNotSupportedException cnse)
     {

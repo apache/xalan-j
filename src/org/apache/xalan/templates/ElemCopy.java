@@ -134,10 +134,12 @@ public class ElemCopy extends ElemUse
           TransformerImpl transformer)
             throws TransformerException
   {
+		XPathContext xctxt = transformer.getXPathContext();
+      
     try
     {
-      XPathContext xctxt = transformer.getXPathContext();
       int sourceNode = xctxt.getCurrentNode();
+			xctxt.pushCurrentNode(sourceNode);
       DTM dtm = xctxt.getDTM(sourceNode);
       short nodeType = dtm.getNodeType(sourceNode);
 
@@ -177,6 +179,10 @@ public class ElemCopy extends ElemUse
     catch(org.xml.sax.SAXException se)
     {
       throw new TransformerException(se);
+    }
+		finally
+    {
+      xctxt.popCurrentNode();
     }
   }
 }

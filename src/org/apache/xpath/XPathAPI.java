@@ -71,6 +71,11 @@ import org.apache.xml.utils.PrefixResolverDefault;
 import org.apache.xml.utils.PrefixResolver;
 import org.apache.xpath.objects.XObject;
 
+import org.apache.xml.dtm.DTM;
+import org.apache.xml.dtm.ref.DTMNodeIterator;
+import org.apache.xml.dtm.ref.DTMManagerDefault;
+
+
 /**
  * The methods in this class are convenience methods into the
  * low-level XPath API.
@@ -160,8 +165,9 @@ public class XPathAPI
 
     // Have the XObject return its result as a NodeSet.
     // %TBD% Convert to DOM nodeset
-//    return list.nodeset();
-    return null;
+		
+    return new DTMNodeIterator(list.nodeset());
+    
   }
 
   /**
@@ -276,7 +282,9 @@ public class XPathAPI
     // Execute the XPath, and have it return the result
     // %TBD% Need to convert contextNode to a DTM node
 //    return xpath.execute(xpathSupport, contextNode, prefixResolver);
-    return null;
+    int ctxtNode;
+		ctxtNode = xpathSupport.getDTMHandleFromNode(contextNode);
+    return xpath.execute(xpathSupport, ctxtNode, prefixResolver);
   }
 
   /**
@@ -317,6 +325,9 @@ public class XPathAPI
     // Execute the XPath, and have it return the result
     // %TBD% Need to convert contextNode to a DTM node
     // return xpath.execute(new XPathContext(), contextNode, prefixResolver);
-    return null;
+		int ctxtNode;
+		XPathContext xpathSupport = new XPathContext();
+		ctxtNode = xpathSupport.getDTMHandleFromNode(contextNode);
+    return xpath.execute(xpathSupport, ctxtNode, prefixResolver);
   }
 }
