@@ -167,8 +167,6 @@ public interface DTM
 
   /**
    * Given a node handle, get the handle of the node's first child.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
    * 
    * @param nodeHandle int Handle of the node.
    * @return int DTM node-number of first child,
@@ -178,8 +176,6 @@ public interface DTM
 
   /**
    * Given a node handle, get the handle of the node's last child.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
    * 
    * @param nodeHandle int Handle of the node.
    * @return int Node-number of last child,
@@ -189,8 +185,6 @@ public interface DTM
 
   /**
    * Given a node handle, get the index of the node's first attribute.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
    * 
    * @param nodeHandle int Handle of the node.
    * @return Handle of first attribute, or DTM.NULL to indicate none exists.
@@ -199,9 +193,7 @@ public interface DTM
   
   /**
    * Given a node handle, get the index of the node's first namespace node.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again
-   * 
+   *
    * @param nodeHandle handle to node, which should probably be an element 
    *                   node, but need not be.
    *                   
@@ -215,8 +207,6 @@ public interface DTM
 
   /**
    * Given a node handle, advance to its next sibling.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
    * @param nodeHandle int Handle of the node.
    * @return int Node-number of next sibling,
    * or DTM.NULL to indicate none exists.
@@ -256,37 +246,56 @@ public interface DTM
    */
   public int getNextNamespaceNode(int namespaceHandle, boolean inScope);
 
-  /**
-   * Given a node handle, advance to its next descendant.
-   * If not yet resolved, waits for more nodes to be added to the document and
-   * tries again.
+  /** Lightweight subtree-walker. Given a node handle, find the next
+   * node in document order. (Preorder left-to-right traversal).  The
+   * walk stops (returning DTM.NULL) when it would otherwise have to
+   * step out of the subtree of the node indicated by the
+   * subtreeRootHandle.
+   * <p>
+   * One application would be as a subroutine for DTMIterators.
    *
-   * @param subtreeRootNodeHandle
-   * @param nodeHandle int Handle of the node.
-   * @return handle of next descendant,
-   * or DTM.NULL to indicate none exists.
-   */
+   * @param subtreeRootHandle int Handle of the root of the subtree
+   * being walked. Sets an outer limit that we will not walk past.
+   * @param nodeHandle int Handle of a node within the subtree.
+   * @return handle of the next node within the subtree, in document order.
+   * or DTM.NULL to indicate none exists.  */
   public int getNextDescendant(int subtreeRootHandle, int nodeHandle);
+  // TODO: Joe would like to rename this to walkNextDescendent
+  // to distinguish it more strongly from getFirstChild
 
-  /**
-   * Given a node handle, advance to the next node on the following axis.
+  /** Lightweight subtree-walker. Given a node handle, find the next
+   * node in document order. The walk stops (returning DTM.NULL) when
+   * it would otherwise run off the end of the document.
+   * <p>
+   * Note that this is roughly equivalent to getNextDescendent() with
+   * subtreeRootHandle set to the Document node (or maybe the root element).
    *
    * @param axisContextHandle the start of the axis that is being traversed.
-   * @param nodeHandle
-   * @return handle of next sibling,
+   * TODO: As far as Joe can tell, this parameter is unnecessary...?
+   * @param nodeHandle the node whose successor we're looking for.
+   * @return handle of next node in the DTM tree
    * or DTM.NULL to indicate none exists.
    */
   public int getNextFollowing(int axisContextHandle, int nodeHandle);
+  // TODO: Joe would like to rename this to walkNextFollowing
+  // (or perhaps just walkFollowing?)
+  // to distinguish it more strongly from getNextSibling.
   
-  /**
-   * Given a node handle, advance to the next node on the preceding axis.
-   * 
+  /** Lightweight subtree-walker. Given a node handle, find the next
+   * node in reverse document order. (Postorder right-to-left traversal).  The
+   * walk stops (returning DTM.NULL) when it would otherwise run off the
+   * beginning of the document.
+   *
    * @param axisContextHandle the start of the axis that is being traversed.
-   * @param nodeHandle the id of the node.
-   * @return int Node-number of preceding sibling,
+   * TODO: As far as Joe can tell, this parameter is unnecessary...?
+   * @param nodeHandle the node whose predecessor we're looking for.
+   * @return handle of next node in the DTM tree
    * or DTM.NULL to indicate none exists.
    */
   public int getNextPreceding(int axisContextHandle, int nodeHandle);
+  // TODO: Joe would like to rename this to walkNextPreceeding
+  // (or perhaps just walkPreceeding?)
+  // to distinguish it more strongly from getPreviousSibling.
 
   /**
    * Given a node handle, find its parent node.
@@ -349,10 +358,10 @@ public interface DTM
    *
    * @param nodeHandle The node ID.
    * @param chunkIndex Which chunk to get.
-   * @param startAndLen An array of 2 where the start position and length of 
-   *                    the chunk will be returned.
-   *
-   * @return The character array reference where the chunk occurs.
+   * @param startAndLen  A two-integer array which, upon return, WILL
+   * BE FILLED with values representing the chunk's start position
+   * within the returned character buffer and the length of the chunk.
+   * @return The character array buffer within which the chunk occurs.
    */
   public char[] getStringValueChunk(int nodeHandle, int chunkIndex, 
                                     int[] startAndLen);
@@ -487,23 +496,25 @@ public interface DTM
   // ============== Document query functions ============== 
   
   /**
-   * Return the base URI of the document entity. If it is not known
+   * Return the base URI of the specified node. If it is not known
    * (because the document was parsed from a socket connection or from
-   * standard input, for example), the value of this property is unknown.
+   * standard input, for example), the value of this property is null.
+   * If you need the document's base URI, you can retrieve the Document
+   * node and then ask it this question.
    *
    * @param nodeHandle The node id, which can be any valid node handle.
    * @return the document base URI String object or null if unknown.
    */
-  public String getDocumentBaseURI(int nodeHandle);
+  public String getNodeBaseURI(int nodeHandle);
 
   /**
    * Return the system identifier of the document entity. If
-   * it is not known, the value of this property is unknown.
+   * it is not known, the value of this property is null.
    *
    * @param nodeHandle The node id, which can be any valid node handle.
    * @return the system identifier String object or null if unknown.
    */
-  public int getDocumentSystemIdentifier(int nodeHandle);
+  public String getDocumentSystemIdentifier(int nodeHandle);
 
   /**
    * Return the name of the character encoding scheme
@@ -588,17 +599,18 @@ public interface DTM
    * <p>
    * There are some cases where ordering isn't defined, and neither are
    * the results of this function -- though we'll generally return true.
-   * 
+   * <p>
    * TODO: Make sure this does the right thing with attribute nodes!!!
+   * <p>
+   * TODO: Consider renaming for clarity. Perhaps isDocumentOrder(a,b)?
    *
-   * @param node1 DOM Node to perform position comparison on.
-   * @param node2 DOM Node to perform position comparison on .
+   * @param firstNodeHandle DOM Node to perform position comparison on.
+   * @param secondNodeHandle DOM Node to perform position comparison on.
    * 
-   * @return false if node2 comes before node1, otherwise return true.
+   * @return false if secondNode comes before firstNode, otherwise return true.
    * You can think of this as 
-   * <code>(node1.documentOrderPosition &lt;= node2.documentOrderPosition)</code>.
-   */
-  public boolean isNodeAfter(int nodeHandle1, int nodeHandle2);
+   * <code>(firstNode.documentOrderPosition &lt;= secondNode.documentOrderPosition)</code>.  */
+  public boolean isNodeAfter(int firstNodeHandle,int secondNodeHandle);
 
   /**
    *     2. [element content whitespace] A boolean indicating whether the
