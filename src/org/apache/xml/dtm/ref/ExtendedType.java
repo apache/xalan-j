@@ -67,54 +67,90 @@ public final class ExtendedType
     private String localName;
     private int hash;
 
+    /**
+     * Create an ExtendedType object from node type, namespace and local name.
+     * The hash code is calculated from the node type, namespace and local name.
+     * 
+     * @param nodetype Type of the node
+     * @param namespace Namespace of the node
+     * @param localName Local name of the node
+     */
     public ExtendedType (int nodetype, String namespace, String localName)
     {
       this.nodetype = nodetype;
       this.namespace = namespace;
       this.localName = localName;
-      this.hash=nodetype+namespace.hashCode()+localName.hashCode();
+      this.hash = nodetype + namespace.hashCode() + localName.hashCode();
     }
 
-	/* This is intended to be used ONLY on the hashET
-	 * object. Using it elsewhere will mess up existing
-	 * hashtable entries!
-	 * */
+    /**
+     * Create an ExtendedType object from node type, namespace, local name
+     * and a given hash code.
+     * 
+     * @param nodetype Type of the node
+     * @param namespace Namespace of the node
+     * @param localName Local name of the node
+     * @param hash The given hash code
+     */
+    public ExtendedType (int nodetype, String namespace, String localName, int hash)
+    {
+      this.nodetype = nodetype;
+      this.namespace = namespace;
+      this.localName = localName;
+      this.hash = hash;
+    }
+
+    /** 
+     * Redefine this ExtendedType object to represent a different extended type.
+     * This is intended to be used ONLY on the hashET object. Using it elsewhere
+     * will mess up existing hashtable entries!
+     */
     protected void redefine(int nodetype, String namespace, String localName)
     {
       this.nodetype = nodetype;
       this.namespace = namespace;
       this.localName = localName;
-      this.hash=nodetype+namespace.hashCode()+localName.hashCode();
+      this.hash = nodetype + namespace.hashCode() + localName.hashCode();
     }
 
-    /* Override super method
-	 * */
+    /** 
+     * Redefine this ExtendedType object to represent a different extended type.
+     * This is intended to be used ONLY on the hashET object. Using it elsewhere
+     * will mess up existing hashtable entries!
+     */
+    protected void redefine(int nodetype, String namespace, String localName, int hash)
+    {
+      this.nodetype = nodetype;
+      this.namespace = namespace;
+      this.localName = localName;
+      this.hash = hash;
+    }
+
+    /**
+     * Override the hashCode() method in the Object class
+     */
     public int hashCode()
     {
-    	return hash;
+      return hash;
     }
 
-    /* Override super method
-	 * */
-    public boolean equals(Object other)
+    /**
+     * Test if this ExtendedType object is equal to the given ExtendedType.
+     * 
+     * @param other The other ExtendedType object to test for equality
+     * @return true if the two ExtendedType objects are equal.
+     */
+    public boolean equals(ExtendedType other)
     {
-      //Usually an optimization, but
-      // won't arise in our usage:
-      //if(other==this) return true;
       try
       {
-          ExtendedType et=(ExtendedType)other;
-          return et.nodetype==this.nodetype &&
-                  et.localName.equals(this.localName) &&
-                  et.namespace.equals(this.namespace);
-      }
-      catch(ClassCastException e)
-      {
-              return false;
+        return other.nodetype == this.nodetype &&
+                other.localName.equals(this.localName) &&
+                other.namespace.equals(this.namespace);
       }
       catch(NullPointerException e)
       {
-              return false;
+        return false;
       }
     }
     
