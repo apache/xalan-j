@@ -100,12 +100,11 @@ public final class XSLTCSource implements Source {
     public XSLTCSource(int size) 
     {
       DTMManager dtmManager =
-                XSLTCDTMManager.newInstance(org.apache.xpath.objects
-                                            .XMLStringFactoryImpl.getFactory());
+                XSLTCDTMManager.newInstance();
       int dtmPos = ((DTMManagerDefault)dtmManager).getFirstFreeDTMID();
       int documentID = dtmPos << DTMManager.IDENT_DTM_NODE_BITS;
       _dom = (DOM)new SAXImpl(dtmManager, this, documentID, null,
-                              dtmManager.getXMLStringFactory(), true, size);
+                              null, true, size);
       ((DTMManagerDefault)dtmManager).addDTM((DTM)_dom, dtmPos);
     }
 
@@ -115,12 +114,11 @@ public final class XSLTCSource implements Source {
     public XSLTCSource() 
     {
       DTMManager dtmManager =
-                XSLTCDTMManager.newInstance(org.apache.xpath.objects
-                                            .XMLStringFactoryImpl.getFactory());
+                XSLTCDTMManager.newInstance();
       int dtmPos = ((DTMManagerDefault)dtmManager).getFirstFreeDTMID();
       int documentID = dtmPos << DTMManager.IDENT_DTM_NODE_BITS;
       _dom = (DOM)new SAXImpl(dtmManager, this, documentID, null,
-                              dtmManager.getXMLStringFactory(), true);
+                              null, true);
       ((DTMManagerDefault)dtmManager).addDTM((DTM)_dom, dtmPos);
     }
 

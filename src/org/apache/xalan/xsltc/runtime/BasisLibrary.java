@@ -1171,8 +1171,7 @@ public final class BasisLibrary implements Operators {
         copyNodes(nodeList, doc, topElementNode);
 
         // w3cDOM -> DTM -> DOMImpl
-	DTMManager dtmManager = XSLTCDTMManager.newInstance(
-	           org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
+	DTMManager dtmManager = XSLTCDTMManager.newInstance();
 
 	DOMImpl idom = (DOMImpl)dtmManager.getDTM(new DOMSource(doc), false,
                                                   null, true, false);

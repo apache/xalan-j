@@ -167,8 +167,7 @@ final public class Transform {
 	    final XMLReader reader = parser.getXMLReader();
 
 	    // Set the DOM's DOM builder as the XMLReader's SAX2 content handler
-            DTMManager dtmManager = XSLTCDTMManager.newInstance(
-                 org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
+            DTMManager dtmManager = XSLTCDTMManager.newInstance();
 
             final SAXImpl dom = (SAXImpl)dtmManager.getDTM(
                              new SAXSource(reader, new InputSource(_fileName)),

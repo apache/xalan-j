@@ -458,9 +458,7 @@ public final class TransformerImpl extends Transformer
 		// Create a new internal DOM and set up its builder to trap
 		// all content/lexical events
 		XSLTCDTMManager dtmManager = 
-                   (XSLTCDTMManager) XSLTCDTMManager.newInstance(
-                                   org.apache.xpath.objects.XMLStringFactoryImpl
-                                                       .getFactory());
+                   (XSLTCDTMManager) XSLTCDTMManager.newInstance();
 
                 //dtmManager.setIncremental(_isIncremental);
 		dom = (SAXImpl)dtmManager.getDTM(sax, false, wsfilter, true, false,
@@ -481,9 +479,7 @@ public final class TransformerImpl extends Transformer
 
 		// Create a new internal DTM and build it directly from DOM
 		XSLTCDTMManager dtmManager =
-                     (XSLTCDTMManager)XSLTCDTMManager.newInstance(
-                                   org.apache.xpath.objects.XMLStringFactoryImpl
-                                                         .getFactory());
+                     (XSLTCDTMManager)XSLTCDTMManager.newInstance();
     
                 //dtmManager.setIncremental(_isIncremental);
 		dom = (DOMImpl)dtmManager.getDTM(domsrc, false, wsfilter, true,
@@ -501,9 +497,7 @@ public final class TransformerImpl extends Transformer
 		// Create a new internal DOM and set up its builder to trap
 		// all content/lexical events
 		XSLTCDTMManager dtmManager =
-                         (XSLTCDTMManager) XSLTCDTMManager.newInstance(
-                                   org.apache.xpath.objects.XMLStringFactoryImpl
-                                                   .getFactory());
+                         (XSLTCDTMManager) XSLTCDTMManager.newInstance();
 
 		//dtmManager.setIncremental(_isIncremental);
 		

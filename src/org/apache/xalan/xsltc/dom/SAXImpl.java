@@ -424,7 +424,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
             for (node = super.next(); node != END; node = super.next()) {
                 if (getExpandedTypeID(node) == _nodeType
                       || getNodeType(node) == _nodeType
-                      || getIdForNamespace(getStringValue(node).toString())
+                      || getIdForNamespace(getStringValueX(node))
                              == _nodeType) {
                     return returnNode(node);
                 }
@@ -1396,7 +1396,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 	case DTM.TEXT_NODE:
 	case DTM.COMMENT_NODE:
 	case DTM.PROCESSING_INSTRUCTION_NODE:
-	    System.out.print(getStringValue(node).toString());
+	    System.out.print(getStringValueX(node));
 	    break;
 	default:                  // element
 	    final String name = getNodeName(node);
@@ -1404,7 +1404,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 	    for (int a = getFirstAttribute(node); a != DTM.NULL; a = getNextAttribute(a))
       {
 		    System.out.print("\n" + getNodeName(a) +
-				 "=\"" + getStringValue(a).toString() + "\"");
+				 "=\"" + getStringValueX(a) + "\"");
 	    }
 	    System.out.print('>');
 	    for (int child = getFirstChild(node); child != DTM.NULL;
@@ -1471,7 +1471,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     public String getAttributeValue(final int type, final int element)
     {
       final int attr = getAttributeNode(type, element);
-      return (attr != DTM.NULL) ? getStringValue(attr).toString() : EMPTYSTRING;
+      return (attr != DTM.NULL) ? getStringValueX(attr) : EMPTYSTRING;
     }
 
     /**
@@ -1821,7 +1821,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       final String value  = new String(text, i + 1, length - len - 1);
       */
       final String target = getNodeName(node);
-      final String value = getStringValue(node).toString();
+      final String value = getStringValueX(node);
       handler.processingInstruction(target, value);
     }
 
@@ -1907,7 +1907,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
       
       // optimization: only create StringBuffer if > 1 child      
       if ((getNodeType(child) == DTM.TEXT_NODE) && (getNextSibling(child) == DTM.NULL))
-        return getStringValue(child).toString();
+        return getStringValueX(child);
       else
         return stringValueAux(new StringBuffer(), doc).toString();
     }
@@ -1937,7 +1937,7 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
         case DTM.COMMENT_NODE:
           break;
         case DTM.TEXT_NODE:
-          buffer.append(getStringValue(child).toString());
+          buffer.append(getStringValueX(child));
           break;
         case DTM.PROCESSING_INSTRUCTION_NODE:
           break;
@@ -1978,15 +1978,15 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
 	    switch (getNodeType(child)) {
 	    case DTM.COMMENT_NODE:
 		buffer.append("<!--");
-		buffer.append(buffer.append(getStringValue(child).toString()));
+		buffer.append(buffer.append(getStringValueX(child)));
 		buffer.append("-->");
 		break;
 	    case DTM.TEXT_NODE:
-		buffer.append(buffer.append(getStringValue(child).toString()));
+		buffer.append(buffer.append(getStringValueX(child)));
 		break;
 	    case DTM.PROCESSING_INSTRUCTION_NODE:
 		buffer.append("<?");
-		buffer.append(buffer.append(getStringValue(child).toString()));
+		buffer.append(buffer.append(getStringValueX(child)));
 		buffer.append("?>");
 		break;
 	    default:
@@ -2091,6 +2091,6 @@ public final class SAXImpl extends SAX2DTM2 implements DOM, DOMBuilder
     }
 
     public boolean compareNodeToString(int node, String value) {
-        return getStringValue(node).equals(value);
+        return getStringValueX(node).equals(value);
     }
 }

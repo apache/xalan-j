@@ -107,47 +107,14 @@ public class XSLTCDTMManager extends DTMManagerDefault
   
   /**
    * Obtain a new instance of a <code>DTMManager</code>.
-   * This static method creates a new factory instance
-   * This method uses the following ordered lookup procedure to determine
-   * the <code>DTMManager</code> implementation class to
-   * load:
-   * <ul>
-   * <li>
-   * Use the <code>org.apache.xml.dtm.DTMManager</code> system
-   * property.
-   * </li>
-   * <li>
-   * Use the JAVA_HOME(the parent directory where jdk is
-   * installed)/lib/jaxp.properties for a property file that contains the
-   * name of the implementation class keyed on the same value as the
-   * system property defined above.
-   * </li>
-   * <li>
-   * Use the Services API (as detailed in the JAR specification), if
-   * available, to determine the classname. The Services API will look
-   * for a classname in the file
-   * <code>META-INF/services/javax.xml.parsers.DTMManager</code>
-   * in jars available to the runtime.
-   * </li>
-   * <li>
-   * Use the default <code>DTMManager</code> classname, which is
-   * <code>org.apache.xml.dtm.ref.DTMManagerDefault</code>.
-   * </li>
-   * </ul>
-   *
-   * Once an application has obtained a reference to a <code>
-   * DTMManager</code> it can use the factory to configure
-   * and obtain parser instances.
-   *
-   * @return new DTMManager instance, never null.
-   *
-   * @throws DTMConfigurationException
-   * if the implementation is not available or cannot be instantiated.
+   * This static method creates a new factory instance.
+   * The current implementation just returns a new XSLTCDTMManager instance.
    */
-  public static DTMManager newInstance(XMLStringFactory xsf) 
-           throws DTMConfigurationException
+  public static DTMManager newInstance()
   {
-
+    return new XSLTCDTMManager();
+    
+    /*
     String classname =  defaultClassName;
 
     if (classname == null)
@@ -178,6 +145,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
     factoryImpl.setXMLStringFactory(xsf);
 
     return factoryImpl;
+    */
   } 
 
   /**
@@ -279,7 +247,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
 			 " source: "+source.getSystemId()
 			 );
 
-    XMLStringFactory xstringFactory = m_xsf;
+    // XMLStringFactory xstringFactory = m_xsf;
     int dtmPos = getFirstFreeDTMID();
     int documentID = dtmPos << IDENT_DTM_NODE_BITS;
 
@@ -289,10 +257,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
 
       if (size <= 0) {
         dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, xstringFactory, doIndexing);
+                          whiteSpaceFilter, null, doIndexing);
       } else {
         dtm = new DOMImpl(this, (DOMSource) source, documentID,
-                          whiteSpaceFilter, xstringFactory, doIndexing, size);
+                          whiteSpaceFilter, null, doIndexing, size);
       }
 
       addDTM(dtm, dtmPos);
@@ -352,10 +320,10 @@ public class XSLTCDTMManager extends DTMManagerDefault
         SAXImpl dtm;
         if (size <= 0) {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            xstringFactory, doIndexing);
+                            null, doIndexing);
         } else {
           dtm = new SAXImpl(this, source, documentID, whiteSpaceFilter,
-                            xstringFactory, doIndexing, size);
+                            null, doIndexing, size);
         }
 
         // Go ahead and add the DTM to the lookup table.  This needs to be
@@ -363,6 +331,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
         // created a new DTM.
         addDTM(dtm, dtmPos, 0);
 
+        /*
         boolean haveXercesParser =
           (null != reader)
           && (reader.getClass().getName().equals("org.apache.xerces.parsers.SAXParser") );
@@ -447,6 +416,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
         }
         else
         {
+        */
           if (null == reader)
           {
 
@@ -487,7 +457,7 @@ public class XSLTCDTMManager extends DTMManagerDefault
 
             throw new org.apache.xml.utils.WrappedRuntimeException(e);
           }
-        }
+        /* } */
 
         if (DUMPTREE)
         {

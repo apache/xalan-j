@@ -219,8 +219,7 @@ public class TransformerHandlerImpl implements TransformerHandler, DeclHandler {
 
         if (!_isIdentity) {
 	    // Create an internal DOM (not W3C) and get SAX2 input handler
-            DTMManager dtmManager = XSLTCDTMManager.newInstance(
-                 org.apache.xpath.objects.XMLStringFactoryImpl.getFactory());
+            DTMManager dtmManager = XSLTCDTMManager.newInstance();
 
             DTMWSFilter wsFilter;
             if (_translet != null && _translet instanceof StripFilter) {

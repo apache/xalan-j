@@ -134,9 +134,7 @@ public final class DocumentCache implements DOMCache {
 	public void loadDocument(String uri) {
 
             XSLTCDTMManager dtmManager =
-                    (XSLTCDTMManager)XSLTCDTMManager.newInstance(
-                                  org.apache.xpath.objects.XMLStringFactoryImpl
-                                                          .getFactory());
+                    (XSLTCDTMManager)XSLTCDTMManager.newInstance();
 	    try {
 		final long stamp = System.currentTimeMillis();
                 _dom = (SAXImpl)dtmManager.getDTM(

@@ -142,8 +142,7 @@ public class SmartTransformerFactoryImpl extends SAXTransformerFactory
 	try {
 	    Class xalanFactClass = Class.forName(
 		"org.apache.xalan.processor.TransformerFactoryImpl");
-	    _xalanFactory = (org.apache.xalan.processor.TransformerFactoryImpl)
-		xalanFactClass.newInstance();
+	    _xalanFactory = (SAXTransformerFactory)xalanFactClass.newInstance();
 	} 
 	catch (ClassNotFoundException e) {
 	    System.err.println(xalanMessage);
