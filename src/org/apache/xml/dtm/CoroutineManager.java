@@ -255,7 +255,7 @@ public class CoroutineManager
    * a registered member of this group. %REVIEW% whether this is the
    * best choice.
    * */
-  public Object co_entry_pause(int thisCoroutine) throws java.lang.NoSuchMethodException
+  public synchronized Object co_entry_pause(int thisCoroutine) throws java.lang.NoSuchMethodException
   {
     if(!m_activeIDs.get(thisCoroutine))
       throw new java.lang.NoSuchMethodException();

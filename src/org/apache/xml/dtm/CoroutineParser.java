@@ -55,13 +55,14 @@
  * <http://www.apache.org/>.
  */
 
-//package org.apache.xerces.parsers;
-package org.apache.xalan.xml.dtm;
+package org.apache.xml.dtm;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import java.io.IOException;
 import org.apache.xml.dtm.CoroutineManager;
+import org.xml.sax.ext.LexicalHandler;
+import org.xml.sax.ContentHandler;
 
 /** <p>CoroutineParser is an API for parser threads that operate as
  * coroutines. See CoroutineSAXParser and CoroutineSAXParser_Xerces
@@ -88,6 +89,18 @@ public interface CoroutineParser extends Runnable {
      * you're talking to.
      * */
     public int getParserCoroutine();
+
+  /** Register a SAX-style content handler for us to output to */
+  public void setContentHandler(ContentHandler handler);
+
+  /**  Register a SAX-style lexical handler for us to output to
+   *  Not all parsers support this...
+   *
+   * %REVIEW% Not called setLexicalHandler because Xalan uses that name
+   * internally, which causes subclassing nuisances. 
+   */
+  public void setLexHandler(org.xml.sax.ext.LexicalHandler handler);
+
 
     /**
      * This coroutine (thread) can be resumed with the following arguments:

@@ -56,7 +56,7 @@
  */
 
 //package org.apache.xerces.parsers;
-package org.apache.xalan.xml.dtm;
+package org.apache.xml.dtm;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -68,76 +68,14 @@ import org.apache.xml.dtm.CoroutineManager;
  * will still be issued via callbacks, which will need to be recieved
  * and acted upon by an appopriate handler.</p>
  *
- * Usage is something like this:
- * <code>
- *      CoroutineManager co = new CoroutineManager()
- *      int appCoroutine = co.co_joinCoroutineSet(-1);
- *      if (appCoroutine == -1) { [[error handling]] }
- *      CoroutineParser parser = CoroutineSAXParser_Xerces.createCoroutineparser(co, appCoroutine);
- *      int parserCoroutine = parser.getParserCoroutine();
- *      [[register typical SAX handlers with the parser]]
+ * <p>Usage example: See main().</p>
  *
- *      ...
- *
- *      InputSource source = [[document source]];
- *      Object result = co.co_resume(source, appCoroutine, parserCoroutine);
- *      if (result == null) {
- *          [[cannot happen here, only if we ask parser to terminate]]
- *      }
- *      else if (result instanceof Boolean) {
- *          if (((Boolean)result).booleanValue()) {
- *              [[document open, ready to proceed]]
- *          }
- *          else {
- *              [[document not open, but no exception?  I think that this might
- *               relate to the continue-on-fatal-error feature, but obviously
- *               we cannot continue in this case...]]
- *          }
- *      }
- *      else if (result instanceof Exception) {
- *          [[process error]]
- *      }
- *
- *      ...
- *
- *      [[nothing in queue to process, so run the parser coroutine]]
- *      Object result = co.co_resume(Boolean.TRUE, appCoroutine, parserCoroutine);
- *      if (result == null) {
- *          [[cannot happen here, only if we ask parser to terminate]]
- *      }
- *      else if (result instanceof Boolean) {
- *          if (((Boolean)result).booleanValue()) {
- *              [[some parsing has been performed and
- *                the end of the document has not been seen]]
- *          }
- *          else {
- *              [[some parsing might have been performed and
- *                the end of the document has been seen]]
- *          }
- *      }
- *      else if (result instanceof Exception) {
- *          [[process error during parsing]]
- *      }
- *
- *      ...
- *
- *      [[reset the parser coroutine]]
- *      Object result = co.co_resume(Boolean.FALSE, appCoroutine, parserCoroutine);
- *      [[returns Boolean.FALSE, expect next InputSource]]
- *
- *      ...
- *
- *      [[terminate the parser coroutine]]
- *      Object result = co.co_resume(null, appCoroutine, parserCoroutine);
- *      [[returns null]]
- * </code>
- *
- * <p>Status: In progress</p>
- *
+ * <p>Status: Passes simple main() unit-test</p>
  * */
 public class CoroutineSAXParser_Xerces
 extends org.apache.xerces.parsers.SAXParser
-implements CoroutineParser, Runnable {
+implements CoroutineParser, Runnable
+{
 
     //
     // Data
@@ -182,6 +120,28 @@ implements CoroutineParser, Runnable {
     public int getParserCoroutine() {
         return fParserCoroutine;
     }
+
+  // Note name, needed to dodge the inherited Xerces setLexicalHandler
+  // which isn't public.
+  public void setLexHandler(org.xml.sax.ext.LexicalHandler handler)
+  {
+    // Not supported by all SAX2 parsers but should work in Xerces:
+    try 
+      {
+	setProperty("http://xml.org/sax/properties/lexical-handler",
+		    this);
+      }
+    catch(org.xml.sax.SAXNotRecognizedException e)
+      {
+	// Nothing we can do about it
+      }
+    catch(org.xml.sax.SAXNotSupportedException e)
+      {
+	// Nothing we can do about it
+      }
+  }
+  
+
 
     /**
      * This coroutine (thread) can be resumed with the following arguments:
@@ -263,4 +223,86 @@ implements CoroutineParser, Runnable {
 	}
     }
 
+
+  //================================================================
+  /** Simple unit test. Attempt coroutine parsing of document indicated
+   * by first argument (as a URI), report progress.
+   */
+  public static void main(String args[])
+  {
+    System.out.println("Starting...");
+    
+    CoroutineManager co = new CoroutineManager();
+    int appCoroutine = co.co_joinCoroutineSet(-1);
+    if (appCoroutine == -1)
+      {
+	System.out.println("ERROR: Couldn't allocate coroutine number.\n");
+	return;
+      }
+    CoroutineSAXParser_Xerces parser=
+      new CoroutineSAXParser_Xerces(co, appCoroutine);
+    int parserCoroutine = parser.getParserCoroutine();
+
+    // Use a serializer as our sample output
+    org.apache.xml.serialize.XMLSerializer trace;
+    trace=new org.apache.xml.serialize.XMLSerializer(System.out,null);
+    parser.setContentHandler(trace);
+    parser.setLexHandler(trace);
+
+    // Tell coroutine to begin parsing, run while parsing is in progress
+    for(int arg=0;arg<args.length;++arg)
+      {
+	try
+	  {
+	    InputSource source = new InputSource(args[arg]);
+	    Object result=null;
+	    Boolean more=Boolean.TRUE;
+	    for(result = co.co_resume(source, appCoroutine, parserCoroutine);
+		(result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+		result = co.co_resume(more, appCoroutine, parserCoroutine))
+	      {
+		System.out.println("\nSome parsing successful, trying more.\n");
+	    
+		// Special test: Terminate parsing early.
+		if(arg+1<args.length && "!".equals(args[arg+1]))
+		  {
+		    ++arg;
+		    more=Boolean.FALSE;
+		  }
+	    
+	      }
+	
+	    if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
+	      {
+		System.out.println("\nParser ended (EOF or on request).\n");
+	      }
+	    else if (result == null) {
+	      System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
+	    }
+	    else if (result instanceof Exception) {
+	      System.out.println("\nParser threw exception:");
+	      ((Exception)result).printStackTrace();
+	    }
+
+	  }
+	catch(java.lang.NoSuchMethodException e)
+	  {
+	    System.out.println("\nUNEXPECTED Coroutine not resolved:");
+	    e.printStackTrace();
+	  }
+      }
+
+    try
+      {
+	System.out.println("Requesting parser shutdown");
+	Object result = co.co_resume(null, appCoroutine, parserCoroutine);
+	if(result!=null)
+	  System.out.println("\nUNEXPECTED: Parser co-shutdown answers "+result);
+      }
+    catch(java.lang.NoSuchMethodException e)
+      {
+	System.out.println("\nUNEXPECTED Coroutine not resolved:");
+	e.printStackTrace();
+      }
+  }
 } // class CoroutineSAXParser_Xerces
