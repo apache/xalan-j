@@ -330,6 +330,7 @@ public abstract class DTMDefaultBase implements DTM
 
     int low = start;
     int high = start + (len - 1);
+    int end = high;
 
     while (low <= high)
     {
@@ -344,7 +345,7 @@ public abstract class DTMDefaultBase implements DTM
         return mid;
     }
 
-    return (list[low] > value) ? low : -1;
+    return (low <= end && list[low] > value) ? low : -1;
   }
 
   /**
