@@ -1498,11 +1498,17 @@ public abstract class DTMDefaultBase implements DTM
   {
         if(inScope)
         {
-            SuballocatedIntVector nsContext=findNamespaceContext(makeNodeIdentity(nodeHandle));
-            if(nsContext==null || nsContext.size()<1)
-              return NULL;
+            int identity = makeNodeIdentity(nodeHandle);
+            if (_type(identity) == DTM.ELEMENT_NODE)
+            {
+              SuballocatedIntVector nsContext=findNamespaceContext(identity);
+              if(nsContext==null || nsContext.size()<1)
+                return NULL;
 
-            return nsContext.elementAt(0);
+              return nsContext.elementAt(0);
+            }
+            else
+              return NULL;
           }
         else
           {
@@ -1513,7 +1519,9 @@ public abstract class DTMDefaultBase implements DTM
             // before all Attr nodes? Some costs at build time for 2nd
             // pass...
             int identity = makeNodeIdentity(nodeHandle);
-            while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+            if (_type(identity) == DTM.ELEMENT_NODE)
+            {
+              while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
               {
                 int type = _type(identity);
                 if (type == DTM.NAMESPACE_NODE)
@@ -1521,7 +1529,10 @@ public abstract class DTMDefaultBase implements DTM
                 else if (DTM.ATTRIBUTE_NODE != type)
                     break;
               }
-            return NULL;
+              return NULL;
+            }
+            else
+              return NULL;
           }
   }
 
