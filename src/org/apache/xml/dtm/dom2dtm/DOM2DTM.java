@@ -402,6 +402,13 @@ public class DOM2DTM implements DTM
       
       nextNode = pos.getNextSibling();
       
+      if(Node.ELEMENT_NODE == pos.getNodeType())
+      {
+        // I think this only has to be popped here, and not at getParent,
+        // oddly enough at first glance.
+        popShouldStripWhitespace();
+      }
+
       // %TBD% Text node coalition.
       if((null != nextNode) && (null != m_wsfilter) && getShouldStripWhitespace())
       {
@@ -416,13 +423,7 @@ public class DOM2DTM implements DTM
           }
         }
       }
-      if(Node.ELEMENT_NODE == pos.getNodeType())
-      {
-        // I think this only has to be popped here, and not at getParent,
-        // oddly enough at first glance.
-        popShouldStripWhitespace();
-      }
-      
+                  
       if (null == nextNode)
       {
         m_info.setElementAt(DTM.NULL, posInfo + OFFSET_NEXTSIBLING);
@@ -439,6 +440,7 @@ public class DOM2DTM implements DTM
           break;
         }
       }
+        
       
     } // end while (null == nextNode) [for next sibling, parent]
 
@@ -541,7 +543,7 @@ public class DOM2DTM implements DTM
 
       for (int i = 0; i < len; i++)
       {
-        if (m_nodes == node)
+        if (m_nodes.elementAt(i) == node)
           return i | m_dtmIdent;
       }
     }
@@ -707,7 +709,7 @@ public class DOM2DTM implements DTM
         }
         else if (DTM.NAMESPACE_NODE != type)
         {
-          // ignore
+          break;
         }
       }
     }
@@ -951,7 +953,7 @@ public class DOM2DTM implements DTM
   /**
    * Given a namespace handle, advance to the next namespace.
    *
-   * @param baseHandle handle to original node from where the first child 
+   * @param baseHandle handle to original node from where the first namespace 
    * was relative to (needed to return nodes in document order).
    * @param namespaceHandle handle to node which must be of type
    * NAMESPACE_NODE.
@@ -1753,9 +1755,33 @@ public class DOM2DTM implements DTM
 
     Document doc = (m_root.getNodeType() == Node.DOCUMENT_NODE) 
         ? (Document) m_root : m_root.getOwnerDocument();
-
-    return (null != doc)
-      ? getHandleFromNode(doc.getElementById(elementId)) : DTM.NULL;
+        
+    if(null != doc)
+    {
+      Node elem = doc.getElementById(elementId);
+      if(null != elem)
+      {
+        int elemHandle = getHandleFromNode(elem);
+        
+        if(DTM.NULL == elemHandle)
+        {
+          int identity = m_nodes.size()-1;
+          while (DTM.NULL != (identity = getNextNodeIdentity(identity)))
+          {
+            Node node = getNode(identity);
+            if(node == elem)
+            {
+              elemHandle = getHandleFromNode(elem);
+              break;
+            }
+           }
+        }
+        
+        return elemHandle;
+      }
+    
+    }
+    return DTM.NULL;
   }
 
   /**
@@ -1978,7 +2004,7 @@ public class DOM2DTM implements DTM
   {
     int type = getNodeType(nodeHandle);
     Node node = getNode(nodeHandle);
-    dispatchNodeData(node, ch);
+    dispatchNodeData(node, ch, 0);
   }
   
   /**
@@ -1998,7 +2024,9 @@ public class DOM2DTM implements DTM
    * @param buf FastStringBuffer into which the contents of the text
    * nodes are to be concatenated.
    */
-  protected static void dispatchNodeData(Node node, org.xml.sax.ContentHandler ch)
+  protected static void dispatchNodeData(Node node, 
+                                         org.xml.sax.ContentHandler ch, 
+                                         int depth)
             throws org.xml.sax.SAXException
   {
 
@@ -2011,12 +2039,14 @@ public class DOM2DTM implements DTM
       for (Node child = node.getFirstChild(); null != child;
               child = child.getNextSibling())
       {
-        dispatchNodeData(child, ch);
+        dispatchNodeData(child, ch, depth+1);
       }
     }
     break;
     case Node.PROCESSING_INSTRUCTION_NODE : // %REVIEW%
     case Node.COMMENT_NODE :
+      if(0 != depth)
+        break;
     case Node.TEXT_NODE :
     case Node.CDATA_SECTION_NODE :
     case Node.ATTRIBUTE_NODE :

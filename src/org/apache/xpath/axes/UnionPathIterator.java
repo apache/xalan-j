@@ -538,12 +538,24 @@ public class UnionPathIterator extends Expression
   public int nextNode()
   {
 
+//    // If the cache is on, and the node has already been found, then 
+//    // just return from the list.
+//    if ((null != m_cachedNodes)
+//            && (m_cachedNodes.getCurrentPos() < m_cachedNodes.size()))
+//    {
+//      return m_cachedNodes.nextNode();
+//    }
     // If the cache is on, and the node has already been found, then 
     // just return from the list.
     if ((null != m_cachedNodes)
-            && (m_cachedNodes.getCurrentPos() < m_cachedNodes.size()))
+            && (m_next < m_cachedNodes.size()))
     {
-      return m_cachedNodes.nextNode();
+      int next = m_cachedNodes.elementAt(m_next);
+    
+      m_next++;
+      m_currentContextNode = next;
+
+      return next;
     }
 
     if (m_foundLast)

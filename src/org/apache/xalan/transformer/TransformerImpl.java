@@ -1320,7 +1320,7 @@ public class TransformerImpl extends Transformer
 
     if (null == m_inputContentHandler)
     {
-      m_inputContentHandler = new SourceTreeHandler(this, doDocFrag);
+      m_inputContentHandler = new SourceTreeHandler(this, doDocFrag, m_urlOfSource);
       ((SourceTreeHandler)m_inputContentHandler).setUseMultiThreading(true);
     }
 
@@ -1811,7 +1811,7 @@ public class TransformerImpl extends Transformer
     int resultFragment = DTM.NULL;
     
     // %TODO% Use SAX2DTM here (I think)
-    rtfHandler = new SourceTreeHandler(this, true);
+    rtfHandler = new SourceTreeHandler(this, true, templateParent.getBaseIdentifier());
     ((SourceTreeHandler)rtfHandler).setUseMultiThreading(false);
     ((SourceTreeHandler)rtfHandler).setShouldTransformAtEnd(false);
     // Create a ResultTreeFrag object.

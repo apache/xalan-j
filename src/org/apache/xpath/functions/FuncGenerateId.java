@@ -88,7 +88,7 @@ public class FuncGenerateId extends FunctionDef1Arg
     int which = getArg0AsNode(xctxt);
 
     if (DTM.NULL != which)
-      return new XString(String.valueOf(which));
+      return new XString("N" + Integer.toHexString(which+1).toUpperCase());
     else
       return XString.EMPTYSTRING;
   }

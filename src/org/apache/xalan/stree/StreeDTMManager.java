@@ -132,8 +132,29 @@ public class StreeDTMManager extends DTMManagerDefault
       SourceTreeHandler sth = new SourceTreeHandler();
       sth.setUseMultiThreading(false);
       
+      // transformer.setIsTransformDone(false);
+      InputSource xmlSource = SAXSource.sourceToInputSource(source);
+
+      String urlOfSource = xmlSource.getSystemId();
+
+      if (null != urlOfSource)
+      {
+        try
+        {
+          urlOfSource = SystemIDResolver.getAbsoluteURI(urlOfSource);
+        }
+        catch (Exception e)
+        {
+
+          // %REVIEW% Is there a better way to send a warning?
+          System.err.println("Can not absolutize URL: " + urlOfSource);
+        }
+
+        xmlSource.setSystemId(urlOfSource);
+      }
+
       int documentID = m_dtms.size() << 20;
-      DOMSource ds = new DOMSource(sth.getRoot());
+      DOMSource ds = new DOMSource(sth.getRoot(), xmlSource.getSystemId());
       DTM dtm = new DOM2DTM(this, ds, documentID, whiteSpaceFilter);
       int doc = sth.getDTMRoot();
       m_dtms.add(dtm);
@@ -182,31 +203,11 @@ public class StreeDTMManager extends DTMManagerDefault
         // stm.putDocumentInCache(doc, source);
         // transformer.setXMLSource(source);
 
-        // transformer.setIsTransformDone(false);
-        InputSource xmlSource = SAXSource.sourceToInputSource(source);
-
         if (null == xmlSource)
         {
           throw new DTMException("Not supported: " + source);
         }
 
-        String urlOfSource = xmlSource.getSystemId();
-
-        if (null != urlOfSource)
-        {
-          try
-          {
-            urlOfSource = SystemIDResolver.getAbsoluteURI(urlOfSource);
-          }
-          catch (Exception e)
-          {
-
-            // %REVIEW% Is there a better way to send a warning?
-            System.err.println("Can not absolutize URL: " + urlOfSource);
-          }
-
-          xmlSource.setSystemId(urlOfSource);
-        }
 
         try
         {

@@ -274,27 +274,33 @@ public class ElemVariable extends ElemTemplateElement
   {
 
     XObject var;
+    XPathContext xctxt = transformer.getXPathContext();
+    xctxt.pushCurrentNode(sourceNode);
 
-    if (null != m_selectPattern)
+    try
     {
-      XPathContext xctxt = transformer.getXPathContext();
-
-      var = m_selectPattern.execute(xctxt, sourceNode, this);
-      if(TransformerImpl.S_DEBUG)
-        transformer.getTraceManager().fireSelectedEvent(sourceNode, this, 
-                                      "select", m_selectPattern, var);
+      if (null != m_selectPattern)
+      { 
+        var = m_selectPattern.execute(xctxt, sourceNode, this);
+        if(TransformerImpl.S_DEBUG)
+          transformer.getTraceManager().fireSelectedEvent(sourceNode, this, 
+                                        "select", m_selectPattern, var);
+      }
+      else if (null == getFirstChildElem())
+      {
+        var = XString.EMPTYSTRING;
+      }
+      else
+      {
+  
+        // Use result tree fragment
+        int df = transformer.transformToRTF(this);
+        var = new XRTreeFrag(df, xctxt);
+      }
     }
-    else if (null == getFirstChildElem())
+    finally
     {
-      var = XString.EMPTYSTRING;
-    }
-    else
-    {
-
-      // Use result tree fragment
-      int df = transformer.transformToRTF(this);
-      XPathContext xctxt = transformer.getXPathContext();
-      var = new XRTreeFrag(df, xctxt);
+      xctxt.popCurrentNode();
     }
 
     return var;

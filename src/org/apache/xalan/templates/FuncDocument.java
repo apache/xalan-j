@@ -150,16 +150,18 @@ public class FuncDocument extends Function2Args
           warn(xctxt, XSLTErrorResources.WG_EMPTY_SECOND_ARG, null);
         
         DTM baseDTM = xctxt.getDTM(baseNode);
-        int baseDoc = baseDTM.getDocument();
+        base = baseDTM.getDocumentBaseURI(baseNode);
 
-        if (baseDoc == DTM.NULL /* || baseDoc instanceof Stylesheet  %TBD% What to do?? */)
-        {
-
-          // base = ((Stylesheet)baseDoc).getBaseIdentifier();
-          base = xctxt.getNamespaceContext().getBaseIdentifier();
-        }
-        else
-          base = xctxt.getSourceTreeManager().findURIFromDoc(baseDoc);
+//        int baseDoc = baseDTM.getDocument();
+//
+//        if (baseDoc == DTM.NULL /* || baseDoc instanceof Stylesheet  %TBD% What to do?? */)
+//        {
+//
+//          // base = ((Stylesheet)baseDoc).getBaseIdentifier();
+//          base = xctxt.getNamespaceContext().getBaseIdentifier();
+//        }
+//        else
+//          base = xctxt.getSourceTreeManager().findURIFromDoc(baseDoc);
       }
       else
       {

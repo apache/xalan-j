@@ -234,10 +234,10 @@ public class ResultTreeHandler extends QueuedEvents
                            + qse.getLocalName());
 
       System.out.println("ResultTreeHandler#startElement: " + ns + "#" + localName);
-      if(null == ns)
-      {
-        (new RuntimeException(localName+" has a null namespace!")).printStackTrace();
-      }
+//      if(null == ns)
+//      {
+//        (new RuntimeException(localName+" has a null namespace!")).printStackTrace();
+//      }
     }
 
     checkForSerializerSwitch(ns, localName);
@@ -278,7 +278,7 @@ public class ResultTreeHandler extends QueuedEvents
 
       System.out.println("ResultTreeHandler#endElement: " + ns + "#" + localName);
     }
-
+  
     flushPending(EVT_ENDELEMENT);
     m_contentHandler.endElement(ns, localName, name);
 
@@ -728,6 +728,23 @@ public class ResultTreeHandler extends QueuedEvents
    *            wrapping another exception.
    */
   public void skippedEntity(String name) throws org.xml.sax.SAXException{}
+  
+  /**
+   * Set whether Namespace declarations have been added to 
+   * this element
+   *
+   *
+   * @param b Flag indicating whether Namespace declarations 
+   * have been added to this element
+   */
+  public void setNSDeclsHaveBeenAdded(boolean b)
+  {
+    QueuedStartElement qe = getQueuedElem();
+    if (null != qe) 
+    {
+      qe.setNSDeclsHaveBeenAdded(b);
+    }
+  }
 
   /**
    * Flush the pending element.
@@ -844,7 +861,7 @@ public class ResultTreeHandler extends QueuedEvents
    *
    * @throws org.xml.sax.SAXException
    */
-  void ensurePrefixIsDeclared(String ns, String rawName) throws org.xml.sax.SAXException
+  public void ensurePrefixIsDeclared(String ns, String rawName) throws org.xml.sax.SAXException
   {
 
     if (ns != null && ns.length() > 0)
@@ -857,8 +874,39 @@ public class ResultTreeHandler extends QueuedEvents
       {
         String foundURI = m_nsSupport.getURI(prefix);
 
-        if ((null == foundURI) ||!foundURI.equals(ns))
+        if ((null == foundURI) || !foundURI.equals(ns))
+        {
+          
           startPrefixMapping(prefix, ns, false);
+        }
+      }
+    }
+  }
+  
+  /**
+   * This function checks to make sure a given prefix is really
+   * declared.  It might not be, because it may be an excluded prefix.
+   * If it's not, it still needs to be declared at this point.
+   * TODO: This needs to be done at an earlier stage in the game... -sb
+   *
+   * @param ns Namespace URI of the element 
+   * @param rawName Raw name of element (with prefix)
+   *
+   * @throws org.xml.sax.SAXException
+   */
+  public void ensureNamespaceDeclDeclared(DTM dtm, int namespace) throws org.xml.sax.SAXException
+  {
+    String uri = dtm.getNodeValue(namespace);
+    String prefix = dtm.getPrefix(namespace);
+
+    if ((uri != null && uri.length() > 0) && (null != prefix))
+    {
+      String foundURI = m_nsSupport.getURI(prefix);
+
+      if ((null == foundURI) || !foundURI.equals(uri))
+      {
+        
+        startPrefixMapping(prefix, uri, false);
       }
     }
   }
@@ -935,7 +983,7 @@ public class ResultTreeHandler extends QueuedEvents
    * Add the attributes that have been declared to the attribute list.
    * (Seems like I shouldn't have to do this...)
    */
-  protected void addNSDeclsToAttrs()
+  public void addNSDeclsToAttrs()
   {
 
     Enumeration prefixes = m_nsSupport.getDeclaredPrefixes();

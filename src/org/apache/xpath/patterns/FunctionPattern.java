@@ -136,7 +136,7 @@ public class FunctionPattern extends StepPattern
 
       while (DTM.NULL != (n = nl.nextNode()))
       {
-        score = (context == context) ? SCORE_OTHER : SCORE_NONE;
+        score = (n == context) ? SCORE_OTHER : SCORE_NONE;
 
         if (score == SCORE_OTHER)
         {

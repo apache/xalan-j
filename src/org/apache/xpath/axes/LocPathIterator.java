@@ -748,11 +748,12 @@ public class LocPathIterator extends PredicatedNodeTest
     // If the cache is on, and the node has already been found, then 
     // just return from the list.
     if ((null != m_cachedNodes)
-            && (m_cachedNodes.getCurrentPos() < m_cachedNodes.size()))
+            && (m_next < m_cachedNodes.size()))
     {
-      int next = m_cachedNodes.nextNode();
-
-      this.setCurrentPos(m_cachedNodes.getCurrentPos());
+      int next = m_cachedNodes.elementAt(m_next);
+    
+      incrementNextPosition();
+      m_currentContextNode = next;
 
       return next;
     }
@@ -1064,14 +1065,19 @@ public class LocPathIterator extends PredicatedNodeTest
 
     try
     {
-      clone = (LocPathIterator) clone();
+      // %REVIEW% %OPT%
+      if(0 == pos && m_currentContextNode != DTM.NULL)
+        clone = (LocPathIterator) cloneWithReset();
+      else
+        clone = (LocPathIterator) clone();
     }
     catch (CloneNotSupportedException cnse)
     {
       return -1;
     }
-
-    clone.setPredicateCount(clone.getPredicateCount() - 1);
+    // %REVIEW% Commented this out, as it was messing up pos68 test. count-1?
+    // System.out.println("clone.getPredicateCount(): "+clone.getPredicateCount());
+    // clone.setPredicateCount(clone.getPredicateCount() - 1);
 
     int next;
 

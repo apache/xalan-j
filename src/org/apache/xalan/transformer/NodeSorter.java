@@ -147,6 +147,7 @@ public class NodeSorter
     {
       v.setItem(((NodeCompareElem) nodes.elementAt(i)).m_node, i);
     }
+    v.setCurrentPos(0);
 
     // old code...
     //NodeVector scratchVector = new NodeVector(n);
@@ -552,10 +553,14 @@ public class NodeSorter
 
         if (r.getType() == XObject.CLASS_NODESET)
         {
-          DTMIterator ni = r.nodeset();
+          // %REVIEW%
+          DTMIterator ni = (DTMIterator)r.object();
+          int current = ni.getCurrentNode();
+          if(DTM.NULL == current)
+            current = ni.nextNode();
 
           // if (ni instanceof ContextNodeList) // %REVIEW%
-          tryNextKey = (ni.getCurrentNode() != DTM.NULL);
+          tryNextKey = (DTM.NULL != current);
 
           // else abdicate... should never happen, but... -sb
         }

@@ -133,22 +133,30 @@ public class TreeWalker2Result extends DTMTreeWalker
         String elemName = m_dtm.getNodeName(node);
         String localName = m_dtm.getLocalName(node);
         String namespace = m_dtm.getNamespaceURI(node);
-
+        
         m_handler.startElement(namespace, localName, elemName, null);
 
         if (DTM.ELEMENT_NODE == m_dtm.getNodeType(node))
         {
-          for (int attr = m_dtm.getFirstAttribute(node); 
-               DTM.NULL != attr; attr = m_dtm.getNextAttribute(node))
+          boolean hasNSDecls = false;
+          DTM dtm = m_dtm;
+          for (int ns = dtm.getFirstNamespaceNode(node, true); 
+               DTM.NULL != ns; ns = dtm.getNextNamespaceNode(node, ns, true))
           {
-            String name = m_dtm.getNodeName(attr);
-            String value = m_dtm.getStringValue(attr);
-
-            m_handler.addAttribute(m_dtm.getNamespaceURI(attr),
-                                   m_dtm.getLocalName(attr), name,
-                                   "CDATA", value);
-
+            m_handler.ensureNamespaceDeclDeclared(dtm, ns);
           }
+          
+          if(hasNSDecls)
+          {
+            m_handler.addNSDeclsToAttrs();
+          }
+          
+          for (int attr = dtm.getFirstAttribute(node); 
+               DTM.NULL != attr; attr = dtm.getNextAttribute(attr))
+          {
+            m_handler.addAttribute(attr);
+          }
+          
         }
       }
       else

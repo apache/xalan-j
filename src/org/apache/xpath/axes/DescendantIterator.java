@@ -185,12 +185,15 @@ public class DescendantIterator extends LocPathIterator
 
     // If the cache is on, and the node has already been found, then 
     // just return from the list.
+    // If the cache is on, and the node has already been found, then 
+    // just return from the list.
     if ((null != m_cachedNodes)
-            && (m_cachedNodes.getCurrentPos() < m_cachedNodes.size()))
+            && (m_next < m_cachedNodes.size()))
     {
-      int next = m_cachedNodes.nextNode();
-
-      this.setCurrentPos(m_cachedNodes.getCurrentPos());
+      int next = m_cachedNodes.elementAt(m_next);
+    
+      incrementNextPosition();
+      m_currentContextNode = next;
 
       return next;
     }

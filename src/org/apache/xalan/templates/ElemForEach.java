@@ -403,6 +403,7 @@ public class ElemForEach extends ElemTemplateElement
 
         while (DTM.NULL != (child = sourceNodes.nextNode()))
         {
+          // System.out.println("child: "+child);
           DTM dtm = xctxt.getDTM(child);
           if (needToFindTemplate)
           {

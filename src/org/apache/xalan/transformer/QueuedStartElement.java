@@ -304,6 +304,7 @@ public class QueuedStartElement extends QueuedSAXEvent
    */
   void setNSDeclsHaveBeenAdded(boolean b)
   {
+    // System.out.println("setNSDeclsHaveBeenAdded: "+b);
     m_nsDeclsHaveBeenAdded = b;
   }
 

@@ -113,9 +113,9 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
    * @param transformer The transformer this will use to transform a
    * source tree into a result tree.
    */
-  public SourceTreeHandler(TransformerImpl transformer)
+  public SourceTreeHandler(TransformerImpl transformer, String baseSystemID)
   {
-    this(transformer, false);
+    this(transformer, false, baseSystemID);
   }
 
   /**
@@ -125,7 +125,8 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
    * @param transformer The transformer this will use to transform a
    * source tree into a result tree.
    */
-  public SourceTreeHandler(TransformerImpl transformer, boolean doFragment)
+  public SourceTreeHandler(TransformerImpl transformer, boolean doFragment, 
+                           String baseSystemID)
   {
 //    m_id = m_idCount++;
     m_transformer = transformer;
@@ -145,7 +146,7 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
     {
       m_root = new DocumentImpl(this);
     }
-    DOMSource ds = new DOMSource(m_root);
+    DOMSource ds = new DOMSource(m_root, baseSystemID);
     dtm = mgr.getDTM(ds, false, transformer);
     
     m_DTMroot = dtm.getDocument();
@@ -162,7 +163,8 @@ public class SourceTreeHandler extends org.xml.sax.helpers.DefaultHandler implem
    * @param transformer The transformer this will use to transform a
    * source tree into a result tree.
    */
-  public SourceTreeHandler(TransformerImpl transformer, DTMManager dtm, boolean doFragment)
+  public SourceTreeHandler(TransformerImpl transformer, DTMManager dtm, 
+                           boolean doFragment)
   {
 //    m_id = m_idCount++;
     m_transformer = transformer;
