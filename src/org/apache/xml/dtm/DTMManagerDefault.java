@@ -81,6 +81,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.EntityResolver;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.helpers.XMLReaderFactory;
 import org.xml.sax.ext.DeclHandler;
 import org.xml.sax.ext.LexicalHandler;
@@ -91,7 +94,7 @@ import org.xml.sax.ext.LexicalHandler;
 public class DTMManagerDefault extends DTMManager
 {
 
-  /** NEEDSDOC Field m_dtms          */
+  /** NEEDSDOC Field m_dtms */
   protected Vector m_dtms = new Vector();
 
   /**
@@ -99,7 +102,8 @@ public class DTMManagerDefault extends DTMManager
    *
    */
   public DTMManagerDefault(){}
-  
+
+  /** NEEDSDOC Field DUMPTREE */
   private static final boolean DUMPTREE = false;
 
   /**
@@ -116,22 +120,24 @@ public class DTMManagerDefault extends DTMManager
    * is going to be mutated.
    * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may
    *                         be null.
+   * NEEDSDOC @param incremental
    *
    * @return a non-null DTM reference.
    */
   public DTM getDTM(Source source, boolean unique,
-                    DTMWSFilter whiteSpaceFilter)
+                    DTMWSFilter whiteSpaceFilter, boolean incremental)
   {
 
     int documentID = m_dtms.size() << 20;
 
-    if (source instanceof DOMSource)
+    if ((null != source) && source instanceof DOMSource)
     {
       DOM2DTM dtm = new DOM2DTM(this, (DOMSource) source, documentID,
-                            whiteSpaceFilter);
+                                whiteSpaceFilter);
+
       m_dtms.add(dtm);
-      
-      if(DUMPTREE)
+
+      if (DUMPTREE)
       {
         System.out.println("Dumping DOM2DTM");
         dtm.dumpDTM();
@@ -141,121 +147,187 @@ public class DTMManagerDefault extends DTMManager
     }
     else
     {
-      boolean isSAXSource = (source instanceof SAXSource);
-      boolean isStreamSource = (source instanceof StreamSource);
+      boolean isSAXSource = (null != source) ? (source instanceof SAXSource) : true;
+      boolean isStreamSource = (null != source) ? (source instanceof StreamSource) : false;
 
       if (isSAXSource || isStreamSource)
       {
-        XMLReader reader = getXMLReader(source);
+        XMLReader reader;
+        InputSource xmlSource;
 
-        // transformer.setIsTransformDone(false);
-        InputSource xmlSource = SAXSource.sourceToInputSource(source);
-        String urlOfSource = xmlSource.getSystemId();
-
-        if (null != urlOfSource)
+        if (null == source)
         {
+          xmlSource = null;
+          reader = null;
+        }
+        else
+        {
+          reader = getXMLReader(source);
+          xmlSource = SAXSource.sourceToInputSource(source);
+
+          String urlOfSource = xmlSource.getSystemId();
+
+          if (null != urlOfSource)
+          {
+            try
+            {
+              urlOfSource = SystemIDResolver.getAbsoluteURI(urlOfSource);
+            }
+            catch (Exception e)
+            {
+
+              // %REVIEW% Is there a better way to send a warning?
+              System.err.println("Can not absolutize URL: " + urlOfSource);
+            }
+
+            xmlSource.setSystemId(urlOfSource);
+          }
+        }
+
+        // Create the basic SAX2DTM.
+        SAX2DTM dtm = new SAX2DTM(this, source, documentID, whiteSpaceFilter);
+
+        // Go ahead and add the DTM to the lookup table.  This needs to be 
+        // done before any parsing occurs.
+        m_dtms.add(dtm);
+
+        if (incremental)
+        {
+
+          // Create a CoroutineManager to manage the coordination between the 
+          // parser and the transformation.  This will "throttle" between 
+          // the parser and the calling application.
+          CoroutineManager coroutineManager = new CoroutineManager();
+
+          // Create an CoRoutine ID for the transformation.
+          int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
+          CoroutineParser coParser;
+
+          // %TBD%
+          //          if(reader instanceof org.apache.xerces.parsers.SAXParser)
+          //          {
+          //            // CoroutineSAXParser_Xerces to avoid threading.
+          //            System.out.println("Creating a CoroutineSAXParser_Xerces");
+          //            coParser = 
+          //              new CoroutineSAXParser_Xerces(coroutineManager, appCoroutine,
+          //                  (org.apache.xerces.parsers.SAXParser)reader);
+          //          }
+          //          else
+          {
+
+            // Create a CoroutineSAXParser that will run on the secondary thread.
+            coParser = new CoroutineSAXParser(coroutineManager, appCoroutine,
+                                              reader);
+          }
+
+          // Have the DTM set itself up as the CoroutineSAXParser's listener.
+          dtm.setCoroutineParser(coParser, appCoroutine);
+
+          // Get the parser's CoRoutine ID.
+          int parserCoroutine = coParser.getParserCoroutineID();
+
+          // System.out.println("parserCoroutine (mgr): "+parserCoroutine);
+          // %TBD%  It's probably OK to have these bypass the CoRoutine stuff??
+          // Or maybe not?
+          // ... Depends on how broken will things get if they occur at the same
+          // time that someone is trying to read the DTM model. I'd suggest that
+          // we instead extend CoroutineParser to handle these, and let it
+          // pass the registration through to the reader if that's the Right Thng
+          reader.setDTDHandler(dtm);
+          reader.setErrorHandler(dtm);
+          
+          if (null == xmlSource)
+          {
+  
+            // Then the user will construct it themselves.
+            return dtm;
+          }
+
           try
           {
-            urlOfSource = SystemIDResolver.getAbsoluteURI(urlOfSource);
+
+            // %REVIEW% Consider making coParser just be a throttling filter
+            Object gotMore = coParser.doParse(xmlSource, appCoroutine);
+
+            if (gotMore instanceof Exception)
+            {
+              dtm.clearCoRoutine();
+
+              throw ((Exception) gotMore);
+            }
+            else if (gotMore != Boolean.TRUE)
+            {
+
+              // %REVIEW% Consider having coParser self-terminate at end of file.
+              dtm.clearCoRoutine();
+            }
+          }
+          catch (RuntimeException re)
+          {
+
+            // coroutineManager.co_exit(appCoroutine);
+            dtm.clearCoRoutine();
+
+            throw re;
           }
           catch (Exception e)
           {
 
-            // %REVIEW% Is there a better way to send a warning?
-            System.err.println("Can not absolutize URL: " + urlOfSource);
-          }
-
-          xmlSource.setSystemId(urlOfSource);
-        }
-
-        try
-        {
-          reader.setFeature("http://apache.org/xml/features/validation/dynamic",
-                            true);
-        }
-        catch (org.xml.sax.SAXException se) {}
-
-        // Create the basic SAX2DTM.
-        SAX2DTM dtm = new SAX2DTM(this, 
-                                  source,
-                                  documentID, 
-                                  whiteSpaceFilter);
-                                  
-        // Go ahead and add the DTM to the lookup table.  This needs to be 
-        // done before any parsing occurs.
-        m_dtms.add(dtm);
-        
-        // Create a CoroutineManager to manage the coordination between the 
-        // parser and the transformation.  This will "throttle" between 
-        // the parser and the calling application.
-        CoroutineManager coroutineManager=new CoroutineManager();
-        
-        // Create an CoRoutine ID for the transformation.
-        int appCoroutine = coroutineManager.co_joinCoroutineSet(-1);
-        // System.out.println("appCoroutine (mgr): "+appCoroutine);
-        
-        // %TBD% Test for a Xerces Parser, and create a 
-        // CoroutineSAXParser_Xerces to avoid threading.
-                                          
-        // Create a CoroutineSAXParser that will run on the secondary thread.
-        CoroutineSAXParser coParser=new CoroutineSAXParser(coroutineManager, appCoroutine, reader);
-        
-        // Have the DTM set itself up as the CoroutineSAXParser's listener.
-        dtm.setCoroutineParser(coParser, appCoroutine);
-        
-        // Get the parser's CoRoutine ID.
-        int parserCoroutine = coParser.getParserCoroutineID();
-        // System.out.println("parserCoroutine (mgr): "+parserCoroutine);
-    
-        
-        // %TBD%  It's probably OK to have these bypass the CoRoutine stuff??
-        // Or maybe not?
-	// ... Depends on how broken will things get if they occur at the same
-	// time that someone is trying to read the DTM model. I'd suggest that
-	// we instead extend CoroutineParser to handle these, and let it
-	// pass the registration through to the reader if that's the Right Thng
-        reader.setDTDHandler(dtm);
-        reader.setErrorHandler(dtm);
-                          
-        try
-        {
-          // This is a strange way to start the parse.
-	  // %REVIEW% Consider making coParser just be a throttling filter
-          Object gotMore = coParser.doParse(xmlSource, appCoroutine);
-          if( gotMore instanceof Exception)
-          {
+            // coroutineManager.co_exit(appCoroutine);
             dtm.clearCoRoutine();
-            throw ((Exception)gotMore);
+
+            throw new org.apache.xml.utils.WrappedRuntimeException(e);
           }
-          else if (gotMore != Boolean.TRUE)
+        }
+        else
+        {
+          if(null == reader)
           {
-	    // This is a strange way to terminate the parser.
-	    // %REVIEW% Consider having coParser self-terminate at end of file.
-            dtm.clearCoRoutine();
+            // Then the user will construct it themselves.
+            return dtm;
           }
-        }
-        catch(RuntimeException re)
-        {
-          // coroutineManager.co_exit(appCoroutine);
-          dtm.clearCoRoutine();
-          throw re;
-        }
-        catch(Exception e)
-        {
-          // coroutineManager.co_exit(appCoroutine);
-          dtm.clearCoRoutine();
-          throw new org.apache.xml.utils.WrappedRuntimeException(e);
-        }
-        finally
-        {
-          // coroutineManager.co_exit(appCoroutine);
+
+          // not incremental
+          reader.setContentHandler(dtm);
+          reader.setDTDHandler(dtm);
+          reader.setErrorHandler(dtm);
+
+          try
+          {
+            reader.setProperty(
+              "http://xml.org/sax/properties/lexical-handler", dtm);
+          }
+          catch (SAXNotRecognizedException e){}
+          catch (SAXNotSupportedException e){}
+
+          try
+          {
+            reader.parse(xmlSource);
+          }
+          catch (RuntimeException re)
+          {
+
+            // coroutineManager.co_exit(appCoroutine);
+            dtm.clearCoRoutine();
+
+            throw re;
+          }
+          catch (Exception e)
+          {
+
+            // coroutineManager.co_exit(appCoroutine);
+            dtm.clearCoRoutine();
+
+            throw new org.apache.xml.utils.WrappedRuntimeException(e);
+          }
         }
 
-        if(DUMPTREE)
+        if (DUMPTREE)
         {
           System.out.println("Dumping SAX2DOM");
           dtm.dumpDTM();
         }
+
         return dtm;
       }
       else
@@ -328,6 +400,7 @@ public class DTMManagerDefault extends DTMManager
         // What can we do?
         // TODO: User diagnostics.
       }
+
       try
       {
         reader.setFeature("http://apache.org/xml/features/validation/dynamic",
@@ -399,9 +472,10 @@ public class DTMManagerDefault extends DTMManager
    */
   public boolean release(DTM dtm, boolean shouldHardDelete)
   {
-    if(dtm instanceof SAX2DTM)
+
+    if (dtm instanceof SAX2DTM)
     {
-      ((SAX2DTM)dtm).clearCoRoutine();
+      ((SAX2DTM) dtm).clearCoRoutine();
     }
 
     int i = getDTMIdentity(dtm);
@@ -435,7 +509,7 @@ public class DTMManagerDefault extends DTMManager
       Document doc = db.newDocument();
       Node df = doc.createDocumentFragment();
 
-      return getDTM(new DOMSource(df), true, null);
+      return getDTM(new DOMSource(df), true, null, false);
     }
     catch (Exception e)
     {

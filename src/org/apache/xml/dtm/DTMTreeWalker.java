@@ -271,27 +271,45 @@ public class DTMTreeWalker
       this.m_contentHandler.startDocument();
       break;
     case DTM.ELEMENT_NODE :
+      DTM dtm = m_dtm;           
 
-      for (int nsn = m_dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
-           nsn = m_dtm.getNextNamespaceNode(node, nsn, true))
+      for (int nsn = dtm.getFirstNamespaceNode(node, true); DTM.NULL != nsn;
+           nsn = dtm.getNextNamespaceNode(node, nsn, true))
       {
-        // String prefix = m_dtm.getPrefix(nsn);
-        String prefix = m_dtm.getNodeNameX(nsn);
+        // String prefix = dtm.getPrefix(nsn);
+        String prefix = dtm.getNodeNameX(nsn);
 
         this.m_contentHandler.startPrefixMapping(prefix,
-                                                 m_dtm.getStringValue(nsn));
+                                                 dtm.getStringValue(nsn));
         
       }
 
       // System.out.println("m_dh.getNamespaceOfNode(node): "+m_dh.getNamespaceOfNode(node));
       // System.out.println("m_dh.getLocalNameOfNode(node): "+m_dh.getLocalNameOfNode(node));
-      String ns = m_dtm.getNamespaceURI(node);
+      String ns = dtm.getNamespaceURI(node);
       if(null == ns)
         ns = "";
+        
+      // %OPT% !!
+      org.xml.sax.helpers.AttributesImpl attrs = 
+                            new org.xml.sax.helpers.AttributesImpl();
+              
+      for (int i = dtm.getFirstAttribute(node); 
+           i != DTM.NULL; 
+           i = dtm.getNextAttribute(i)) 
+      {
+        attrs.addAttribute(dtm.getNamespaceURI(i), 
+                           dtm.getLocalName(i), 
+                           dtm.getNodeName(i), 
+                           "CDATA", 
+                           dtm.getNodeValue(i));
+      }
+      
+        
       this.m_contentHandler.startElement(ns,
                                          m_dtm.getLocalName(node),
                                          m_dtm.getNodeName(node),
-                                         null /* %TBD% new AttList(atts, m_dh) */);
+                                         attrs);
       break;
     case DTM.PROCESSING_INSTRUCTION_NODE :
     {

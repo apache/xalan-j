@@ -70,9 +70,6 @@ import java.io.UnsupportedEncodingException;
 // Xalan imports
 import org.apache.xalan.res.XSLTErrorResources;
 import org.apache.xalan.res.XSLMessages;
-import org.apache.xalan.stree.SourceTreeHandler;
-import org.apache.xalan.stree.DocumentImpl;
-import org.apache.xalan.stree.DocImpl;
 import org.apache.xalan.templates.Constants;
 import org.apache.xalan.templates.ElemAttributeSet;
 import org.apache.xalan.templates.ElemTemplateElement;
@@ -501,7 +498,7 @@ public class TransformerImpl extends Transformer
     try
     {
       DTMManager mgr = this.getXPathContext().getDTMManager();
-      DTM dtm = mgr.getDTM(source, false, this);
+      DTM dtm = mgr.getDTM(source, false, this, true);
       
       boolean hardDelete = true;  // %REVIEW% I have to think about this. -sb
       try
@@ -1172,8 +1169,7 @@ public class TransformerImpl extends Transformer
 
     if (null == m_inputContentHandler)
     {
-      m_inputContentHandler = new SourceTreeHandler(this, doDocFrag, m_urlOfSource);
-      ((SourceTreeHandler)m_inputContentHandler).setUseMultiThreading(true);
+      m_inputContentHandler = new TransformerHandlerImpl(this, doDocFrag, m_urlOfSource);
     }
 
     return m_inputContentHandler;
@@ -1657,17 +1653,13 @@ public class TransformerImpl extends Transformer
           ElemTemplateElement templateParent)
             throws TransformerException
   {
-    // XPathContext xctxt = getXPathContext();
-    // Document docFactory = xctxt.getDOMHelper().getDOMFactory();
-    ContentHandler rtfHandler;
-    int resultFragment = DTM.NULL;
+    XPathContext xctxt = getXPathContext();
     
-    // %TODO% Use SAX2DTM here (I think)
-    rtfHandler = new SourceTreeHandler(this, true, templateParent.getBaseIdentifier());
-    ((SourceTreeHandler)rtfHandler).setUseMultiThreading(false);
-    ((SourceTreeHandler)rtfHandler).setShouldTransformAtEnd(false);
+    DTM dtmFrag = xctxt.getDTM(null, true, this, false);
+    ContentHandler rtfHandler = dtmFrag.getContentHandler();
+
     // Create a ResultTreeFrag object.
-    resultFragment = ((SourceTreeHandler)rtfHandler).getDTMRoot();
+    int resultFragment = resultFragment = dtmFrag.getDocument();
 
     // Save the current result tree handler.
     ResultTreeHandler savedRTreeHandler = this.m_resultTreeHandler;
@@ -2799,19 +2791,20 @@ public class TransformerImpl extends Transformer
 //      // Consider re-throwing the exception if this flag is set.
 //      e.printStackTrace();
 //    }
-      
-    if (m_inputContentHandler instanceof SourceTreeHandler)
-    {
-      SourceTreeHandler sth = (SourceTreeHandler) m_inputContentHandler;
-
-      sth.setExceptionThrown(e);
-    }
+  
+    // %REVIEW Need DTM equivelent?    
+//    if (m_inputContentHandler instanceof SourceTreeHandler)
+//    {
+//      SourceTreeHandler sth = (SourceTreeHandler) m_inputContentHandler;
+//
+//      sth.setExceptionThrown(e);
+//    }
     ContentHandler ch = getContentHandler();
-    if(ch instanceof SourceTreeHandler)
-    {
-      SourceTreeHandler sth = (SourceTreeHandler) ch;
-      ((TransformerImpl)(sth.getTransformer())).postExceptionFromThread(e);
-    }
+//    if(ch instanceof SourceTreeHandler)
+//    {
+//      SourceTreeHandler sth = (SourceTreeHandler) ch;
+//      ((TransformerImpl)(sth.getTransformer())).postExceptionFromThread(e);
+//    }
 
     m_isTransformDone = true;
     m_exceptionThrown = e;

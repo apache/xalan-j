@@ -1120,6 +1120,67 @@ public class DOM2DTM extends DTMDefaultBase
   {
       return null;
   }
+  
+  /**
+   * Return this DTM's lexical handler.
+   *
+   * %REVIEW% Should this return null if constrution already done/begun?
+   *
+   * @return null if this model doesn't respond to lexical SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   */
+  public org.xml.sax.ext.LexicalHandler getLexicalHandler()
+  {
+
+    return null;
+  }
+
+  
+  /**
+   * Return this DTM's EntityResolver.
+   *
+   * @return null if this model doesn't respond to SAX entity ref events.
+   */
+  public org.xml.sax.EntityResolver getEntityResolver()
+  {
+
+    return null;
+  }
+  
+  /**
+   * Return this DTM's DTDHandler.
+   *
+   * @return null if this model doesn't respond to SAX dtd events.
+   */
+  public org.xml.sax.DTDHandler getDTDHandler()
+  {
+
+    return null;
+  }
+
+  /**
+   * Return this DTM's ErrorHandler.
+   *
+   * @return null if this model doesn't respond to SAX error events.
+   */
+  public org.xml.sax.ErrorHandler getErrorHandler()
+  {
+
+    return null;
+  }
+  
+  /**
+   * Return this DTM's DeclHandler.
+   *
+   * @return null if this model doesn't respond to SAX Decl events.
+   */
+  public org.xml.sax.ext.DeclHandler getDeclHandler()
+  {
+
+    return null;
+  }  
 
   /** @return true iff we're building this model incrementally (eg
    * we're partnered with a CoroutineParser) and thus require that the

@@ -77,7 +77,6 @@ import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.NodeSorter;
 import org.apache.xalan.transformer.ResultTreeHandler;
 import org.apache.xalan.transformer.StackGuard;
-import org.apache.xalan.stree.SaxEventDispatch;
 
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;

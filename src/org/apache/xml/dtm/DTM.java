@@ -286,60 +286,6 @@ public interface DTM
    */
   public int getNextNamespaceNode(int baseHandle, int namespaceHandle, boolean inScope);
 
-  /** Lightweight subtree-walker. Given a node handle, find the next
-   * node in document order. (Preorder left-to-right traversal).  The
-   * walk stops (returning DTM.NULL) when it would otherwise have to
-   * step out of the subtree of the node indicated by the
-   * subtreeRootHandle.
-   * <p>
-   * One application would be as a subroutine for DTMIterators.
-   * <p>
-   * %REVIEW% Joe would like to rename this to walkNextDescendent
-   * to distinguish it more strongly from getFirstChild
-   *
-   * @param subtreeRootHandle int Handle of the root of the subtree
-   * being walked. Sets an outer limit that we will not walk past.
-   * @param nodeHandle int Handle of a node within the subtree.
-   * @return handle of the next node within the subtree, in document order.
-   * or DTM.NULL to indicate none exists.  */
-  public int getNextDescendant(int subtreeRootHandle, int nodeHandle);
-
-  /** Lightweight tree-walker. Given a node handle, find the next
-   * node in document order. The walk stops (returning DTM.NULL) when
-   * it would otherwise run off the end of the document.
-   * <p>
-   * Note that this is roughly equivalent to getNextDescendent() with
-   * subtreeRootHandle set to the Document node (or maybe the root element).
-   * <p>
-   * %REVIEW% Joe would like to rename this to walkNextFollowing
-   * (or perhaps just walkFollowing?)
-   * to distinguish it more strongly from getNextSibling.
-   *
-   * @param axisContextHandle the start of the axis that is being traversed.
-   * %REVIEW% As far as Joe can tell, this parameter is unnecessary...?
-   * @param nodeHandle the node whose successor we're looking for.
-   * @return handle of next node in the DTM tree
-   * or DTM.NULL to indicate none exists.
-   */
-  public int getNextFollowing(int axisContextHandle, int nodeHandle);
-  
-  /** Lightweight tree-walker. Given a node handle, find the next
-   * node in reverse document order. (Postorder right-to-left traversal).  The
-   * walk stops (returning DTM.NULL) when it would otherwise run off the
-   * beginning of the document.
-   * <p>
-   * %REVIEW% Joe would like to rename this to walkNextPreceeding
-   * (or perhaps just walkPreceeding?)
-   * to distinguish it more strongly from getPreviousSibling.
-   *
-   * @param axisContextHandle the start of the axis that is being traversed.
-   * %REVIEW% As far as Joe can tell, this parameter is unnecessary...?
-   * @param nodeHandle the node whose predecessor we're looking for.
-   * @return handle of next node in the DTM tree
-   * or DTM.NULL to indicate none exists.
-   */
-  public int getNextPreceding(int axisContextHandle, int nodeHandle);
-
   /**
    * Given a node handle, find its parent node.
    *
@@ -826,17 +772,6 @@ public interface DTM
   // ==== Construction methods (may not be supported by some implementations!) =====
       // %REVIEW% What response occurs if not supported?
 
-      /** getContentHandler returns "our SAX builder" -- the thing that
-       * someone else should send SAX events to in order to extend this
-       * DTM model.
-       *
-       * @return null if this model doesn't respond to SAX events,
-       * "this" if the DTM object has a built-in SAX ContentHandler,
-       * the CoroutineParser if we're bound to one and should receive
-       * the SAX stream via it for incremental build purposes...
-       * */
-      public org.xml.sax.ContentHandler getContentHandler();
-
       /** @return true iff we're building this model incrementally (eg
        * we're partnered with a CoroutineParser) and thus require that the
        * transformation and the parse run simultaneously. Guidance to the
@@ -849,6 +784,50 @@ public interface DTM
       // current DTMDocumentImpl draft), or should we just support SAX
       // listener interfaces?  Should it be a separate interface to
       // make that distinction explicit?
+      
+  /**
+   * Return this DTM's content handler, if it has one.
+   *
+   * @return null if this model doesn't respond to SAX events.
+   */
+  public org.xml.sax.ContentHandler getContentHandler();
+  
+  /**
+   * Return this DTM's lexical handler, if it has one.
+   *
+   * %REVIEW% Should this return null if constrution already done/begun?
+   *
+   * @return null if this model doesn't respond to lexical SAX events.
+   */
+  public org.xml.sax.ext.LexicalHandler getLexicalHandler();
+  
+  /**
+   * Return this DTM's EntityResolver, if it has one.
+   *
+   * @return null if this model doesn't respond to SAX entity ref events.
+   */
+  public org.xml.sax.EntityResolver getEntityResolver();
+  
+  /**
+   * Return this DTM's DTDHandler, if it has one.
+   *
+   * @return null if this model doesn't respond to SAX dtd events.
+   */
+  public org.xml.sax.DTDHandler getDTDHandler();
+
+  /**
+   * Return this DTM's ErrorHandler, if it has one.
+   *
+   * @return null if this model doesn't respond to SAX error events.
+   */
+  public org.xml.sax.ErrorHandler getErrorHandler();
+  
+  /**
+   * Return this DTM's DeclHandler, if it has one.
+   *
+   * @return null if this model doesn't respond to SAX Decl events.
+   */
+  public org.xml.sax.ext.DeclHandler getDeclHandler(); 
   
   /** Append a child to "the end of the document". Please note that
    * the node is always cloned in a base DTM, since our basic behavior

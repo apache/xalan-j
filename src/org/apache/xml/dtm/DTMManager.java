@@ -182,16 +182,20 @@ public abstract class DTMManager
    * (I think more parameters will need to be added for error handling, and entity
    * resolution).
    *
-   * @param source the specification of the source object.
+   * @param source the specification of the source object, which may be null, 
+   *               in which case it is assumed that node construction will take 
+   *               by some other means.
    * @param unique true if the returned DTM must be unique, probably because it
    * is going to be mutated.
    * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
    *                         be null.
+   * @param incremental true if the construction should try and be incremental.
    *
    * @return a non-null DTM reference.
    */
   public abstract DTM getDTM(javax.xml.transform.Source source,
-                             boolean unique, DTMWSFilter whiteSpaceFilter);
+                             boolean unique, DTMWSFilter whiteSpaceFilter,
+                             boolean incremental);
                              
   /**
    * Get the instance of DTM that "owns" a node handle.

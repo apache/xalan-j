@@ -80,7 +80,6 @@ import org.xml.sax.EntityResolver;
 
 // import org.xml.sax.Locator;
 import org.apache.xalan.res.XSLMessages;
-import org.apache.xalan.stree.SourceTreeHandler;
 import org.apache.xml.utils.SystemIDResolver;
 import org.apache.xml.utils.SAXSourceLocator;
 import org.apache.xpath.res.XPATHErrorResources;
@@ -340,9 +339,9 @@ public class SourceTreeManager
       Object xowner = xctxt.getOwnerObject();
       DTM dtm;
       if(null != xowner && xowner instanceof org.apache.xml.dtm.DTMWSFilter)
-        dtm = xctxt.getDTM(source, false, (org.apache.xml.dtm.DTMWSFilter)xowner);
+        dtm = xctxt.getDTM(source, false, (org.apache.xml.dtm.DTMWSFilter)xowner, false);
       else
-        dtm = xctxt.getDTM(source, false, null);
+        dtm = xctxt.getDTM(source, false, null, false);
       return dtm.getDocument();
     }
     catch (Exception e)

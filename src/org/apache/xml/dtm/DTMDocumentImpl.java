@@ -182,9 +182,9 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         // means it needs to attach to them AFTER we've resolved their
         // startup. Or it needs to attach to this document and
         // retrieve them each time. Or this needs to be
-	// an interface _implemented_ by this class... which might be simplest!
-	private ExpandedNameTable m_expandedNames=
-		new ExpandedNameTable(m_localNames,m_nsNames);
+        // an interface _implemented_ by this class... which might be simplest!
+        private ExpandedNameTable m_expandedNames=
+                new ExpandedNameTable(m_localNames,m_nsNames);
   
 
         /**
@@ -373,6 +373,69 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
       return this;
   }
   
+  /**
+   * Return this DTM's lexical handler.
+   *
+   * %REVIEW% Should this return null if constrution already done/begun?
+   *
+   * @return null if this model doesn't respond to lexical SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   */
+  public LexicalHandler getLexicalHandler()
+  {
+
+    if (m_coroutineParser instanceof CoroutineSAXParser)
+      return (LexicalHandler) m_coroutineParser;
+    else
+      return this;
+  }
+  
+  /**
+   * Return this DTM's EntityResolver.
+   *
+   * @return null if this model doesn't respond to SAX entity ref events.
+   */
+  public org.xml.sax.EntityResolver getEntityResolver()
+  {
+
+    return null;
+  }
+  
+  /**
+   * Return this DTM's DTDHandler.
+   *
+   * @return null if this model doesn't respond to SAX dtd events.
+   */
+  public org.xml.sax.DTDHandler getDTDHandler()
+  {
+
+    return null;
+  }
+
+  /**
+   * Return this DTM's ErrorHandler.
+   *
+   * @return null if this model doesn't respond to SAX error events.
+   */
+  public org.xml.sax.ErrorHandler getErrorHandler()
+  {
+
+    return null;
+  }
+  
+  /**
+   * Return this DTM's DeclHandler.
+   *
+   * @return null if this model doesn't respond to SAX Decl events.
+   */
+  public org.xml.sax.ext.DeclHandler getDeclHandler()
+  {
+
+    return null;
+  }  
+  
   /** @return true iff we're building this model incrementally (eg
    * we're partnered with a CoroutineParser) and thus require that the
    * transformation and the parse run simultaneously. Guidance to the
@@ -491,7 +554,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
               }
             else
               {
-		// %REVEIW% Null or ""?
+                // %REVEIW% Null or ""?
                 prefix=null; // Default prefix
               }
             
@@ -1007,11 +1070,11 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                                 (type == ENTITY_REFERENCE_NODE)) {
 
                         // In case when Document root is given
-		        //	if (nodeHandle == 0) nodeHandle = 1;
-			// %TBD% Probably was a mistake.
-			// If someone explicitly asks for first child
-			// of Document, I would expect them to want
-			// that and only that.
+                        //	if (nodeHandle == 0) nodeHandle = 1;
+                        // %TBD% Probably was a mistake.
+                        // If someone explicitly asks for first child
+                        // of Document, I would expect them to want
+                        // that and only that.
 
                         int kid = nodeHandle + 1;
                         nodes.readSlot(kid, gotslot);
@@ -1131,17 +1194,17 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
 
         /**
          * Given a node handle, advance to its next sibling.
-	 *
-	 * %TBD% This currently uses the DTM-internal definition of
-	 * sibling; eg, the last attr's next sib is the first
-	 * child. In the old DTM, the DOM proxy layer provided the
-	 * additional logic for the public view.  If we're rewriting
-	 * for XPath emulation, that test must be done here.
-	 *
+         *
+         * %TBD% This currently uses the DTM-internal definition of
+         * sibling; eg, the last attr's next sib is the first
+         * child. In the old DTM, the DOM proxy layer provided the
+         * additional logic for the public view.  If we're rewriting
+         * for XPath emulation, that test must be done here.
+         *
          * %TBD% CODE INTERACTION WITH COROUTINE PARSE - If not yet
          * resolved, should wait for more nodes to be added to the document
          * and tries again.
-	 *
+         *
          * @param nodeHandle int Handle of the node.
          * @return int Node-number of next sibling,
          * or DTM.NULL to indicate none exists.
@@ -1528,7 +1591,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
            // Remove prefix from expanded name
            int colonpos = expandedName.indexOf(":");
            String localName = expandedName.substring(colonpos+1);
-	   return localName;
+           return localName;
         }
 
 
@@ -1576,13 +1639,13 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 short type = (short) (gotslot[0] & 0xFFFF);
                 String name = fixednames[type];
                 if (null == name) {
-		  int i=gotslot[3];
-		  /**/System.out.println("got i="+i+" "+(i>>16)+"/"+(i&0xffff));
-		  
-		  name=m_localNames.indexToString(i & 0xFFFF);
-		  String prefix=m_prefixNames.indexToString(i >>16);
-		  if(prefix!=null && prefix.length()>0)
-		    name=prefix+":"+name;
+                  int i=gotslot[3];
+                  /**/System.out.println("got i="+i+" "+(i>>16)+"/"+(i&0xffff));
+                  
+                  name=m_localNames.indexToString(i & 0xFFFF);
+                  String prefix=m_prefixNames.indexToString(i >>16);
+                  if(prefix!=null && prefix.length()>0)
+                    name=prefix+":"+name;
                 }
                 return name;
         }
@@ -1603,7 +1666,7 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * colon character)
          *
          * %REVIEW% What's the local name of something other than Element/Attr?
-	 * Should this be DOM-style (undefined unless namespaced), or other?
+         * Should this be DOM-style (undefined unless namespaced), or other?
          *
          * @param nodeHandle the id of the node.
          * @return String Local name of this node.
@@ -1612,10 +1675,10 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 nodes.readSlot(nodeHandle, gotslot);
                 short type = (short) (gotslot[0] & 0xFFFF);
                 String name = "";
-		if ((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
-		  int i=gotslot[3];
-		  name=m_localNames.indexToString(i & 0xFFFF);
-		  if(name==null) name="";
+                if ((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
+                  int i=gotslot[3];
+                  name=m_localNames.indexToString(i & 0xFFFF);
+                  if(name==null) name="";
                 }
                 return name;
         }
@@ -1628,8 +1691,8 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
          * <p> %REVIEW% Are you sure you want "" for no prefix?  </p>
          *
          * %REVIEW%  Should this be DOM-style (undefined unless namespaced),
-	 * or other?
-	 *
+         * or other?
+         *
          * @param nodeHandle the id of the node.
          * @return String prefix of this node's name, or "" if no explicit
          * namespace prefix was given.
@@ -1637,11 +1700,11 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
         public String getPrefix(int nodeHandle) {
                 nodes.readSlot(nodeHandle, gotslot);
                 short type = (short) (gotslot[0] & 0xFFFF);
-		String name = "";
-		if((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
-		  int i=gotslot[3];
-		  name=m_prefixNames.indexToString(i >>16);
-		  if(name==null) name="";
+                String name = "";
+                if((type==ELEMENT_NODE) || (type==ATTRIBUTE_NODE)) {
+                  int i=gotslot[3];
+                  name=m_prefixNames.indexToString(i >>16);
+                  if(name==null) name="";
                 }
                 return name;
         }
@@ -2107,9 +2170,9 @@ implements DTM, org.xml.sax.ContentHandler, org.xml.sax.ext.LexicalHandler
                 int w1 = currentParent;
                 // W2: Next  (initialized as 0)
                 int w2 = 0;
-		// W3: Tagname high: prefix Low: local name
-		int w3 = localNameIndex | prefixIndex<<16;
-		/**/System.out.println("set w3="+w3+" "+(w3>>16)+"/"+(w3&0xffff));
+                // W3: Tagname high: prefix Low: local name
+                int w3 = localNameIndex | prefixIndex<<16;
+                /**/System.out.println("set w3="+w3+" "+(w3>>16)+"/"+(w3&0xffff));
 
                 //int ourslot = nodes.appendSlot(w0, w1, w2, w3);
                 int ourslot = appendNode(w0, w1, w2, w3);

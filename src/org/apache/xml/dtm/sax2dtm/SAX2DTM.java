@@ -316,7 +316,7 @@ public class SAX2DTM extends DTMDefaultBase
     //coroutineParser.setDTDHandler(this);
     //coroutineParser.setDeclHandler(this);
   }
-
+  
   /**
    * getContentHandler returns "our SAX builder" -- the thing that
    * someone else should send SAX events to in order to extend this
@@ -329,7 +329,7 @@ public class SAX2DTM extends DTMDefaultBase
    * the CoroutineParser if we're bound to one and should receive
    * the SAX stream via it for incremental build purposes...
    */
-  public org.xml.sax.ContentHandler getContentHandler()
+  public ContentHandler getContentHandler()
   {
 
     if (m_coroutineParser instanceof CoroutineSAXParser)
@@ -337,6 +337,70 @@ public class SAX2DTM extends DTMDefaultBase
     else
       return this;
   }
+  
+  /**
+   * Return this DTM's lexical handler.
+   *
+   * %REVIEW% Should this return null if constrution already done/begun?
+   *
+   * @return null if this model doesn't respond to lexical SAX events,
+   * "this" if the DTM object has a built-in SAX ContentHandler,
+   * the CoroutineParser if we're bound to one and should receive
+   * the SAX stream via it for incremental build purposes...
+   */
+  public LexicalHandler getLexicalHandler()
+  {
+
+    if (m_coroutineParser instanceof CoroutineSAXParser)
+      return (LexicalHandler) m_coroutineParser;
+    else
+      return this;
+  }
+  
+  /**
+   * Return this DTM's EntityResolver.
+   *
+   * @return null if this model doesn't respond to SAX entity ref events.
+   */
+  public EntityResolver getEntityResolver()
+  {
+
+    return this;
+  }
+  
+  /**
+   * Return this DTM's DTDHandler.
+   *
+   * @return null if this model doesn't respond to SAX dtd events.
+   */
+  public DTDHandler getDTDHandler()
+  {
+
+    return this;
+  }
+
+  /**
+   * Return this DTM's ErrorHandler.
+   *
+   * @return null if this model doesn't respond to SAX error events.
+   */
+  public ErrorHandler getErrorHandler()
+  {
+
+    return this;
+  }
+  
+  /**
+   * Return this DTM's DeclHandler.
+   *
+   * @return null if this model doesn't respond to SAX Decl events.
+   */
+  public DeclHandler getDeclHandler()
+  {
+
+    return this;
+  }  
+  
 
   /**
    * @return true iff we're building this model incrementally (eg
@@ -596,8 +660,9 @@ public class SAX2DTM extends DTMDefaultBase
     {
       treeWalker = new DTMTreeWalker();
     }
-
+    
     treeWalker.setcontentHandler(ch);
+    treeWalker.setDTM(this);
 
     try
     {

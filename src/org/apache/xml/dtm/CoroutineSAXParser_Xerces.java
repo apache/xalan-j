@@ -138,16 +138,16 @@ implements CoroutineParser, Runnable
     // Not supported by all SAX2 parsers but should work in Xerces:
     try 
       {
-	setProperty("http://xml.org/sax/properties/lexical-handler",
-		    this);
+        setProperty("http://xml.org/sax/properties/lexical-handler",
+                    this);
       }
     catch(org.xml.sax.SAXNotRecognizedException e)
       {
-	// Nothing we can do about it
+        // Nothing we can do about it
       }
     catch(org.xml.sax.SAXNotSupportedException e)
       {
-	// Nothing we can do about it
+        // Nothing we can do about it
       }
   }
   
@@ -180,7 +180,7 @@ implements CoroutineParser, Runnable
      */
     public void run() {
       try {
-	  
+          
         Object arg = null;
         while (true) {
             arg = fCoroutineManager.co_resume(arg, fParserCoroutineID, fAppCoroutineID);
@@ -222,15 +222,15 @@ implements CoroutineParser, Runnable
                 }
             }
         }
-	
+        
       }
       catch(java.lang.NoSuchMethodException e)
-	{
-	  // Shouldn't happen unless we've miscoded our coroutine logic
-	  // "Shut down the garbage smashers on the detention level!"
-	  e.printStackTrace(System.err);
+        {
+          // Shouldn't happen unless we've miscoded our coroutine logic
+          // "Shut down the garbage smashers on the detention level!"
+          e.printStackTrace(System.err);
           fCoroutineManager.co_exit(fParserCoroutineID);
-	}
+        }
     }
 
   //================================================================
@@ -258,18 +258,18 @@ implements CoroutineParser, Runnable
   {
     try 
       {
-	Object result=    
-	  fCoroutineManager.co_resume(source, appCoroutineID, fParserCoroutineID);
-	
-	// %REVIEW% Better error reporting needed... though most of these
-	// should never arise during normal operation.
-	// Should this rethrow the parse exception?
-	if (result instanceof Exception) {
-	  System.out.println("\nParser threw exception:");
-	  ((Exception)result).printStackTrace();
-	}
+        Object result=    
+          fCoroutineManager.co_resume(source, appCoroutineID, fParserCoroutineID);
+        
+        // %REVIEW% Better error reporting needed... though most of these
+        // should never arise during normal operation.
+        // Should this rethrow the parse exception?
+        if (result instanceof Exception) {
+          System.out.println("\nParser threw exception:");
+          ((Exception)result).printStackTrace();
+        }
 
-	return result;
+        return result;
       }
 
     // SHOULD NEVER OCCUR, since the coroutine number and coroutine manager
@@ -277,7 +277,7 @@ implements CoroutineParser, Runnable
     // So I'm just going to return it as a parsing exception, for now.
     catch(NoSuchMethodException e)
       {
-	return e;
+        return e;
       }
   }
   
@@ -302,21 +302,21 @@ implements CoroutineParser, Runnable
   {
     try 
       {
-	Object result =
-	  fCoroutineManager.co_resume(parsemore?Boolean.TRUE:Boolean.FALSE,
-				      appCoroutineID, fParserCoroutineID);
-	
-	// %REVIEW% Better error reporting needed
-	if (result == null)
-	  {
-	    System.out.println("\nUNEXPECTED: Parser doMore says shut down prematurely.\n");
-	  }
-	else if (result instanceof Exception) {
-	  System.out.println("\nParser threw exception:");
-	  ((Exception)result).printStackTrace();
-	}
-	
-	return result;
+        Object result =
+          fCoroutineManager.co_resume(parsemore?Boolean.TRUE:Boolean.FALSE,
+                                      appCoroutineID, fParserCoroutineID);
+        
+        // %REVIEW% Better error reporting needed
+        if (result == null)
+          {
+            System.out.println("\nUNEXPECTED: Parser doMore says shut down prematurely.\n");
+          }
+        else if (result instanceof Exception) {
+          System.out.println("\nParser threw exception:");
+          ((Exception)result).printStackTrace();
+        }
+        
+        return result;
       }
   
     // SHOULD NEVER OCCUR, since the coroutine number and coroutine manager
@@ -324,7 +324,7 @@ implements CoroutineParser, Runnable
     // So I'm just going to return it as a parsing exception, for now.
     catch(NoSuchMethodException e)
       {
-	return e;
+        return e;
       }
   }
   
@@ -346,15 +346,15 @@ implements CoroutineParser, Runnable
     try
       {
         Object result =
-	  fCoroutineManager.co_resume(null, appCoroutineID, fParserCoroutineID);
+          fCoroutineManager.co_resume(null, appCoroutineID, fParserCoroutineID);
 
-	// Debugging; shouldn't arise in normal operation
+        // Debugging; shouldn't arise in normal operation
         if(result!=null)
           System.out.println("\nUNEXPECTED: Parser doTerminate answers "+result);
       }
     catch(java.lang.NoSuchMethodException e)
       {
-	// That's OK; if it doesn't exist, we don't need to terminate it
+        // That's OK; if it doesn't exist, we don't need to terminate it
       }
   }
 
@@ -386,41 +386,41 @@ implements CoroutineParser, Runnable
     // Tell coroutine to begin parsing, run while parsing is in progress
     for(int arg=0;arg<args.length;++arg)
       {
-	InputSource source = new InputSource(args[arg]);
-	Object result=null;
-	boolean more=true;
-	/**    
-	  for(result = co.co_resume(source, appCoroutineID, parserCoroutineID);
-	  (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-	  result = co.co_resume(more, appCoroutineID, parserCoroutineID))
-	  **/
-	for(result = parser.doParse(source, appCoroutineID);
-	    (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
-	    result = parser.doMore(more, appCoroutineID))
-	  {
-	    System.out.println("\nSome parsing successful, trying more.\n");
+        InputSource source = new InputSource(args[arg]);
+        Object result=null;
+        boolean more=true;
+        /**    
+          for(result = co.co_resume(source, appCoroutineID, parserCoroutineID);
+          (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+          result = co.co_resume(more, appCoroutineID, parserCoroutineID))
+          **/
+        for(result = parser.doParse(source, appCoroutineID);
+            (result instanceof Boolean && ((Boolean)result)==Boolean.TRUE);
+            result = parser.doMore(more, appCoroutineID))
+          {
+            System.out.println("\nSome parsing successful, trying more.\n");
             
-	    // Special test: Terminate parsing early.
-	    if(arg+1<args.length && "!".equals(args[arg+1]))
-	      {
-		++arg;
-		more=false;
-	      }
+            // Special test: Terminate parsing early.
+            if(arg+1<args.length && "!".equals(args[arg+1]))
+              {
+                ++arg;
+                more=false;
+              }
             
-	  }
+          }
         
-	if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
-	  {
-	    System.out.println("\nParser ended (EOF or on request).\n");
-	  }
-	else if (result == null) {
-	  System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
-	}
-	else if (result instanceof Exception) {
-	  System.out.println("\nParser threw exception:");
-	  ((Exception)result).printStackTrace();
-	}
-	
+        if (result instanceof Boolean && ((Boolean)result)==Boolean.FALSE)
+          {
+            System.out.println("\nParser ended (EOF or on request).\n");
+          }
+        else if (result == null) {
+          System.out.println("\nUNEXPECTED: Parser says shut down prematurely.\n");
+        }
+        else if (result instanceof Exception) {
+          System.out.println("\nParser threw exception:");
+          ((Exception)result).printStackTrace();
+        }
+        
       }
 
     parser.doTerminate(appCoroutineID);

@@ -167,7 +167,7 @@ public abstract class DTMDefaultBase implements DTM
   {
 
     m_mgr = mgr;
-    m_documentBaseURI = source.getSystemId();
+    m_documentBaseURI = (null != source) ? source.getSystemId() : null;
     m_dtmIdent = dtmIdentity;
     m_mask = mgr.getNodeIdentityMask();
     m_wsfilter = whiteSpaceFilter;
@@ -233,12 +233,17 @@ public abstract class DTMDefaultBase implements DTM
     // processed.
     while (info == NOTPROCESSED)
     {
-      nextNode();
+      boolean isMore = nextNode();
 
       if (identity >= getNumberOfNodes())
+      {
         info = NOTPROCESSED;
+      }
       else
         info = m_info.elementAt(base + offsetValue);
+        
+      if(!isMore && NOTPROCESSED == info)
+        return DTM.NULL;
     }
 
     return info;

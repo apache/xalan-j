@@ -73,7 +73,6 @@ import org.apache.xalan.transformer.TransformerImpl;
 import org.apache.xalan.transformer.ResultTreeHandler;
 
 import javax.xml.transform.TransformerException;
-import org.apache.xalan.stree.SaxEventDispatch;
 
 /**
  * <meta name="usage" content="advanced"/>

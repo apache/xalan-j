@@ -80,21 +80,6 @@ import org.apache.xpath.axes.ContextNodeList;
 public class FuncCurrent extends Function
 {
 
-//  /**
-//   * Diagnostics to show string output from a node.
-//   *
-//   * @param n The input node, which may be null.
-//   *
-//   * @return A diagnostics string representing the node.
-//   */
-//  protected String nodeToString(int n)
-//  {
-//
-//    return (null != n)
-//           ? n.getNodeName() + "{" + ((org.apache.xalan.stree.Child) n).getUid() + "}"
-//           : "null";
-//  }
-
   /**
    * Execute the function.  The function must return
    * a valid object.

@@ -122,7 +122,7 @@ public class UnitTest
     Document doc = db.parse(new InputSource(sr));
     
     DTMManager dtmMgr = DTMManager.newInstance();
-    DTM dtm = dtmMgr.getDTM(new DOMSource(doc), true, null);
+    DTM dtm = dtmMgr.getDTM(new DOMSource(doc), true, null, true);
     
     int docHandle = dtm.getDocument();
     outputChildren(docHandle, dtm, 0);

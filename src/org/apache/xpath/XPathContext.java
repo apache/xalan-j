@@ -138,23 +138,30 @@ public class XPathContext extends DTMManager // implements ExpressionContext
    }
   
   /**
-   * Get an instance of a DTM.  If the unique flag is true, a new instance will
+   * Get an instance of a DTM, loaded with the content from the
+   * specified source.  If the unique flag is true, a new instance will
    * always be returned.  Otherwise it is up to the DTMManager to return a
    * new instance or an instance that it already created and may be being used
    * by someone else.
    * (I think more parameters will need to be added for error handling, and entity
    * resolution).
    *
-   * @param source the specification of the source object.
+   * @param source the specification of the source object, which may be null, 
+   *               in which case it is assumed that node construction will take 
+   *               by some other means.
    * @param unique true if the returned DTM must be unique, probably because it
    * is going to be mutated.
+   * @param whiteSpaceFilter Enables filtering of whitespace nodes, and may 
+   *                         be null.
+   * @param incremental true if the construction should try and be incremental.
    *
    * @return a non-null DTM reference.
    */
   public DTM getDTM(javax.xml.transform.Source source, boolean unique, 
-                    DTMWSFilter wsfilter)
+                    DTMWSFilter wsfilter,
+                    boolean incremental)
   {
-    return m_dtmManager.getDTM(source, unique, wsfilter);
+    return m_dtmManager.getDTM(source, unique, wsfilter, incremental);
   }
                              
   /**
