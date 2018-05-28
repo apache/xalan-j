@@ -1594,6 +1594,11 @@ abstract public class ToStream extends SerializerBase
                         writer.write("&#8232;");
                         lastDirtyCharProcessed = i;
                     }
+                    if (Character.isHighSurrogate(ch))
+                    {
+                        lastDirtyCharProcessed = processDirty(chars,end, i,ch, lastDirtyCharProcessed, true);
+                        i = lastDirtyCharProcessed;
+                    }
                     else if (m_encodingInfo.isInEncoding(ch)) {
                         // If the character is in the encoding, and
                         // not in the normal ASCII range, we also
