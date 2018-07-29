@@ -515,7 +515,7 @@ in serialized HTML output.
 Submitted by:	Brian Minchau<br/>
 Reviewed by:	Henry Zongaro<br/>
 Backing out the last code change by Arun because it breaks the smoketest.
-The code I am backing out is definately wrong.  The old code appears
+The code I am backing out is definitely wrong.  The old code appears
 to be correct to both myself and Henry Zongaro.<br/>
 
 Waiting for a testcase to see what is wrong with the serialization code
@@ -2417,7 +2417,7 @@ This change was reviewed and approved in XALANJ-2170 by Christine Li.
 <DateCommitted>2005/07/19</DateCommitted>
 <Modified> xml-xalan/java build.bat build.sh build.xml</Modified>
 <Log>
-Updates to the build scripts and Ant build.xml file to accomodate the
+Updates to the build scripts and Ant build.xml file to accommodate the
 restructuring of the tools and runtime libraries in xml-xalan/java/tools and
 xml-xalan/java/lib.    Also changes to build.xml to reflect upcoming
 Xalan Java 2.7.0 (version number) changes.<br/>
