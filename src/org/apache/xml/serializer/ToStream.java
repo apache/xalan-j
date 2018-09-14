@@ -1594,6 +1594,13 @@ abstract public class ToStream extends SerializerBase
                         writer.write("&#8232;");
                         lastDirtyCharProcessed = i;
                     }
+                    else if (Encodings.isHighUTF16Surrogate(ch)) {
+                        // As of Java 1.5, we could use Character.isHighSurrogate(ch),
+                        // but this codebase needs to be Java 1.3 compliant (even though that is seriously outdated),
+                        // which is why we settle for Encodings.isHighUTF16Surrogate(ch).
+                        lastDirtyCharProcessed = processDirty(chars, end, i, ch, lastDirtyCharProcessed, true);
+                        i = lastDirtyCharProcessed;
+                    }
                     else if (m_encodingInfo.isInEncoding(ch)) {
                         // If the character is in the encoding, and
                         // not in the normal ASCII range, we also
