@@ -160,7 +160,7 @@ public class DOM2TO implements XMLReader, Locator {
 	    }
             
 	    // Process all non-namespace attributes next
-            NamespaceMappings nm = new NamespaceMappings();
+            NamespaceMappings nm = null;
 	    for (int i = 0; i < length; i++) {
 		final Node attr = map.item(i);
 		final String qnameAttr = attr.getNodeName();
@@ -176,6 +176,7 @@ public class DOM2TO implements XMLReader, Locator {
                         // For attributes not given an prefix explictly
                         // but having a namespace uri we need
                         // to explicitly generate the prefix
+                        if (nm == null) nm = new NamespaceMappings();
                         String newPrefix = nm.lookupPrefix(uriAttr);
                         if (newPrefix == null) 
                             newPrefix = nm.generateNextPrefix();
