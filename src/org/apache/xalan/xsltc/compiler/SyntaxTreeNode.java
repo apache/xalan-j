@@ -246,7 +246,7 @@ public abstract class SyntaxTreeNode implements Constants {
      * Returns any namespace URI that is in scope for a given prefix. This
      * method checks namespace mappings for this element, and if necessary
      * for ancestor elements as well (ie. if the prefix maps to an URI in this
-     * scope then you'll definately get the URI from this method).
+     * scope then you'll definitely get the URI from this method).
      * @param prefix Namespace prefix.
      * @return Namespace URI.
      */
@@ -344,7 +344,7 @@ public abstract class SyntaxTreeNode implements Constants {
 
     /**
      * Get the import precedence of this element. The import precedence equals
-     * the import precedence of the stylesheet in which this element occured.
+     * the import precedence of the stylesheet in which this element occurred.
      * @return The import precedence of this syntax tree node.
      */
     protected int getImportPrecedence() {
