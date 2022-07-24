@@ -564,7 +564,7 @@ $Id$
     <echo message="JLex preparsing"/>
     <java fork="yes" failonerror="true" classname="JLex.Main" >
       <classpath refid="xsltc.class.path" />
-      <arg line="-static ${src.dir}/${xsltc.reldir}/compiler/xpath.lex"/>
+      <arg line="${src.dir}/${xsltc.reldir}/compiler/xpath.lex"/>
     </java>
     <echo message="JLex move output file"/>
     <move file="${src.dir}/${xsltc.reldir}/compiler/xpath.lex.java" tofile="${generated.xpathlexer}"/>
