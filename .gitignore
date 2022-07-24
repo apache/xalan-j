@@ -1,7 +1,14 @@
 /build/
+/classes/
 /.idea/
 *.iml
 .DS_Store
+
+# We download the dependencies if they are missing
+/lib/
+/tools/java_cup.jar
+/tools/JLex.jar
+/tmp/
 
 # Generated sources
 /src/org/apache/xalan/processor/XSLProcessorVersion.java
